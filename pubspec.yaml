@@ -1,0 +1,14 @@
+name: flutter_apps
+publish_to: none
+environment:
+  sdk: ^3.11.4
+
+dev_dependencies:
+  melos: ^7.5.1
+workspace:
+  - packages/**
+  - apps/**
+
+melos:
+  scripts:
+    gen_exports: zsh scripts/gen_exports.sh
