@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'add_todo_provider.dart';
 
-class AddTodoScreen extends StatelessWidget {
+class AddTodoScreen extends HookWidget {
   const AddTodoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AddTodoProvider>(context);
-    final controller = TextEditingController(text: provider.todoText);
+    final controller = useTextEditingController(text: provider.todoText);
+
     return Scaffold(
       appBar: AppBar(title: const Text('TODO追加')),
       body: Padding(

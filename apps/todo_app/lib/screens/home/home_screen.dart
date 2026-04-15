@@ -11,7 +11,6 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = Provider.of<HomeProvider>(context);
     final todos = provider.todos;
-    final controller = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(title: const Text('TODOアプリ')),
@@ -21,21 +20,18 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    decoration: const InputDecoration(hintText: '新しいTODOを入力'),
-                  ),
+                const Expanded(
+                  child: SizedBox(),
                 ),
                 IconButton(
                   icon: const Icon(Icons.add),
-                  onPressed: () {
-                    if (controller.text.isNotEmpty) {
+                  onPressed: () async {
+                    final result = await Navigator.of(context).pushNamed('/add');
+                    if (result != null && result is String && result.isNotEmpty) {
                       provider.addTodo(Todo(
                         id: DateTime.now().toString(),
-                        title: controller.text,
+                        title: result,
                       ));
-                      controller.clear();
                     }
                   },
                 ),
