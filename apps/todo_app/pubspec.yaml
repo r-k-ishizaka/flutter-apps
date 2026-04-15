@@ -46,6 +46,10 @@ dependencies:
   go_router_builder: ^4.2.1
   get_it: ^9.2.1
   injectable: ^2.7.1+4
+  design_system:
+    path: ../../packages/design_system
+  core:
+    path: ../../packages/core
 
 dev_dependencies:
   flutter_test:
