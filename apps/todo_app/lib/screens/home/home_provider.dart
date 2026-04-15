@@ -1,26 +1,24 @@
+
 import 'package:flutter/material.dart';
 import '../../models/todo.dart';
+import '../../repositories/todo_repository.dart';
 
 class HomeProvider extends ChangeNotifier {
-  final List<Todo> _todos = [];
+  final TodoRepository todoRepository;
 
-  List<Todo> get todos => _todos;
+  HomeProvider(this.todoRepository);
 
+  List<Todo> get todos => todoRepository.todos;
   void addTodo(Todo todo) {
-    _todos.add(todo);
+    todoRepository.addTodo(todo);
     notifyListeners();
   }
-
   void toggleTodo(String id) {
-    final index = _todos.indexWhere((t) => t.id == id);
-    if (index != -1) {
-      _todos[index] = _todos[index].copyWith(isDone: !_todos[index].isDone);
-      notifyListeners();
-    }
+    todoRepository.toggleTodo(id);
+    notifyListeners();
   }
-
   void removeTodo(String id) {
-    _todos.removeWhere((t) => t.id == id);
+    todoRepository.removeTodo(id);
     notifyListeners();
   }
 }

@@ -26,8 +26,11 @@ class AddTodoScreen extends HookWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                context.pop(controller.text);
-                provider.clear();
+                final text = provider.validText;
+                if (text.isNotEmpty) {
+                  provider.clear();
+                  context.pop(text);
+                }
               },
               child: const Text('追加'),
             ),
