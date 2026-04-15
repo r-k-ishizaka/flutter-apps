@@ -11,4 +11,6 @@ workspace:
 
 melos:
   scripts:
-    gen_exports: zsh scripts/gen_exports.sh
+    gen_exports:
+      run: zsh scripts/gen_exports.sh {{args}}
+      description: "lib配下のdartファイルを全てexportするbarrelファイルを自動生成 (パッケージ名を引数で指定)"
