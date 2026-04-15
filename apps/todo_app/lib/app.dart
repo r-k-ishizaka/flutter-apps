@@ -2,6 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'app_routes.dart';
+import 'package:provider/provider.dart';
+import 'di.dart';
+import 'repositories/todo_repository.dart';
+import 'screens/home/home_provider.dart';
+import 'screens/add_todo/add_todo_provider.dart';
 
 final GoRouter _router = GoRouter(routes: $appRoutes);
 
@@ -10,10 +15,20 @@ class TodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'TODOアプリ',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      routerConfig: _router,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => HomeProvider(getIt<TodoRepository>()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AddTodoProvider(getIt<TodoRepository>()),
+        ),
+      ],
+      child: MaterialApp.router(
+        title: 'TODOアプリ',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        routerConfig: _router,
+      ),
     );
   }
 }

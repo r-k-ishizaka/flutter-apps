@@ -1,10 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'di.dart';
-import 'repositories/todo_repository.dart';
-import 'screens/home/home_provider.dart';
-import 'screens/add_todo/add_todo_provider.dart';
+// ...existing code...
 import 'screens/home/home_screen.dart';
 import 'screens/add_todo/add_todo_screen.dart';
 
@@ -20,10 +16,7 @@ class HomeRoute extends GoRouteData with $HomeRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ChangeNotifierProvider(
-        create: (_) => HomeProvider(getIt<TodoRepository>()),
-        child: const HomeScreen(),
-      );
+      const HomeScreen();
 }
 
 @immutable
@@ -32,8 +25,5 @@ class AddTodoRoute extends GoRouteData with $AddTodoRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ChangeNotifierProvider(
-        create: (_) => AddTodoProvider(getIt<TodoRepository>()),
-        child: const AddTodoScreen(),
-      );
+      const AddTodoScreen();
 }
