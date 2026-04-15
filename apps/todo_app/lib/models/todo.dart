@@ -1,15 +1,15 @@
-class Todo {
-  final String id;
-  final String title;
-  final bool isDone;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  Todo({required this.id, required this.title, this.isDone = false});
+part 'todo.freezed.dart';
+part 'todo.g.dart';
 
-  Todo copyWith({String? id, String? title, bool? isDone}) {
-    return Todo(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      isDone: isDone ?? this.isDone,
-    );
-  }
+@freezed
+sealed class Todo with _$Todo {
+  const factory Todo({
+    required String id,
+    required String title,
+    @Default(false) bool isDone,
+  }) = _Todo;
+
+  factory Todo.fromJson(Map<String, dynamic> json) => _$TodoFromJson(json);
 }

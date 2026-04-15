@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/todo.dart';
 
 class HomeProvider extends ChangeNotifier {
-  List<Todo> _todos = [];
+  final List<Todo> _todos = [];
 
   List<Todo> get todos => _todos;
 
