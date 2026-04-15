@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../app_routes.dart';
 import 'home_provider.dart';
 import '../../widgets/todo_list.dart';
 import '../../models/todo.dart';
@@ -20,18 +21,17 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                const Expanded(
-                  child: SizedBox(),
-                ),
+                const Expanded(child: SizedBox()),
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () async {
-                    final result = await Navigator.of(context).pushNamed('/add');
-                    if (result != null && result is String && result.isNotEmpty) {
-                      provider.addTodo(Todo(
-                        id: DateTime.now().toString(),
-                        title: result,
-                      ));
+                    final result = await const AddTodoRoute().push<String>(
+                      context,
+                    );
+                    if (result != null && result.isNotEmpty) {
+                      provider.addTodo(
+                        Todo(id: DateTime.now().toString(), title: result),
+                      );
                     }
                   },
                 ),

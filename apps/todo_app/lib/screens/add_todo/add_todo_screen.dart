@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'add_todo_provider.dart';
 
 class AddTodoScreen extends HookWidget {
@@ -25,7 +26,7 @@ class AddTodoScreen extends HookWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop(controller.text);
+                context.pop(controller.text);
                 provider.clear();
               },
               child: const Text('追加'),
