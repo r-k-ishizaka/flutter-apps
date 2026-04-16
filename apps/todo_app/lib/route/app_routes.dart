@@ -1,8 +1,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 // ...existing code...
-import 'screens/home/home_screen.dart';
-import 'screens/add_todo/add_todo_screen.dart';
+import '../screens/home/home_screen.dart';
+import '../screens/add_todo/add_todo_screen.dart';
 
 part 'app_routes.g.dart';
 

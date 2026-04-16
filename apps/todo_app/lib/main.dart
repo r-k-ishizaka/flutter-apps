@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app.dart';
-import 'di.dart';
+import 'di/di.dart';
 
 void main() {
   configureDependencies();
