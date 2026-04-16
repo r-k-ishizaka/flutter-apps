@@ -37,9 +37,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  freezed: ^3.2.5
   freezed_annotation: ^3.1.0
-  build_runner: ^2.13.1
   provider: ^6.1.5+1
   flutter_hooks: ^0.21.3+1
   go_router: ^17.2.1
@@ -50,17 +48,17 @@ dependencies:
     path: ../../packages/design_system
   core:
     path: ../../packages/core
+  drift: ^2.32.1
+  sqlite3_flutter_libs: ^0.6.0+eol
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   json_serializable: ^6.13.1
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  build_runner: ^2.13.1
+  drift_dev: ^2.32.1
+  freezed: ^3.2.5
   flutter_lints: ^6.0.0
   injectable_generator: ^2.12.1
 
