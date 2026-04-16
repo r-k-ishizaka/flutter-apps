@@ -12,6 +12,8 @@
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:todo_app/datasources/todo_data_source.dart' as _i251;
+import 'package:todo_app/datasources/todo_database.dart' as _i589;
+import 'package:todo_app/di/database_module.dart' as _i842;
 import 'package:todo_app/repositories/todo_repository.dart' as _i994;
 
 extension GetItInjectableX on _i174.GetIt {
@@ -21,9 +23,18 @@ extension GetItInjectableX on _i174.GetIt {
     _i526.EnvironmentFilter? environmentFilter,
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
+    final databaseModule = _$DatabaseModule();
+    gh.lazySingleton<_i589.TodoDatabase>(
+      () => databaseModule.provideTodoDatabase(),
+    );
+    gh.lazySingleton<_i251.TodoDataSource>(
+      () => _i251.TodoDataSource(gh<_i589.TodoDatabase>()),
+    );
     gh.factory<_i994.TodoRepository>(
       () => _i994.TodoRepository(gh<_i251.TodoDataSource>()),
     );
     return this;
   }
 }
+
+class _$DatabaseModule extends _i842.DatabaseModule {}

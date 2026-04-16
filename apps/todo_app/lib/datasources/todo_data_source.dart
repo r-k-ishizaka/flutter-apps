@@ -1,7 +1,9 @@
 import '../models/todo.dart' as model;
 import 'todo_database.dart';
 import 'package:drift/drift.dart';
+import 'package:injectable/injectable.dart';
 
+@lazySingleton
 class TodoDataSource {
   final TodoDatabase db;
 

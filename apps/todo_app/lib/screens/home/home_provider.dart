@@ -1,5 +1,7 @@
-
+import 'package:core/models/result.dart';
 import 'package:flutter/material.dart';
+import 'package:todo_app/screens/home/home_screen_state.dart'
+    hide Success, Failure;
 import '../../models/todo.dart';
 import '../../repositories/todo_repository.dart';
 
@@ -10,27 +12,42 @@ class HomeProvider extends ChangeNotifier {
     fetchTodos();
   }
 
-  List<Todo> _todos = [];
-  List<Todo> get todos => List.unmodifiable(_todos);
+  HomeScreenState _state = const HomeScreenState.loading();
+  HomeScreenState get state => _state;
 
-  Future<void> fetchTodos() async {
-    _todos = await todoRepository.getTodos();
+  void _updateState(HomeScreenState state) {
+    _state = state;
     notifyListeners();
   }
 
-  Future<void> addTodo(Todo todo) async {
-    await todoRepository.addTodo(todo);
-    await fetchTodos();
+  void initialize() {
+    _state = const HomeScreenState.loading();
+    fetchTodos();
   }
 
-  Future<void> toggleTodo(String id) async {
-    final todo = _todos.firstWhere((t) => t.id == id);
-    await todoRepository.updateTodo(todo.copyWith(isDone: !todo.isDone));
-    await fetchTodos();
+  void fetchTodos() async {
+    final result = await todoRepository.getTodos();
+    switch (result) {
+      case Success<List<Todo>>():
+        _updateState(HomeScreenState.success(result.value));
+      case Failure<List<Todo>>():
+        _updateState(HomeScreenState.failure(result.error));
+    }
   }
 
-  Future<void> removeTodo(String id) async {
+  void toggleTodo(String id) async {
+    state.maybeWhen(
+      success: (todos) async {
+        final todo = todos.firstWhere((t) => t.id == id);
+        await todoRepository.updateTodo(todo.copyWith(isDone: !todo.isDone));
+        fetchTodos();
+      },
+      orElse: () => {/* no-op */},
+    );
+  }
+
+  void removeTodo(String id) async {
     await todoRepository.removeTodo(id);
-    await fetchTodos();
+    fetchTodos();
   }
 }

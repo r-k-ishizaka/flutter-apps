@@ -1,52 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
+import 'package:todo_app/screens/home/home_screen_state.dart';
+import '../../models/todo.dart';
 import '../../route/app_routes.dart';
 import 'home_provider.dart';
 import '../../widgets/todo_list.dart';
-import '../../models/todo.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends HookWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<HomeProvider>(context);
-    final todos = provider.todos;
+    final state = provider.state;
+
+    useEffect(() {
+      provider.initialize();
+      return null;
+    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('TODOアプリ')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                const Expanded(child: SizedBox()),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () async {
-                    final result = await const AddTodoRoute().push<String>(
-                      context,
-                    );
-                    if (result != null && result.isNotEmpty) {
-                      provider.addTodo(
-                        Todo(id: DateTime.now().toString(), title: result),
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TodoList(
+      body: state.when(
+        loading: () => _LoadingScreen(),
+        success: (todos) {
+          if (todos.isEmpty) {
+            return _EmptyScreen();
+          } else {
+            return _SuccessScreen(
               todos: todos,
-              onToggle: provider.toggleTodo,
-              onDelete: provider.removeTodo,
-            ),
-          ),
-        ],
+              onToggle: (String id) => provider.toggleTodo(id),
+              onDelete: (String id) => provider.removeTodo(id),
+            );
+          }
+        },
+        failure: (Exception error) => _FailureScreen(error: error),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await const AddTodoRoute().push<String>(context);
+          if (result != null && result.isNotEmpty) {
+            provider.fetchTodos();
+          }
+        },
       ),
     );
   }
+}
+
+class _LoadingScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => SizedBox.shrink();
+}
+
+class _SuccessScreen extends StatelessWidget {
+  final List<Todo> todos;
+  final void Function(String id) onToggle;
+  final void Function(String id) onDelete;
+
+  const _SuccessScreen({
+    required this.todos,
+    required this.onToggle,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: TodoList(todos: todos, onToggle: onToggle, onDelete: onDelete),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => SizedBox.shrink();
+}
+
+class _FailureScreen extends StatelessWidget {
+  final Exception error;
+
+  const _FailureScreen({required this.error});
+
+  @override
+  Widget build(BuildContext context) => SizedBox.shrink();
 }

@@ -1,6 +1,7 @@
 import '../models/todo.dart';
 import 'package:injectable/injectable.dart';
 import '../datasources/todo_data_source.dart';
+import 'package:core/models/result.dart';
 
 @injectable
 class TodoRepository {
@@ -8,11 +9,39 @@ class TodoRepository {
 
   TodoRepository(this.dataSource);
 
-  Future<List<Todo>> getTodos() => dataSource.getTodos();
+  Future<Result<List<Todo>>> getTodos() async {
+    try {
+      final result = await dataSource.getTodos();
+      return Success(result);
+    } on Exception catch (e) {
+      return Failure(e);
+    }
+  }
 
-  Future<Todo> addTodo(Todo todo) => dataSource.addTodo(todo);
+  Future<Result<Todo>> addTodo(Todo todo) async {
+    try {
+      final result = await dataSource.addTodo(todo);
+      return Success(result);
+    } on Exception catch (e) {
+      return Failure(e);
+    }
+  }
 
-  Future<void> updateTodo(Todo todo) => dataSource.updateTodo(todo);
+  Future<Result<void>> updateTodo(Todo todo) async {
+    try {
+      await dataSource.updateTodo(todo);
+      return Success(null);
+    } on Exception catch (e) {
+      return Failure(e);
+    }
+  }
 
-  Future<void> removeTodo(String id) => dataSource.deleteTodo(id);
+  Future<Result<void>> removeTodo(String id) async {
+    try {
+      await dataSource.deleteTodo(id);
+      return Success(null);
+    } on Exception catch (e) {
+      return Failure(e);
+    }
+  }
 }
