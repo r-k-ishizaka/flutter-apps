@@ -1,9 +1,9 @@
 // ...existing code...
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'app_routes.dart';
+import 'route/app_routes.dart';
 import 'package:provider/provider.dart';
-import 'di.dart';
+import 'di/di.dart';
 import 'repositories/todo_repository.dart';
 import 'screens/home/home_provider.dart';
 import 'screens/add_todo/add_todo_provider.dart';
