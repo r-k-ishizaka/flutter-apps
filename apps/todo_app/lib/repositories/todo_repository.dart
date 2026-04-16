@@ -1,24 +1,18 @@
 import '../models/todo.dart';
 import 'package:injectable/injectable.dart';
+import '../datasources/todo_data_source.dart';
 
-@singleton
+@injectable
 class TodoRepository {
-  final List<Todo> _todos = [];
+  final TodoDataSource dataSource;
 
-  List<Todo> get todos => List.unmodifiable(_todos);
+  TodoRepository(this.dataSource);
 
-  void addTodo(Todo todo) {
-    _todos.add(todo);
-  }
+  Future<List<Todo>> getTodos() => dataSource.getTodos();
 
-  void toggleTodo(String id) {
-    final index = _todos.indexWhere((t) => t.id == id);
-    if (index != -1) {
-      _todos[index] = _todos[index].copyWith(isDone: !_todos[index].isDone);
-    }
-  }
+  Future<Todo> addTodo(Todo todo) => dataSource.addTodo(todo);
 
-  void removeTodo(String id) {
-    _todos.removeWhere((t) => t.id == id);
-  }
+  Future<void> updateTodo(Todo todo) => dataSource.updateTodo(todo);
+
+  Future<void> removeTodo(String id) => dataSource.deleteTodo(id);
 }
