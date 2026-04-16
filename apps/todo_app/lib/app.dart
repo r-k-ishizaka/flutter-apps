@@ -11,7 +11,7 @@ import 'screens/add_todo/add_todo_provider.dart';
 final GoRouter _router = GoRouter(routes: $appRoutes);
 
 class TodoApp extends StatelessWidget {
-  const TodoApp({Key? key}) : super(key: key);
+  const TodoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
