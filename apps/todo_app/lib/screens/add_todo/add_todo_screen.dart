@@ -45,20 +45,15 @@ class AddTodoScreen extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('TODO追加')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Builder(
-          builder: (_) => state.when(
-            stable: () => AddTodoStableScreen(
-              controller: controller,
-              onChanged: provider.updateText,
-              onAdd: () {
-                provider.addTodo();
-              },
-            ),
-            updating: () => const AddTodoUpdatingScreen(),
-          ),
+      body: state.when(
+        stable: () => AddTodoStableScreen(
+          controller: controller,
+          onChanged: provider.updateText,
+          onAdd: () {
+            provider.addTodo();
+          },
         ),
+        updating: () => const AddTodoUpdatingScreen(),
       ),
     );
   }
@@ -77,16 +72,19 @@ class AddTodoStableScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'TODO内容'),
-          onChanged: onChanged,
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton(onPressed: onAdd, child: const Text('追加')),
-      ],
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'TODO内容'),
+            onChanged: onChanged,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: onAdd, child: const Text('追加')),
+        ],
+      ),
     );
   }
 }
