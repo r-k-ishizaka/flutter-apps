@@ -1,0 +1,85 @@
+# アーキテクチャ概要
+
+このプロジェクト（todo_app）は、Flutterを用いたシンプルかつ拡張性の高いTODOアプリです。以下のようなレイヤードアーキテクチャを採用しています。
+
+---
+
+## ディレクトリ構成
+
+```
+lib/
+   main.dart                # エントリーポイント
+   app.dart                 # アプリ全体の設定（テーマ・Provider）
+   route/                   # ルーティング関連（go_router定義など）
+      app_routes.dart        # 画面遷移定義
+      app_routes.g.dart      # go_router自動生成ファイル
+   di/                      # 依存性注入関連
+      di.dart                # DI設定
+      di.config.dart         # injectable自動生成ファイル
+   models/                  # データモデル
+   datasources/             # データ取得元（API, DB等）
+   repositories/            # リポジトリ層
+   screens/                 # 各画面のUI・ロジック
+   services/                # ビジネスロジックや外部サービス連携
+   utils/                   # 定数・ユーティリティ
+   widgets/                 # 再利用可能なWidget
+```
+
+---
+
+## データフロー
+
+1. **UI（screens/）**
+   - ユーザー操作を受け取り、Provider経由で状態を管理
+2. **Provider（ChangeNotifier）**
+   - 状態管理とUIへの通知を担当
+   - RepositoryをDIで受け取る
+3. **Repository（repositories/）**
+   - データ取得・保存の窓口。DataSourceに依存
+4. **DataSource（datasources/）**
+   - 実際のデータ操作（API/DB/ローカル）を担当
+5. **モデル（models/）**
+   - アプリで扱うデータ構造を定義
+
+```
+[UI Widget]
+   ↓
+[Provider (ChangeNotifier)]
+   ↓
+[Repository]
+   ↓
+[DataSource]
+   ↓
+[モデル]
+```
+
+---
+
+## 技術・設計ポイント
+
+- **状態管理**: Provider（ChangeNotifierProvider）
+- **ルーティング**: go_router
+- **依存性注入**: get_it + injectable
+- **モデル生成**: freezed, json_serializable
+- **テスト容易性**: DIとレイヤ分離でテストしやすい
+- **デザインシステム**: packages/design_system でUI部品を共通化
+
+---
+
+## 改善ポイント・今後の展望
+
+- RepositoryとDataSourceの責務分離・永続化対応
+- バリデーション・エラーハンドリング強化
+- Provider肥大化対策（Service/UseCase層の導入）
+- DIの徹底とテスト容易性向上
+- ユニットテストの追加
+
+---
+
+## 参考
+- Flutter公式: https://flutter.dev/
+- Provider: https://pub.dev/packages/provider
+- go_router: https://pub.dev/packages/go_router
+- get_it: https://pub.dev/packages/get_it
+- injectable: https://pub.dev/packages/injectable
+- freezed: https://pub.dev/packages/freezed
