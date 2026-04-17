@@ -47,18 +47,17 @@ class AddTodoProvider extends ChangeNotifier {
     final result = await todoRepository.addTodo(
       Todo(id: DateTime.now().toString(), title: text),
     );
-    switch (result) {
-      case Success<Todo>():
+    result.when(
+      success: (_) {
         clear();
         _effect = const AddTodoEffectState.success();
         notifyListeners();
-        break;
-      case Failure<Todo>():
-        final error = (result as dynamic).error;
-        _effect = AddTodoEffectState.failure(error?.toString() ?? '不明なエラー');
+      },
+      failure: (error, _) {
+        _effect = AddTodoEffectState.failure(error.toString());
         notifyListeners();
-        break;
-    }
+      },
+    );
   }
 }
 

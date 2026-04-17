@@ -27,12 +27,10 @@ class HomeProvider extends ChangeNotifier {
 
   void fetchTodos() async {
     final result = await todoRepository.getTodos();
-    switch (result) {
-      case Success<List<Todo>>():
-        _updateState(HomeScreenState.success(result.value));
-      case Failure<List<Todo>>():
-        _updateState(HomeScreenState.failure(result.error));
-    }
+    result.when(
+      success: (todos) => _updateState(HomeScreenState.success(todos)),
+      failure: (error, _) => _updateState(HomeScreenState.failure(error)),
+    );
   }
 
   void toggleTodo(String id) async {
