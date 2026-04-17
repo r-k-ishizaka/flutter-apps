@@ -15,6 +15,7 @@ class WidgetbookApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Widgetbook.material(
       directories: directories,
+      themeMode: ThemeMode.light,
     );
   }
 }
