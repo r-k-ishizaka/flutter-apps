@@ -45,34 +45,36 @@ class AddTodoScreen extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('TODO追加')),
-      body: state.when(
-        stable: () => AddTodoStableScreen(
-          controller: controller,
-          onChanged: provider.updateText,
-          onAdd: () {
-            provider.addTodo();
-          },
+      body: _StableScreen(
+        controller: controller,
+        onChanged: provider.updateText,
+        onAdd: () {
+          provider.addTodo();
+        },
+        isLoading: state.maybeWhen(
+          updating: () => true,
+          orElse: () => false,
         ),
-        updating: () => const AddTodoUpdatingScreen(),
       ),
     );
   }
 }
 
-class AddTodoStableScreen extends StatelessWidget {
+class _StableScreen extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback onAdd;
-  const AddTodoStableScreen({
+  final bool isLoading;
+  const _StableScreen({
     required this.controller,
     required this.onChanged,
     required this.onAdd,
-    super.key,
+    required this.isLoading,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final content = Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
@@ -86,14 +88,21 @@ class AddTodoStableScreen extends StatelessWidget {
         ],
       ),
     );
+    if (!isLoading) return content;
+    return Stack(
+      children: [
+        content,
+        Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.grey.withOpacity(0.5),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ],
+    );
   }
 }
 
-class AddTodoUpdatingScreen extends StatelessWidget {
-  const AddTodoUpdatingScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
-  }
-}
