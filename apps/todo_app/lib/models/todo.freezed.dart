@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Todo {
 
- String get id; String get title; bool get isDone;
+ String get id; String get title; bool get isDone; ScheduleNotification? get scheduleNotification;
 /// Create a copy of Todo
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TodoCopyWith<Todo> get copyWith => _$TodoCopyWithImpl<Todo>(this as Todo, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Todo&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.isDone, isDone) || other.isDone == isDone));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Todo&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.isDone, isDone) || other.isDone == isDone)&&(identical(other.scheduleNotification, scheduleNotification) || other.scheduleNotification == scheduleNotification));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,isDone);
+int get hashCode => Object.hash(runtimeType,id,title,isDone,scheduleNotification);
 
 @override
 String toString() {
-  return 'Todo(id: $id, title: $title, isDone: $isDone)';
+  return 'Todo(id: $id, title: $title, isDone: $isDone, scheduleNotification: $scheduleNotification)';
 }
 
 
@@ -48,11 +48,11 @@ abstract mixin class $TodoCopyWith<$Res>  {
   factory $TodoCopyWith(Todo value, $Res Function(Todo) _then) = _$TodoCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, bool isDone
+ String id, String title, bool isDone, ScheduleNotification? scheduleNotification
 });
 
 
-
+$ScheduleNotificationCopyWith<$Res>? get scheduleNotification;
 
 }
 /// @nodoc
@@ -65,15 +65,28 @@ class _$TodoCopyWithImpl<$Res>
 
 /// Create a copy of Todo
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? isDone = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? isDone = null,Object? scheduleNotification = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,isDone: null == isDone ? _self.isDone : isDone // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,scheduleNotification: freezed == scheduleNotification ? _self.scheduleNotification : scheduleNotification // ignore: cast_nullable_to_non_nullable
+as ScheduleNotification?,
   ));
 }
+/// Create a copy of Todo
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ScheduleNotificationCopyWith<$Res>? get scheduleNotification {
+    if (_self.scheduleNotification == null) {
+    return null;
+  }
 
+  return $ScheduleNotificationCopyWith<$Res>(_self.scheduleNotification!, (value) {
+    return _then(_self.copyWith(scheduleNotification: value));
+  });
+}
 }
 
 
@@ -152,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  bool isDone)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  bool isDone,  ScheduleNotification? scheduleNotification)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Todo() when $default != null:
-return $default(_that.id,_that.title,_that.isDone);case _:
+return $default(_that.id,_that.title,_that.isDone,_that.scheduleNotification);case _:
   return orElse();
 
 }
@@ -173,10 +186,10 @@ return $default(_that.id,_that.title,_that.isDone);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  bool isDone)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  bool isDone,  ScheduleNotification? scheduleNotification)  $default,) {final _that = this;
 switch (_that) {
 case _Todo():
-return $default(_that.id,_that.title,_that.isDone);}
+return $default(_that.id,_that.title,_that.isDone,_that.scheduleNotification);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -190,10 +203,10 @@ return $default(_that.id,_that.title,_that.isDone);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  bool isDone)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  bool isDone,  ScheduleNotification? scheduleNotification)?  $default,) {final _that = this;
 switch (_that) {
 case _Todo() when $default != null:
-return $default(_that.id,_that.title,_that.isDone);case _:
+return $default(_that.id,_that.title,_that.isDone,_that.scheduleNotification);case _:
   return null;
 
 }
@@ -205,12 +218,13 @@ return $default(_that.id,_that.title,_that.isDone);case _:
 @JsonSerializable()
 
 class _Todo implements Todo {
-  const _Todo({required this.id, required this.title, this.isDone = false});
+  const _Todo({required this.id, required this.title, this.isDone = false, this.scheduleNotification = null});
   factory _Todo.fromJson(Map<String, dynamic> json) => _$TodoFromJson(json);
 
 @override final  String id;
 @override final  String title;
 @override@JsonKey() final  bool isDone;
+@override@JsonKey() final  ScheduleNotification? scheduleNotification;
 
 /// Create a copy of Todo
 /// with the given fields replaced by the non-null parameter values.
@@ -225,16 +239,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Todo&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.isDone, isDone) || other.isDone == isDone));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Todo&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.isDone, isDone) || other.isDone == isDone)&&(identical(other.scheduleNotification, scheduleNotification) || other.scheduleNotification == scheduleNotification));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,isDone);
+int get hashCode => Object.hash(runtimeType,id,title,isDone,scheduleNotification);
 
 @override
 String toString() {
-  return 'Todo(id: $id, title: $title, isDone: $isDone)';
+  return 'Todo(id: $id, title: $title, isDone: $isDone, scheduleNotification: $scheduleNotification)';
 }
 
 
@@ -245,11 +259,11 @@ abstract mixin class _$TodoCopyWith<$Res> implements $TodoCopyWith<$Res> {
   factory _$TodoCopyWith(_Todo value, $Res Function(_Todo) _then) = __$TodoCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, bool isDone
+ String id, String title, bool isDone, ScheduleNotification? scheduleNotification
 });
 
 
-
+@override $ScheduleNotificationCopyWith<$Res>? get scheduleNotification;
 
 }
 /// @nodoc
@@ -262,16 +276,29 @@ class __$TodoCopyWithImpl<$Res>
 
 /// Create a copy of Todo
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? isDone = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? isDone = null,Object? scheduleNotification = freezed,}) {
   return _then(_Todo(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,isDone: null == isDone ? _self.isDone : isDone // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,scheduleNotification: freezed == scheduleNotification ? _self.scheduleNotification : scheduleNotification // ignore: cast_nullable_to_non_nullable
+as ScheduleNotification?,
   ));
 }
 
+/// Create a copy of Todo
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ScheduleNotificationCopyWith<$Res>? get scheduleNotification {
+    if (_self.scheduleNotification == null) {
+    return null;
+  }
 
+  return $ScheduleNotificationCopyWith<$Res>(_self.scheduleNotification!, (value) {
+    return _then(_self.copyWith(scheduleNotification: value));
+  });
+}
 }
 
 // dart format on

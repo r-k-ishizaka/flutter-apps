@@ -18,9 +18,12 @@ class TodoDatabase extends _$TodoDatabase {
 
 // driftのテーブル定義
 class Todos extends Table {
-  IntColumn get id => integer().autoIncrement()();
+  TextColumn get id => text()();
   TextColumn get title => text()();
-  BoolColumn get completed => boolean().withDefault(const Constant(false))();
+  BoolColumn get isDone => boolean().withDefault(const Constant(false))();
+  TextColumn get scheduleNotification => text().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 LazyDatabase _openConnection() {
