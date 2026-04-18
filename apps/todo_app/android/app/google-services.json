@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "874024739794",
+    "project_id": "mayonicle-app",
+    "storage_bucket": "mayonicle-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:874024739794:android:6984903af3ef87a2321e0b",
+        "android_client_info": {
+          "package_name": "com.example.todo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0VUY_W8aZI9czhYsWeMF9Z5EpvhaY6Is"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:874024739794:android:298e0417d70dc19b321e0b",
+        "android_client_info": {
+          "package_name": "com.mayonicle.todo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0VUY_W8aZI9czhYsWeMF9Z5EpvhaY6Is"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
