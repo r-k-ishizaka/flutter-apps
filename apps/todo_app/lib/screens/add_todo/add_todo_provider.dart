@@ -1,55 +1,63 @@
-import 'package:core/models/result.dart';
+import '../../models/schedule_notification.dart';
 import '../../repositories/todo_repository.dart';
 import '../../models/todo.dart';
 import 'package:flutter/material.dart';
-import 'add_todo_screen_state.dart'; // Moved to the correct position
-
+import 'add_todo_screen_state.dart';
 import 'add_todo_effect_state.dart';
 
 class AddTodoProvider extends ChangeNotifier {
-  // 副作用通知用
-  AddTodoEffectState _effect = const AddTodoEffectState.none();
-  AddTodoEffectState get effect => _effect;
-  void clearEffect() {
-    _effect = const AddTodoEffectState.none();
-  }
-
+  // --- フィールド ---
   final TodoRepository todoRepository;
+  Todo _input = Todo(id: '', title: '');
+  AddTodoScreenState _state = const AddTodoScreenState.stable();
+  AddTodoEffectState _effect = const AddTodoEffectState.none();
 
+  // --- コンストラクタ ---
   AddTodoProvider(this.todoRepository);
 
-  AddTodoScreenState _state = const AddTodoScreenState.stable();
+  // --- getter ---
+  Todo get input => _input;
   AddTodoScreenState get state => _state;
+  AddTodoEffectState get effect => _effect;
+  String get todoText => _input.title;
+  ScheduleNotification? get scheduleNotification => _input.scheduleNotification;
+  String get validText => _input.title.trim();
 
-  String _todoText = '';
-  String get todoText => _todoText;
-  String get validText => _todoText.trim();
-
+  // --- 状態管理 ---
   void _updateState(AddTodoScreenState state) {
     _state = state;
     notifyListeners();
   }
+  void clearText() {
+    _input = _input.copyWith(title: '');
+    _updateState(const AddTodoScreenState.stable());
+  }
+  void clearEffect() {
+    _effect = const AddTodoEffectState.none();
+  }
 
+  // --- UI連携メソッド ---
+  void updateInput(Todo input) {
+    _input = input;
+    _updateState(const AddTodoScreenState.stable());
+  }
   void updateText(String text) {
-    _todoText = text;
-    _updateState(const AddTodoScreenState.stable());
+    updateInput(_input.copyWith(title: text));
+  }
+  void updateScheduleNotification(ScheduleNotification? notification) {
+    updateInput(_input.copyWith(scheduleNotification: notification));
   }
 
-  void clear() {
-    _todoText = '';
-    _updateState(const AddTodoScreenState.stable());
-  }
-
+  // --- メイン処理 ---
   Future<void> addTodo() async {
     final text = validText;
     if (text.isEmpty) return;
     _updateState(const AddTodoScreenState.updating());
-    final result = await todoRepository.addTodo(
-      Todo(id: DateTime.now().toString(), title: text),
-    );
+    final todo = _input.copyWith(id: DateTime.now().toString(), title: text);
+    final result = await todoRepository.addTodo(todo);
     result.when(
       success: (_) {
-        clear();
+        clearText();
         _effect = const AddTodoEffectState.success();
         notifyListeners();
       },
@@ -60,4 +68,3 @@ class AddTodoProvider extends ChangeNotifier {
     );
   }
 }
-
