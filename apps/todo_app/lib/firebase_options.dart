@@ -49,7 +49,7 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions android = FirebaseOptions(
+  static final FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyD0VUY_W8aZI9czhYsWeMF9Z5EpvhaY6Is',
     appId: '1:874024739794:android:6984903af3ef87a2321e0b',
     messagingSenderId: '874024739794',
@@ -57,13 +57,13 @@ class DefaultFirebaseOptions {
     storageBucket: 'mayonicle-app.firebasestorage.app',
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
+  static final FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAdVeGGfNHevtwH2Ezd42SnFTxg6XYPrjE',
     appId: '1:874024739794:ios:19b3a5f2e9502cbe321e0b',
     messagingSenderId: '874024739794',
     projectId: 'mayonicle-app',
     storageBucket: 'mayonicle-app.firebasestorage.app',
-    iosBundleId: 'com.example.todoApp',
+    iosBundleId: 'com.mayonicle.todoApp',
   );
 
 }
