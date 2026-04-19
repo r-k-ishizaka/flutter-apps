@@ -6,8 +6,15 @@ class TodoList extends StatelessWidget {
   final List<Todo> todos;
   final void Function(String) onToggle;
   final void Function(String) onDelete;
+  final void Function(String id) onRequestNotification;
 
-  const TodoList({super.key, required this.todos, required this.onToggle, required this.onDelete});
+  const TodoList({
+    super.key,
+    required this.todos,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onRequestNotification,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +26,7 @@ class TodoList extends StatelessWidget {
           todo: todo,
           onToggle: () => onToggle(todo.id),
           onDelete: () => onDelete(todo.id),
+          onRequestNotification: onRequestNotification,
         );
       },
     );

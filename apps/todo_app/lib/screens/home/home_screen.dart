@@ -6,6 +6,7 @@ import '../../models/todo.dart';
 import '../../route/app_routes.dart';
 import 'home_provider.dart';
 import '../../widgets/todo_list.dart';
+import 'package:core/notifications/notification_permission.dart';
 
 class HomeScreen extends HookWidget {
   const HomeScreen({super.key});
@@ -32,6 +33,10 @@ class HomeScreen extends HookWidget {
               todos: todos,
               onToggle: (String id) => provider.toggleTodo(id),
               onDelete: (String id) => provider.removeTodo(id),
+              onRequestNotification: (String id) async {
+                await requestNotificationPermission();
+                // idを使った処理が必要ならここで利用可能
+              },
             );
           }
         },
@@ -58,11 +63,13 @@ class _SuccessScreen extends StatelessWidget {
   final List<Todo> todos;
   final void Function(String id) onToggle;
   final void Function(String id) onDelete;
+  final void Function(String id) onRequestNotification;
 
   const _SuccessScreen({
     required this.todos,
     required this.onToggle,
     required this.onDelete,
+    required this.onRequestNotification,
   });
 
   @override
@@ -70,7 +77,12 @@ class _SuccessScreen extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: TodoList(todos: todos, onToggle: onToggle, onDelete: onDelete),
+          child: TodoList(
+            todos: todos,
+            onToggle: onToggle,
+            onDelete: onDelete,
+            onRequestNotification: onRequestNotification,
+          ),
         ),
       ],
     );
