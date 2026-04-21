@@ -21,5 +21,5 @@ Map<String, dynamic> _$TodoToJson(_Todo instance) => <String, dynamic>{
   'id': instance.id,
   'title': instance.title,
   'isDone': instance.isDone,
-  'scheduleNotification': instance.scheduleNotification,
+  'scheduleNotification': instance.scheduleNotification?.toJson(),
 };
