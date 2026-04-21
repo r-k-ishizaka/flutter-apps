@@ -1,8 +1,6 @@
-import 'package:core/models/result.dart';
 import 'package:flutter/material.dart';
 import 'package:todo_app/screens/home/home_screen_state.dart'
     hide Success, Failure;
-import '../../models/todo.dart';
 import '../../repositories/todo_repository.dart';
 
 class HomeProvider extends ChangeNotifier {
