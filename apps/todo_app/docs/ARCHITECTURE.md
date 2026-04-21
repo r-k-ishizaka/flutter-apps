@@ -15,7 +15,7 @@ lib/
       app_routes.g.dart      # go_router自動生成ファイル
    di/                      # 依存性注入関連
       di.dart                # DI設定
-      di.config.dart         # injectable自動生成ファイル
+      di.config.dart         # injectable自動生成ファイル（手編集しない）
    models/                  # データモデル
    datasources/             # データ取得元（API, DB等）
    repositories/            # リポジトリ層
@@ -38,6 +38,7 @@ lib/
    - データ取得・保存の窓口。DataSourceに依存
 4. **DataSource（datasources/）**
    - 実際のデータ操作（API/DB/ローカル）を担当
+   - 命名規則は [CONVENTIONS.md](./CONVENTIONS.md) を参照
 5. **モデル（models/）**
    - アプリで扱うデータ構造を定義
 
@@ -70,7 +71,7 @@ flowchart TD
 
 - **状態管理**: Provider（ChangeNotifierProvider）
 - **ルーティング**: go_router
-- **依存性注入**: get_it + injectable
+- **依存性注入**: get_it + injectable（生成ファイル運用は [CONVENTIONS.md](./CONVENTIONS.md) を参照）
 - **モデル生成**: freezed, json_serializable
 - **テスト容易性**: DIとレイヤ分離でテストしやすい
 - **デザインシステム**: 今後 `packages/design_system` でUI部品を共通化予定
@@ -93,6 +94,7 @@ flowchart TD
 ---
 
 ## 参考
+- [CONVENTIONS.md](./CONVENTIONS.md) — 命名規則・コーディングスタイル
 - Flutter公式: https://flutter.dev/
 - Provider: https://pub.dev/packages/provider
 - go_router: https://pub.dev/packages/go_router
