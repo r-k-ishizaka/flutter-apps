@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -21,11 +23,14 @@ class AuthScreen extends HookWidget {
     final oauthService = useMemoized(() => OAuthService());
 
     useEffect(() {
+      StreamSubscription<OAuthCallbackData>? callbackSubscription;
+
       void initializeOAuthListener() async {
         await oauthService.initializeDeepLinkListener();
 
-        oauthService.callbackStream.listen(
+        callbackSubscription = oauthService.callbackStream.listen(
           (callbackData) {
+            if (!context.mounted) return;
             final baseUrl = baseUrlController.text;
 
             context.read<AuthProvider>().signInWithOAuth(
@@ -37,6 +42,7 @@ class AuthScreen extends HookWidget {
             );
           },
           onError: (error) {
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('OAuth エラー: $error')),
             );
@@ -47,9 +53,8 @@ class AuthScreen extends HookWidget {
       initializeOAuthListener();
 
       return () {
-        baseUrlController.dispose();
-        tokenController.dispose();
-        oauthService.dispose();
+        unawaited(callbackSubscription?.cancel());
+        unawaited(oauthService.dispose());
       };
     }, []);
 

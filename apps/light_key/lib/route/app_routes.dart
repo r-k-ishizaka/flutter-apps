@@ -7,6 +7,7 @@ import '../screens/timeline/timeline_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/auth',
+  overridePlatformDefaultLocation: true,
   routes: [
     GoRoute(
       path: '/auth',

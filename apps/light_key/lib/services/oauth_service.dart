@@ -20,7 +20,7 @@ class OAuthService {
   static const String _callbackHost = 'oauth-callback';
 
   late final AppLinks _appLinks;
-  late StreamSubscription<Uri> _deepLinkSubscription;
+  StreamSubscription<Uri>? _deepLinkSubscription;
 
   String? _expectedState;
   final _callbackController = StreamController<OAuthCallbackData>.broadcast();
@@ -33,6 +33,11 @@ class OAuthService {
 
   /// ディープリンク監視を開始
   Future<void> initializeDeepLinkListener() async {
+    final initialUri = await _appLinks.getInitialAppLink();
+    if (initialUri != null) {
+      _handleDeepLink(initialUri);
+    }
+
     _deepLinkSubscription = _appLinks.uriLinkStream.listen(
       _handleDeepLink,
       onError: (err) {
@@ -129,7 +134,7 @@ class OAuthService {
 
   /// クリーンアップ
   Future<void> dispose() async {
-    await _deepLinkSubscription.cancel();
+    await _deepLinkSubscription?.cancel();
     _expectedState = null;
     _codeVerifier = null;
     await _callbackController.close();
