@@ -21,6 +21,31 @@ class AuthRepository {
     }
   }
 
+  Future<Result<User>> signInWithOAuth(
+    String baseUrl,
+    String clientId,
+    String code,
+    String redirectUri, {
+    String? codeVerifier,
+  }) async {
+    try {
+      final accessToken = await _dataSource.getOAuthToken(
+        baseUrl,
+        clientId,
+        code,
+        redirectUri,
+        codeVerifier: codeVerifier,
+      );
+      final user = await _dataSource.verify(baseUrl, accessToken);
+      await _dataSource.saveSession(
+        AuthSession(baseUrl: baseUrl, accessToken: accessToken),
+      );
+      return Success(user);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
   Future<Result<AuthSession?>> restoreSession() async {
     try {
       final session = await _dataSource.loadSession();

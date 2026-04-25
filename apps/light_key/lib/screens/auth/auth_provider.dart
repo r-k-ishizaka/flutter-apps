@@ -36,6 +36,41 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> signInWithOAuth({
+    required String baseUrl,
+    required String clientId,
+    required String code,
+    required String redirectUri,
+    String? codeVerifier,
+  }) async {
+    _state = _state.copyWith(status: AuthStatus.loading, clearMessage: true);
+    notifyListeners();
+
+    final result = await _authRepository.signInWithOAuth(
+      baseUrl,
+      clientId,
+      code,
+      redirectUri,
+      codeVerifier: codeVerifier,
+    );
+    result.when(
+      success: (user) {
+        _state = _state.copyWith(
+          status: AuthStatus.authenticated,
+          user: user,
+          message: 'OAuth ログインに成功しました。',
+        );
+      },
+      failure: (error, _) {
+        _state = _state.copyWith(
+          status: AuthStatus.error,
+          message: 'OAuth ログインに失敗しました: $error',
+        );
+      },
+    );
+    notifyListeners();
+  }
+
   Future<void> restoreSession() async {
     final result = await _authRepository.restoreSession();
     result.when(

@@ -6,4 +6,13 @@ abstract interface class AuthDataSource {
   Future<void> saveSession(AuthSession session);
   Future<AuthSession?> loadSession();
   Future<void> clearSession();
+
+  // OAuth methods
+  Future<String> getOAuthToken(
+    String baseUrl,
+    String clientId,
+    String code,
+    String redirectUri, {
+    String? codeVerifier,
+  });
 }

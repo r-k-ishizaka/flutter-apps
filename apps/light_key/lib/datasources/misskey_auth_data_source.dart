@@ -45,4 +45,33 @@ class MisskeyAuthDataSource implements AuthDataSource {
     await prefs.remove(_baseUrlKey);
     await prefs.remove(_accessTokenKey);
   }
+
+  @override
+  Future<String> getOAuthToken(
+    String baseUrl,
+    String clientId,
+    String code,
+    String redirectUri, {
+    String? codeVerifier,
+  }) async {
+    final body = <String, dynamic>{
+      'grant_type': 'authorization_code',
+      'client_id': clientId,
+      'code': code,
+      'redirect_uri': redirectUri,
+    };
+
+    if (codeVerifier != null) {
+      body['code_verifier'] = codeVerifier;
+    }
+
+    final response = await client.postJson(
+      baseUrl: baseUrl,
+      path: '/oauth/token',
+      body: body,
+    );
+
+    final accessToken = response['access_token'] as String;
+    return accessToken;
+  }
 }
