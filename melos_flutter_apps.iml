@@ -13,6 +13,9 @@
       <excludeFolder url="file://$MODULE_DIR$/packages/core/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/packages/core/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/packages/core/build" />
+      <excludeFolder url="file://$MODULE_DIR$/apps/light_key/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/apps/light_key/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/apps/light_key/build" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Dart SDK" level="project" />
