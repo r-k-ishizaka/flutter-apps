@@ -10,7 +10,7 @@ Misskey向け軽量クライアントのサンプル実装です。
 
 ## アーキテクチャ
 
-`apps/todo_app/docs/ARCHITECTURE.md` を参考に、以下のレイヤを分離しています。
+`docs/standards/ARCHITECTURE.md` を参考に、以下のレイヤを分離しています。
 
 - `screens/`: UIとProvider（ChangeNotifier）
 - `repositories/`: ユースケース境界とResult変換
