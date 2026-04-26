@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -6,30 +7,12 @@ import '../../route/app_routes.dart';
 import 'post_provider.dart';
 import 'post_screen_state.dart';
 
-class PostScreen extends StatefulWidget {
+class PostScreen extends HookWidget {
   const PostScreen({super.key});
 
   @override
-  State<PostScreen> createState() => _PostScreenState();
-}
-
-class _PostScreenState extends State<PostScreen> {
-  late final TextEditingController _textController;
-
-  @override
-  void initState() {
-    super.initState();
-    _textController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final textController = useTextEditingController();
     final state = context.watch<PostProvider>().state;
 
     return Scaffold(
@@ -47,7 +30,7 @@ class _PostScreenState extends State<PostScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
-            controller: _textController,
+            controller: textController,
             maxLines: 6,
             decoration: const InputDecoration(
               hintText: 'いまどうしてる？',
@@ -59,11 +42,11 @@ class _PostScreenState extends State<PostScreen> {
             onPressed: state.status == PostStatus.submitting
                 ? null
                 : () async {
-                    await context.read<PostProvider>().submit(_textController.text);
+                    await context.read<PostProvider>().submit(textController.text);
                     if (context.mounted &&
                         context.read<PostProvider>().state.status ==
                             PostStatus.success) {
-                      _textController.clear();
+                      textController.clear();
                     }
                   },
             child: state.status == PostStatus.submitting
