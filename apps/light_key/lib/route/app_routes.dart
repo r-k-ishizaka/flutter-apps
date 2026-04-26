@@ -1,15 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../screens/auth/auth_screen.dart';
 import '../screens/post/post_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
+import '../screens/timeline/timeline_provider.dart';
 
 part 'app_routes.g.dart';
 
-@TypedGoRoute<TimelineRoute>(
-  path: '/timeline',
+@TypedShellRoute<AppShellRouteData>(
+  routes: [
+    TypedGoRoute<TimelineRoute>(path: '/timeline'),
+    TypedGoRoute<AuthRoute>(path: '/auth'),
+  ],
 )
+@immutable
+class AppShellRouteData extends ShellRouteData {
+  const AppShellRouteData();
+
+  @override
+  Widget builder(BuildContext context, GoRouterState state, Widget navigator) {
+    return AppShell(currentPath: state.uri.path, child: navigator);
+  }
+}
+
 @immutable
 class TimelineRoute extends GoRouteData with $TimelineRoute {
   const TimelineRoute();
@@ -19,28 +34,21 @@ class TimelineRoute extends GoRouteData with $TimelineRoute {
       const TimelineScreen();
 }
 
-@TypedGoRoute<AuthRoute>(
-  path: '/auth',
-)
 @immutable
 class AuthRoute extends GoRouteData with $AuthRoute {
   const AuthRoute();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      const AuthScreen();
+  Widget build(BuildContext context, GoRouterState state) => const AuthScreen();
 }
 
-@TypedGoRoute<PostRoute>(
-  path: '/post',
-)
+@TypedGoRoute<PostRoute>(path: '/post')
 @immutable
 class PostRoute extends GoRouteData with $PostRoute {
   const PostRoute();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      const PostScreen();
+  Widget build(BuildContext context, GoRouterState state) => const PostScreen();
 }
 
 final GoRouter appRouter = GoRouter(
@@ -48,6 +56,38 @@ final GoRouter appRouter = GoRouter(
   overridePlatformDefaultLocation: true,
   routes: $appRoutes,
 );
+
+class AppShell extends StatelessWidget {
+  const AppShell({super.key, required this.currentPath, required this.child});
+
+  final String currentPath;
+  final Widget child;
+
+  bool get _isAuth => currentPath.startsWith('/auth');
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isAuth ? '認証' : 'タイムライン'),
+        actions: _isAuth
+            ? null
+            : [
+                IconButton(
+                  onPressed: () => context.read<TimelineProvider>().fetch(),
+                  icon: const Icon(Icons.refresh),
+                ),
+                IconButton(
+                  onPressed: () => const PostRoute().go(context),
+                  icon: const Icon(Icons.edit_note),
+                ),
+              ],
+      ),
+      bottomNavigationBar: AppNavBar(currentPath: currentPath),
+      body: child,
+    );
+  }
+}
 
 class AppNavBar extends StatelessWidget {
   const AppNavBar({super.key, required this.currentPath});
@@ -66,10 +106,10 @@ class AppNavBar extends StatelessWidget {
       onDestinationSelected: (index) {
         switch (index) {
           case 0:
-            context.go('/timeline');
+            const TimelineRoute().go(context);
             break;
           case 1:
-            context.go('/auth');
+            const AuthRoute().go(context);
             break;
         }
       },

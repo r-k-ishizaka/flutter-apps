@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../route/app_routes.dart';
@@ -60,12 +59,9 @@ class AuthScreen extends HookWidget {
 
     final state = context.watch<AuthProvider>().state;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('認証')),
-      bottomNavigationBar: const AppNavBar(currentPath: '/auth'),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
           TextField(
             controller: baseUrlController,
             decoration: const InputDecoration(
@@ -153,16 +149,15 @@ class AuthScreen extends HookWidget {
             ),
           const SizedBox(height: 20),
           FilledButton.tonal(
-            onPressed: () => context.go('/timeline'),
+            onPressed: () => const TimelineRoute().go(context),
             child: const Text('タイムラインへ'),
           ),
           const SizedBox(height: 8),
           FilledButton.tonal(
-            onPressed: () => context.go('/post'),
+            onPressed: () => const PostRoute().go(context),
             child: const Text('投稿画面へ'),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

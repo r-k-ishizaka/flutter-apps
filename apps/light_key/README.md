@@ -25,6 +25,18 @@ flutter run
 2. `ログインして検証` を押下
 3. タイムライン画面で取得、投稿画面で投稿
 
+## ルーティング運用ルール
+
+- `light_key` のルーティングは `go_router` + `go_router_builder` を必須とします。
+- `lib/route/app_routes.dart` は `@TypedGoRoute` / `@TypedShellRoute` を使って定義します。
+- `lib/route/app_routes.g.dart` は生成ファイルのため手編集しません。
+- ルート定義を変更したら、必ず以下を実行して生成ファイルを更新してください。
+
+```bash
+cd /Users/kikuchi/develop/projects/flutter-apps/apps/light_key
+dart run build_runner build --delete-conflicting-outputs
+```
+
 ## ドキュメント
 
 - アーキテクチャ・レイヤ設計: [`docs/standards/ARCHITECTURE.md`](../../docs/standards/ARCHITECTURE.md)

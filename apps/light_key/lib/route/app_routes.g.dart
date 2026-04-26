@@ -6,10 +6,20 @@ part of 'app_routes.dart';
 // GoRouterGenerator
 // **************************************************************************
 
-List<RouteBase> get $appRoutes => [$timelineRoute, $authRoute, $postRoute];
+List<RouteBase> get $appRoutes => [$appShellRouteData, $postRoute];
 
-RouteBase get $timelineRoute =>
-    GoRouteData.$route(path: '/timeline', factory: $TimelineRoute._fromState);
+RouteBase get $appShellRouteData => ShellRouteData.$route(
+  factory: $AppShellRouteDataExtension._fromState,
+  routes: [
+    GoRouteData.$route(path: '/timeline', factory: $TimelineRoute._fromState),
+    GoRouteData.$route(path: '/auth', factory: $AuthRoute._fromState),
+  ],
+);
+
+extension $AppShellRouteDataExtension on AppShellRouteData {
+  static AppShellRouteData _fromState(GoRouterState state) =>
+      const AppShellRouteData();
+}
 
 mixin $TimelineRoute on GoRouteData {
   static TimelineRoute _fromState(GoRouterState state) => const TimelineRoute();
@@ -30,9 +40,6 @@ mixin $TimelineRoute on GoRouteData {
   @override
   void replace(BuildContext context) => context.replace(location);
 }
-
-RouteBase get $authRoute =>
-    GoRouteData.$route(path: '/auth', factory: $AuthRoute._fromState);
 
 mixin $AuthRoute on GoRouteData {
   static AuthRoute _fromState(GoRouterState state) => const AuthRoute();

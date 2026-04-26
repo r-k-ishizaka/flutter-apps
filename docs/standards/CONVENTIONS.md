@@ -43,13 +43,14 @@
 
 ### Routing（`route/`）
 
-- `go_router` + `go_router_builder` を組み合わせた型安全なルート定義を採用します。
-- 各ルートは `@TypedGoRoute` アノテーション付きの `GoRouteData` 継承クラスで定義します。
+- `go_router` + `go_router_builder` を組み合わせた型安全なルート定義を必須とします。
+- 各ルートは `@TypedGoRoute`（必要に応じて `@TypedShellRoute`）を使って定義します。
+- 文字列リテラル（`context.go('/xxx')`）による直接遷移は避け、生成された Route API（`const XxxRoute().go(context)`）を使用します。
 - `build_runner` で自動生成される `_.g.dart` ファイルにより、mixin と生成ヘルパーが提供されます。
 
 | ファイル名 | 役割 | 例 |
 |---|---|---|
-| `app_routes.dart` | ルート定義（@TypedGoRoute および実装） | `@TypedGoRoute<HomeRoute>(path: '/')` |
+| `app_routes.dart` | ルート定義（@TypedGoRoute / @TypedShellRoute および実装） | `@TypedGoRoute<HomeRoute>(path: '/')` |
 | `app_routes.g.dart` | 自動生成ファイル。手編集禁止。 | go_router_builder が生成 |
 
 **実装例:**

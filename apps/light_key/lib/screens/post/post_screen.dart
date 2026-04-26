@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../route/app_routes.dart';
@@ -20,7 +19,7 @@ class PostScreen extends HookWidget {
         title: const Text('投稿'),
         actions: [
           IconButton(
-            onPressed: () => context.go('/timeline'),
+            onPressed: () => const TimelineRoute().go(context),
             icon: const Icon(Icons.dynamic_feed),
           ),
         ],
