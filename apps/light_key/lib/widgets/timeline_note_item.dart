@@ -3,6 +3,7 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter/material.dart';
 
 import '../models/note.dart';
+import 'renote_card.dart';
 
 class TimelineNoteItem extends StatelessWidget {
   const TimelineNoteItem({
@@ -108,7 +109,7 @@ class TimelineNoteItem extends StatelessWidget {
                                 children: [
                                   Text(note.text),
                                   const SizedBox(height: 8),
-                                  _RenoteCard(renote: note.renote!),
+                                  RenoteCard(renote: note.renote!),
                                 ],
                               ),
                             },
@@ -177,78 +178,6 @@ class _UserAvatar extends StatelessWidget {
               radius: size / 2,
               child: Icon(Icons.person_outline, size: size * 0.5),
             ),
-      ),
-    );
-  }
-}
-
-/// リノート元ノートを枠線付きカードで表示するウィジェット。
-/// 多段リノートは 1 段のみ表示。
-class _RenoteCard extends StatelessWidget {
-  const _RenoteCard({required this.renote});
-
-  final Note renote;
-
-  String _createdAtLabel(DateTime createdAt) {
-    return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _UserAvatar(
-            avatarUrl: renote.user.avatarUrl,
-            avatarBlurHash: renote.user.avatarBlurHash,
-            size: 32,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '@${renote.user.username}',
-                        style: textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _createdAtLabel(renote.createdAt),
-                      style: textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  renote.text.isNotEmpty
-                      ? renote.text
-                      : renote.renote != null
-                      ? '(リノート)'
-                      : '(本文なし)',
-                  style: textTheme.bodyMedium,
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
