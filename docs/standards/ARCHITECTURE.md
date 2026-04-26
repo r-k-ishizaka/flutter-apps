@@ -69,7 +69,9 @@ flowchart TD
 
 - **状態管理**: Provider（ChangeNotifierProvider）
 - **画面実装**: flutter_hooks（`HookWidget` を標準採用）
-- **ルーティング**: go_router
+- **ルーティング**: go_router + go_router_builder（型安全なルート定義）
+  - `@TypedGoRoute` アノテーションでルート定義し、`build_runner` で自動生成
+  - 詳細は [CONVENTIONS.md](./CONVENTIONS.md) のルーティングセクション参照
 - **依存性注入**: get_it + injectable（生成ファイル運用は [CONVENTIONS.md](./CONVENTIONS.md) を参照）
 - **モデル生成**: freezed, json_serializable
 - **テスト容易性**: DIとレイヤ分離でテストしやすい

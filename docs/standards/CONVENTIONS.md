@@ -41,17 +41,52 @@
 | `todo_list.dart` | `TodoList` | Todoの一覧表示 |
 | `schedule_notification_input.dart` | `ScheduleNotificationInput` | 通知設定の入力UI |
 
+### Routing（`route/`）
+
+- `go_router` + `go_router_builder` を組み合わせた型安全なルート定義を採用します。
+- 各ルートは `@TypedGoRoute` アノテーション付きの `GoRouteData` 継承クラスで定義します。
+- `build_runner` で自動生成される `_.g.dart` ファイルにより、mixin と生成ヘルパーが提供されます。
+
+| ファイル名 | 役割 | 例 |
+|---|---|---|
+| `app_routes.dart` | ルート定義（@TypedGoRoute および実装） | `@TypedGoRoute<HomeRoute>(path: '/')` |
+| `app_routes.g.dart` | 自動生成ファイル。手編集禁止。 | go_router_builder が生成 |
+
+**実装例:**
+
+```dart
+import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
+import '../screens/home/home_screen.dart';
+
+part 'app_routes.g.dart';
+
+@TypedGoRoute<HomeRoute>(path: '/')
+@immutable
+class HomeRoute extends GoRouteData with $HomeRoute {
+  const HomeRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) => const HomeScreen();
+}
+
+final GoRouter appRouter = GoRouter(
+  initialLocation: '/',
+  routes: $appRoutes,
+);
+```
+
 ### 自動生成ファイル
 
 - `*.g.dart` / `*.freezed.dart` / `di.config.dart` などの自動生成ファイルは **手編集しない**。
 - 変更が必要な場合は対応するソースを修正した上で `build_runner` で再生成します。
 
 ```sh
-# injectable（di.config.dart）の再生成
-dart run build_runner build --delete-conflicting-outputs --build-filter="lib/di/di.config.dart"
-
-# 全体再生成
+# 全体再生成（go_router_builder, injectable, freezed等を含む）
 dart run build_runner build --delete-conflicting-outputs
+
+# 特定パッケージのみ再生成（injectable の例）
+dart run build_runner build --delete-conflicting-outputs --build-filter="lib/di/di.config.dart"
 ```
 
 ---
