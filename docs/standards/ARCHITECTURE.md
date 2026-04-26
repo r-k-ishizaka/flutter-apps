@@ -58,6 +58,7 @@ flowchart TD
 ## 画面状態管理・UI更新の設計指針
 
 - 各画面は「状態（State）」と「副作用（Effect）」を明確に分離して設計します。
+- `screens/` 配下の画面Widgetは `StatefulWidget` を原則使用せず、`HookWidget` と Provider の組み合わせで実装します。
 - 画面の状態はProvider（ChangeNotifier）で一元管理し、UIはその状態を監視して自動的に再描画されます。
 - 画面の状態（例: stable, updating, errorなど）はenumやsealed classで表現し、状態ごとにUIを切り替えます。
 - ユーザー操作（入力・ボタン押下など）はProviderのメソッドを通じて状態を更新します。
@@ -67,6 +68,7 @@ flowchart TD
 ## 技術・設計ポイント
 
 - **状態管理**: Provider（ChangeNotifierProvider）
+- **画面実装**: flutter_hooks（`HookWidget` を標準採用）
 - **ルーティング**: go_router
 - **依存性注入**: get_it + injectable（生成ファイル運用は [CONVENTIONS.md](./CONVENTIONS.md) を参照）
 - **モデル生成**: freezed, json_serializable

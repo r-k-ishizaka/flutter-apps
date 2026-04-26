@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -7,24 +8,18 @@ import '../../route/app_routes.dart';
 import 'timeline_provider.dart';
 import 'timeline_screen_state.dart';
 
-class TimelineScreen extends StatefulWidget {
+class TimelineScreen extends HookWidget {
   const TimelineScreen({super.key});
 
   @override
-  State<TimelineScreen> createState() => _TimelineScreenState();
-}
-
-class _TimelineScreenState extends State<TimelineScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TimelineProvider>().fetch();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<TimelineProvider>().fetch();
+      });
+      return null;
+    }, const []);
+
     final state = context.watch<TimelineProvider>().state;
 
     return Scaffold(

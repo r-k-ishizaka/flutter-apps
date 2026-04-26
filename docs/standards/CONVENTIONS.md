@@ -19,6 +19,7 @@
 ### Screen（`screens/`）
 
 - 各画面は `screens/<screen_name>/` ディレクトリに格納します。
+- 画面のルートWidgetは `StatefulWidget` ではなく `HookWidget` を標準とし、状態管理はProvider（`ChangeNotifier`）で行います。
 - ディレクトリ内のファイル構成は以下を標準とします。
 
 | ファイル名 | 役割 |
