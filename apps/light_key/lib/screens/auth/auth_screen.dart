@@ -20,6 +20,18 @@ class AuthScreen extends HookWidget {
     final baseUrlController = useTextEditingController(text: 'https://misskey.io');
     final tokenController = useTextEditingController();
     final oauthService = useMemoized(() => OAuthService());
+    final state = context.watch<AuthProvider>().state;
+
+    useEffect(() {
+      if (state.status != AuthStatus.authenticated) return null;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        const SplashRoute().go(context);
+      });
+
+      return null;
+    }, [state.status]);
 
     useEffect(() {
       StreamSubscription<OAuthCallbackData>? callbackSubscription;
@@ -57,11 +69,13 @@ class AuthScreen extends HookWidget {
       };
     }, []);
 
-    final state = context.watch<AuthProvider>().state;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('ログイン'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
           TextField(
             controller: baseUrlController,
             decoration: const InputDecoration(
@@ -157,7 +171,8 @@ class AuthScreen extends HookWidget {
             onPressed: () => const PostRoute().go(context),
             child: const Text('投稿画面へ'),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
