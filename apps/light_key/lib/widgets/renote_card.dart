@@ -3,6 +3,7 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter/material.dart';
 
 import '../models/note.dart';
+import 'emoji_text.dart';
 
 /// リノート元ノートを枠線付きカードで表示するウィジェット。
 /// 多段リノートは 1 段のみ表示。
@@ -57,7 +58,7 @@ class RenoteCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
+                EmojiText(
                   renote.text.isNotEmpty
                       ? renote.text
                       : renote.renote != null

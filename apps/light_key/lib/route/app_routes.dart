@@ -4,11 +4,22 @@ import 'package:provider/provider.dart';
 
 import '../screens/auth/auth_screen.dart';
 import '../screens/post/post_screen.dart';
+import '../screens/splash/splash_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
 import '../screens/timeline/timeline_provider.dart';
 import '../widgets/theme_switch_button.dart';
 
 part 'app_routes.g.dart';
+
+@TypedGoRoute<SplashRoute>(path: '/')
+@immutable
+class SplashRoute extends GoRouteData with $SplashRoute {
+  const SplashRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const SplashScreen();
+}
 
 @TypedShellRoute<AppShellRouteData>(
   routes: [
@@ -53,7 +64,7 @@ class PostRoute extends GoRouteData with $PostRoute {
 }
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/timeline',
+  initialLocation: '/',
   overridePlatformDefaultLocation: true,
   routes: $appRoutes,
 );

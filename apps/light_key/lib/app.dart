@@ -22,7 +22,7 @@ class LightKeyApp extends StatelessWidget {
           create: (_) => getIt<ThemeProvider>(),
         ),
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(getIt<AuthRepository>())..restoreSession(),
+          create: (_) => AuthProvider(getIt<AuthRepository>()),
         ),
         ChangeNotifierProvider(
           create: (_) => TimelineProvider(

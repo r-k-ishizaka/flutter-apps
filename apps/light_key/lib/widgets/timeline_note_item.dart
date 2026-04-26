@@ -3,6 +3,7 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter/material.dart';
 
 import '../models/note.dart';
+import 'emoji_text.dart';
 import 'renote_card.dart';
 
 class TimelineNoteItem extends StatelessWidget {
@@ -96,10 +97,10 @@ class TimelineNoteItem extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             switch (note.noteType) {
-                              NoteType.normal => Text(
+                              NoteType.normal => EmojiText(
                                 note.text.isEmpty ? '(本文なし)' : note.text,
                               ),
-                              NoteType.pureRenote => Text(
+                              NoteType.pureRenote => EmojiText(
                                 displayNote.text.isEmpty
                                     ? '(本文なし)'
                                     : displayNote.text,
@@ -107,7 +108,7 @@ class TimelineNoteItem extends StatelessWidget {
                               NoteType.quoteRenote => Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(note.text),
+                                  EmojiText(note.text),
                                   const SizedBox(height: 8),
                                   RenoteCard(renote: note.renote!),
                                 ],
