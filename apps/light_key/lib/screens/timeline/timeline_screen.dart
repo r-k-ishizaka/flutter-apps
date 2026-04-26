@@ -1,12 +1,13 @@
 import 'dart:async';
 
+import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/note.dart';
 import '../../route/app_routes.dart';
+import '../../widgets/timeline_list.dart';
 import 'timeline_provider.dart';
 import 'timeline_screen_state.dart';
 
@@ -43,230 +44,13 @@ class TimelineScreen extends HookWidget {
       ),
       bottomNavigationBar: const AppNavBar(currentPath: '/timeline'),
       body: switch (state.status) {
-        TimelineStatus.loading => const Center(child: CircularProgressIndicator()),
-        TimelineStatus.error => Center(child: Text(state.message ?? 'エラーが発生しました。')),
-        _ => _TimelineList(notes: state.notes, message: state.message),
+        TimelineStatus.loading => const LoadingContent(),
+        TimelineStatus.error => ErrorContent(
+          message: state.message ?? 'エラーが発生しました。',
+          onRetry: () => context.read<TimelineProvider>().fetch(),
+        ),
+        _ => TimelineList(notes: state.notes, message: state.message),
       },
-    );
-  }
-}
-
-class _TimelineList extends HookWidget {
-  const _TimelineList({required this.notes, this.message});
-
-  final List<Note> notes;
-  final String? message;
-
-  @override
-  Widget build(BuildContext context) {
-    final listKey = useMemoized(() => GlobalKey<AnimatedListState>());
-    final scrollController = useScrollController();
-    final visibleNotes = useState<List<Note>>(List<Note>.from(notes));
-    final isFirstSync = useRef(true);
-    final pendingNotes = useRef<List<Note>>([]);
-    final pendingCount = useState(0);
-    final isAtTop = useState(true);
-
-    // スクロール位置を監視
-    useEffect(() {
-      void listener() {
-        final atTop = scrollController.offset == 0;
-        isAtTop.value = atTop;
-
-        // 最上部に来たときに保留中の更新を反映
-        if (atTop && pendingNotes.value.isNotEmpty) {
-          _applyNoteUpdates(
-            context,
-            listKey,
-            visibleNotes,
-            pendingNotes.value,
-          );
-          pendingNotes.value = [];
-          pendingCount.value = 0;
-        }
-      }
-
-      scrollController.addListener(listener);
-      return () => scrollController.removeListener(listener);
-    }, []);
-
-    useEffect(() {
-      if (isFirstSync.value) {
-        isFirstSync.value = false;
-        return null;
-      }
-
-      // 最上部にいる場合は即座に反映、そうでない場合は保留
-      if (isAtTop.value) {
-        _applyNoteUpdates(
-          context,
-          listKey,
-          visibleNotes,
-          notes,
-        );
-        pendingNotes.value = [];
-        pendingCount.value = 0;
-      } else {
-        // 新しく追加されたノートの数を計算
-        final currentIds = visibleNotes.value.map((note) => note.id).toSet();
-        final newNoteCount = notes.where((note) => !currentIds.contains(note.id)).length;
-
-        pendingNotes.value = List<Note>.from(notes);
-        pendingCount.value = newNoteCount;
-      }
-
-      return null;
-    }, [notes]);
-
-    if (visibleNotes.value.isEmpty) {
-      return Center(
-        child: Text(message ?? '投稿がありません。認証後に再取得してください。'),
-      );
-    }
-
-    return Stack(
-      children: [
-        AnimatedList(
-          key: listKey,
-          controller: scrollController,
-          initialItemCount: visibleNotes.value.length,
-          itemBuilder: (context, index, animation) {
-            final note = visibleNotes.value[index];
-            return _AnimatedTimelineItem(note: note, animation: animation);
-          },
-        ),
-        // 新しいノート通知バナー
-        if (pendingNotes.value.isNotEmpty)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: GestureDetector(
-              onTap: () {
-                // 最上部にスクロール
-                scrollController.animateTo(
-                  0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOut,
-                );
-                // スクロール完了後に更新を反映
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  _applyNoteUpdates(
-                    context,
-                    listKey,
-                    visibleNotes,
-                    pendingNotes.value,
-                  );
-                  pendingNotes.value = [];
-                  pendingCount.value = 0;
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.arrow_upward, color: Colors.white, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      '新しいノートがあります（${pendingCount.value}）',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  static void _applyNoteUpdates(
-    BuildContext context,
-    GlobalKey<AnimatedListState> listKey,
-    ValueNotifier<List<Note>> visibleNotes,
-    List<Note> nextNotes,
-  ) {
-    final nextIds = nextNotes.map((note) => note.id).toSet();
-    final current = List<Note>.from(visibleNotes.value);
-
-    for (var i = nextNotes.length - 1; i >= 0; i--) {
-      final note = nextNotes[i];
-      final currentIndex = current.indexWhere((n) => n.id == note.id);
-      if (currentIndex == -1) {
-        final insertIndex = i.clamp(0, current.length);
-        current.insert(insertIndex, note);
-        listKey.currentState?.insertItem(
-          insertIndex,
-          duration: const Duration(milliseconds: 280),
-        );
-      } else {
-        current[currentIndex] = note;
-      }
-    }
-
-    for (var i = current.length - 1; i >= 0; i--) {
-      final note = current[i];
-      if (nextIds.contains(note.id)) {
-        continue;
-      }
-
-      final removed = current.removeAt(i);
-      listKey.currentState?.removeItem(
-        i,
-        (context, animation) => _AnimatedTimelineItem(
-          note: removed,
-          animation: animation,
-        ),
-        duration: const Duration(milliseconds: 180),
-      );
-    }
-
-    visibleNotes.value = List<Note>.unmodifiable(current);
-  }
-}
-
-class _AnimatedTimelineItem extends StatelessWidget {
-  const _AnimatedTimelineItem({required this.note, required this.animation});
-
-  final Note note;
-  final Animation<double> animation;
-
-  @override
-  Widget build(BuildContext context) {
-    final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-    return SizeTransition(
-      sizeFactor: curved,
-      axisAlignment: -1,
-      child: FadeTransition(
-        opacity: animation,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text('@${note.user.username}'),
-              subtitle: Text(note.text.isEmpty ? '(本文なし)' : note.text),
-              trailing: Text(
-                '${note.createdAt.month}/${note.createdAt.day} ${note.createdAt.hour}:${note.createdAt.minute.toString().padLeft(2, '0')}',
-              ),
-            ),
-            const Divider(height: 1),
-          ],
-        ),
-      ),
     );
   }
 }
