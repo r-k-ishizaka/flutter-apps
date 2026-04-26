@@ -85,15 +85,19 @@ class TimelineList extends HookWidget {
             child: NewNotesBanner(
               pendingCount: pendingCount.value,
               onTap: () {
+                // タップ時点でノートをキャプチャし、即座にクリアする。
+                // スクロールリスナーが offset==0 で同じ pendingNotes を処理する
+                // 競合を防ぐため、先にクリアして二重適用を回避する。
+                final captured = List<Note>.from(pendingNotes.value);
+                pendingNotes.value = [];
+                pendingCount.value = 0;
                 scrollController.animateTo(
                   0,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOut,
                 );
                 Future.delayed(const Duration(milliseconds: 300), () {
-                  _applyNoteUpdates(listKey, visibleNotes, pendingNotes.value);
-                  pendingNotes.value = [];
-                  pendingCount.value = 0;
+                  _applyNoteUpdates(listKey, visibleNotes, captured);
                 });
               },
             ),
