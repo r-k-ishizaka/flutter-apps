@@ -14,8 +14,7 @@ class TimelineNoteItem extends StatelessWidget {
   final Note note;
   final Animation<double> animation;
 
-  String get _createdAtLabel {
-    final createdAt = note.createdAt;
+  String _createdAtLabel(DateTime createdAt) {
     return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
   }
 
@@ -25,6 +24,11 @@ class TimelineNoteItem extends StatelessWidget {
       parent: animation,
       curve: Curves.easeOutCubic,
     );
+
+    // 純粋リノートの場合はリノート元を主役として表示
+    final displayNote =
+        note.noteType == NoteType.pureRenote ? note.renote! : note;
+
     return SizeTransition(
       sizeFactor: curved,
       axisAlignment: -1,
@@ -35,36 +39,83 @@ class TimelineNoteItem extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Row(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _UserAvatar(
-                    avatarUrl: note.user.avatarUrl,
-                    avatarBlurHash: note.user.avatarBlurHash,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  // 純粋リノートのヘッダー
+                  if (note.noteType == NoteType.pureRenote)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.repeat, size: 14),
+                          const SizedBox(width: 4),
+                          _UserAvatar(
+                            avatarUrl: note.user.avatarUrl,
+                            avatarBlurHash: note.user.avatarBlurHash,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '@${note.user.username} がリノート',
+                              style: Theme.of(context).textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _UserAvatar(
+                        avatarUrl: displayNote.user.avatarUrl,
+                        avatarBlurHash: displayNote.user.avatarBlurHash,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                '@${note.user.username}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '@${displayNote.user.username}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(_createdAtLabel(displayNote.createdAt)),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(_createdAtLabel),
+                            const SizedBox(height: 4),
+                            switch (note.noteType) {
+                              NoteType.normal => Text(
+                                note.text.isEmpty ? '(本文なし)' : note.text,
+                              ),
+                              NoteType.pureRenote => Text(
+                                displayNote.text.isEmpty
+                                    ? '(本文なし)'
+                                    : displayNote.text,
+                              ),
+                              NoteType.quoteRenote => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(note.text),
+                                  const SizedBox(height: 8),
+                                  _RenoteCard(renote: note.renote!),
+                                ],
+                              ),
+                            },
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(note.text.isEmpty ? '(本文なし)' : note.text),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -78,43 +129,126 @@ class TimelineNoteItem extends StatelessWidget {
 }
 
 class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({required this.avatarUrl, this.avatarBlurHash});
+  const _UserAvatar({
+    required this.avatarUrl,
+    this.avatarBlurHash,
+    this.size = 40,
+  });
 
   final String? avatarUrl;
   final String? avatarBlurHash;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     final url = avatarUrl;
     if (url == null || url.isEmpty) {
-      return const CircleAvatar(child: Icon(Icons.person_outline));
+      return CircleAvatar(
+        radius: size / 2,
+        child: Icon(Icons.person_outline, size: size * 0.5),
+      );
     }
 
     return ClipOval(
       child: CachedNetworkImage(
         imageUrl: url,
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         fit: BoxFit.cover,
         placeholder: (context, _) {
           final blurHash = avatarBlurHash;
           if (blurHash != null && blurHash.isNotEmpty) {
             return BlurHash(hash: blurHash);
           }
-          return const SizedBox(
-            width: 40,
-            height: 40,
+          return SizedBox(
+            width: size,
+            height: size,
             child: Center(
               child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                width: size * 0.4,
+                height: size * 0.4,
+                child: const CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
           );
         },
         errorWidget: (context, _, _) =>
-            const CircleAvatar(child: Icon(Icons.person_outline)),
+            CircleAvatar(
+              radius: size / 2,
+              child: Icon(Icons.person_outline, size: size * 0.5),
+            ),
+      ),
+    );
+  }
+}
+
+/// リノート元ノートを枠線付きカードで表示するウィジェット。
+/// 多段リノートは 1 段のみ表示。
+class _RenoteCard extends StatelessWidget {
+  const _RenoteCard({required this.renote});
+
+  final Note renote;
+
+  String _createdAtLabel(DateTime createdAt) {
+    return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _UserAvatar(
+            avatarUrl: renote.user.avatarUrl,
+            avatarBlurHash: renote.user.avatarBlurHash,
+            size: 32,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '@${renote.user.username}',
+                        style: textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _createdAtLabel(renote.createdAt),
+                      style: textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  renote.text.isNotEmpty
+                      ? renote.text
+                      : renote.renote != null
+                      ? '(リノート)'
+                      : '(本文なし)',
+                  style: textTheme.bodyMedium,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
