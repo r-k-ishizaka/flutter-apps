@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter/material.dart';
 
 import '../models/note.dart';
@@ -12,6 +13,11 @@ class TimelineNoteItem extends StatelessWidget {
 
   final Note note;
   final Animation<double> animation;
+
+  String get _createdAtLabel {
+    final createdAt = note.createdAt;
+    return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +33,40 @@ class TimelineNoteItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: _UserAvatar(avatarUrl: note.user.avatarUrl),
-              title: Text('@${note.user.username}'),
-              subtitle: Text(note.text.isEmpty ? '(本文なし)' : note.text),
-              trailing: Text(
-                '${note.createdAt.month}/${note.createdAt.day} ${note.createdAt.hour}:${note.createdAt.minute.toString().padLeft(2, '0')}',
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _UserAvatar(
+                    avatarUrl: note.user.avatarUrl,
+                    avatarBlurHash: note.user.avatarBlurHash,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '@${note.user.username}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(_createdAtLabel),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(note.text.isEmpty ? '(本文なし)' : note.text),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             const Divider(height: 1),
@@ -44,9 +78,10 @@ class TimelineNoteItem extends StatelessWidget {
 }
 
 class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({required this.avatarUrl});
+  const _UserAvatar({required this.avatarUrl, this.avatarBlurHash});
 
   final String? avatarUrl;
+  final String? avatarBlurHash;
 
   @override
   Widget build(BuildContext context) {
@@ -61,17 +96,23 @@ class _UserAvatar extends StatelessWidget {
         width: 40,
         height: 40,
         fit: BoxFit.cover,
-        placeholder: (context, _) => const SizedBox(
-          width: 40,
-          height: 40,
-          child: Center(
-            child: SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+        placeholder: (context, _) {
+          final blurHash = avatarBlurHash;
+          if (blurHash != null && blurHash.isNotEmpty) {
+            return BlurHash(hash: blurHash);
+          }
+          return const SizedBox(
+            width: 40,
+            height: 40,
+            child: Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
-          ),
-        ),
+          );
+        },
         errorWidget: (context, _, _) =>
             const CircleAvatar(child: Icon(Icons.person_outline)),
       ),
