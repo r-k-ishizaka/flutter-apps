@@ -64,6 +64,7 @@ class _TimelineList extends HookWidget {
     final visibleNotes = useState<List<Note>>(List<Note>.from(notes));
     final isFirstSync = useRef(true);
     final pendingNotes = useRef<List<Note>>([]);
+    final pendingCount = useState(0);
     final isAtTop = useState(true);
 
     // スクロール位置を監視
@@ -81,6 +82,7 @@ class _TimelineList extends HookWidget {
             pendingNotes.value,
           );
           pendingNotes.value = [];
+          pendingCount.value = 0;
         }
       }
 
@@ -103,8 +105,14 @@ class _TimelineList extends HookWidget {
           notes,
         );
         pendingNotes.value = [];
+        pendingCount.value = 0;
       } else {
+        // 新しく追加されたノートの数を計算
+        final currentIds = visibleNotes.value.map((note) => note.id).toSet();
+        final newNoteCount = notes.where((note) => !currentIds.contains(note.id)).length;
+
         pendingNotes.value = List<Note>.from(notes);
+        pendingCount.value = newNoteCount;
       }
 
       return null;
@@ -116,14 +124,73 @@ class _TimelineList extends HookWidget {
       );
     }
 
-    return AnimatedList(
-      key: listKey,
-      controller: scrollController,
-      initialItemCount: visibleNotes.value.length,
-      itemBuilder: (context, index, animation) {
-        final note = visibleNotes.value[index];
-        return _AnimatedTimelineItem(note: note, animation: animation);
-      },
+    return Stack(
+      children: [
+        AnimatedList(
+          key: listKey,
+          controller: scrollController,
+          initialItemCount: visibleNotes.value.length,
+          itemBuilder: (context, index, animation) {
+            final note = visibleNotes.value[index];
+            return _AnimatedTimelineItem(note: note, animation: animation);
+          },
+        ),
+        // 新しいノート通知バナー
+        if (pendingNotes.value.isNotEmpty)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: () {
+                // 最上部にスクロール
+                scrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                );
+                // スクロール完了後に更新を反映
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  _applyNoteUpdates(
+                    context,
+                    listKey,
+                    visibleNotes,
+                    pendingNotes.value,
+                  );
+                  pendingNotes.value = [];
+                  pendingCount.value = 0;
+                });
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.arrow_upward, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '新しいノートがあります（${pendingCount.value}）',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
