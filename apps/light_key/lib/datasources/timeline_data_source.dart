@@ -3,4 +3,5 @@ import '../models/note.dart';
 
 abstract interface class TimelineDataSource {
   Future<List<Note>> fetchTimeline(AuthSession session, {int limit = 20});
+  Stream<Note> watchTimeline(AuthSession session);
 }

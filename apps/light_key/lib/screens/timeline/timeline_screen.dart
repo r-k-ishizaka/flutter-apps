@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -14,10 +16,13 @@ class TimelineScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     useEffect(() {
+      final provider = context.read<TimelineProvider>();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<TimelineProvider>().fetch();
+        provider.startRealtime();
       });
-      return null;
+      return () {
+        unawaited(provider.stopRealtime());
+      };
     }, const []);
 
     final state = context.watch<TimelineProvider>().state;
