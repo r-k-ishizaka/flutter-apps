@@ -59,8 +59,11 @@ class TimelineProvider extends ChangeNotifier {
   Future<void> startRealtime() async {
     await stopRealtime();
 
-    _state = _state.copyWith(status: TimelineStatus.loading, clearMessage: true);
-    notifyListeners();
+    // 前のデータがない場合のみ loading 状態をセット
+    if (_state.notes.isEmpty) {
+      _state = _state.copyWith(status: TimelineStatus.loading, clearMessage: true);
+      notifyListeners();
+    }
 
     final sessionResult = await _authRepository.restoreSession();
     await sessionResult.when(
