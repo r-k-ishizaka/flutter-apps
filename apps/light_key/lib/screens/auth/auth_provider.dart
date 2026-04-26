@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../../models/auth_session.dart';
 import '../../repositories/auth_repository.dart';
 import 'auth_screen_state.dart';
 
@@ -12,29 +11,6 @@ class AuthProvider extends ChangeNotifier {
   AuthScreenState _state = const AuthScreenState.idle();
   AuthScreenState get state => _state;
 
-  Future<void> signIn({required String baseUrl, required String accessToken}) async {
-    _state = _state.copyWith(status: AuthStatus.loading, clearMessage: true);
-    notifyListeners();
-
-    final result = await _authRepository.signIn(baseUrl, accessToken);
-    result.when(
-      success: (user) {
-        _state = _state.copyWith(
-          status: AuthStatus.authenticated,
-          user: user,
-          session: AuthSession(baseUrl: baseUrl, accessToken: accessToken),
-          message: 'ログインに成功しました。',
-        );
-      },
-      failure: (error, _) {
-        _state = _state.copyWith(
-          status: AuthStatus.error,
-          message: 'ログインに失敗しました: $error',
-        );
-      },
-    );
-    notifyListeners();
-  }
 
   Future<void> signInWithOAuth({
     required String baseUrl,

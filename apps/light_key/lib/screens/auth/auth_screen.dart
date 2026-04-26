@@ -19,7 +19,6 @@ class AuthScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final baseUrlController = useTextEditingController(text: 'https://misskey.io');
-    final tokenController = useTextEditingController();
     final oauthService = useMemoized(() => OAuthService());
     final state = context.watch<AuthProvider>().state;
 
@@ -84,42 +83,6 @@ class AuthScreen extends HookWidget {
               hintText: 'https://example.tld',
             ),
           ),
-          const SizedBox(height: 12),
-          // トークン直接入力セクション
-          const SizedBox(height: 20),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              'アクセストークンで直接ログイン',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: tokenController,
-            decoration: const InputDecoration(
-              labelText: 'アクセストークン',
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: state.status == AuthStatus.loading
-                ? null
-                : () async {
-                    await context.read<AuthProvider>().signIn(
-                      baseUrl: baseUrlController.text,
-                      accessToken: tokenController.text,
-                    );
-                  },
-            child: state.status == AuthStatus.loading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('ログインして検証'),
-          ),
           const SizedBox(height: 20),
           // OAuth セクション
           const Divider(),
@@ -147,11 +110,13 @@ class AuthScreen extends HookWidget {
                   },
             child: const Text('Misskey でログイン'),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: () => context.read<AuthProvider>().signOut(),
-            child: const Text('ログアウト'),
-          ),
+          if (state.status == AuthStatus.authenticated) ...[
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => context.read<AuthProvider>().signOut(),
+              child: const Text('ログアウト'),
+            ),
+          ],
           const SizedBox(height: 20),
           if (state.session != null)
             Text('接続先: ${state.session!.baseUrl}'),
@@ -162,16 +127,6 @@ class AuthScreen extends HookWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(state.message!),
             ),
-          const SizedBox(height: 20),
-          FilledButton.tonal(
-            onPressed: () => const TimelineRoute().go(context),
-            child: const Text('タイムラインへ'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.tonal(
-            onPressed: () => const PostRoute().go(context),
-            child: const Text('投稿画面へ'),
-          ),
         ],
       ),
     );

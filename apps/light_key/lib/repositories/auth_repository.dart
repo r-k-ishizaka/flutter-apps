@@ -9,18 +9,6 @@ class AuthRepository {
 
   final AuthDataSource _dataSource;
 
-  Future<Result<User>> signIn(String baseUrl, String accessToken) async {
-    try {
-      final user = await _dataSource.verify(baseUrl, accessToken);
-      await _dataSource.saveSession(
-        AuthSession(baseUrl: baseUrl, accessToken: accessToken),
-      );
-      return Success(user);
-    } on Exception catch (e, st) {
-      return Failure(e, st);
-    }
-  }
-
   Future<Result<User>> signInWithOAuth(
     String baseUrl,
     String clientId,
