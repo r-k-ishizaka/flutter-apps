@@ -7,6 +7,7 @@ import '../datasources/misskey_post_data_source.dart';
 import '../datasources/misskey_timeline_data_source.dart';
 import '../datasources/post_data_source.dart';
 import '../datasources/timeline_data_source.dart';
+import '../providers/theme_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/post_repository.dart';
 import '../repositories/timeline_repository.dart';
@@ -18,6 +19,10 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(MisskeyHttpClient.new);
   final sharedPreferences = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(sharedPreferences);
+
+  getIt.registerSingleton<ThemeProvider>(
+    ThemeProvider(sharedPreferences),
+  );
 
   getIt.registerLazySingleton<AuthDataSource>(
     () => MisskeyAuthDataSource(

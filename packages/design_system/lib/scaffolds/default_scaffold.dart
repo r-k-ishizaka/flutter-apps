@@ -24,7 +24,7 @@ class DefaultScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBar ?? AppBar(),
+      appBar: appBar,
       body: body,
       floatingActionButton: floatingActionButton,
       drawer: drawer,

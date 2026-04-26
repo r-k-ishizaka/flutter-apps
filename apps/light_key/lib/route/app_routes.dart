@@ -6,6 +6,7 @@ import '../screens/auth/auth_screen.dart';
 import '../screens/post/post_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
 import '../screens/timeline/timeline_provider.dart';
+import '../widgets/theme_switch_button.dart';
 
 part 'app_routes.g.dart';
 
@@ -81,6 +82,7 @@ class AppShell extends StatelessWidget {
                   onPressed: () => const PostRoute().go(context),
                   icon: const Icon(Icons.edit_note),
                 ),
+                const ThemeSwitchButton(),
               ],
       ),
       bottomNavigationBar: AppNavBar(currentPath: currentPath),

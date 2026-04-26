@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'di/di.dart';
+import 'providers/theme_provider.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/post_repository.dart';
 import 'repositories/timeline_repository.dart';
@@ -17,6 +18,9 @@ class LightKeyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider<ThemeProvider>(
+          create: (_) => getIt<ThemeProvider>(),
+        ),
         ChangeNotifierProvider(
           create: (_) => AuthProvider(getIt<AuthRepository>())..restoreSession(),
         ),
@@ -33,13 +37,14 @@ class LightKeyApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp.router(
-        title: 'light_key',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-          useMaterial3: true,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) => MaterialApp.router(
+          title: 'light_key',
+          theme: themeProvider.lightTheme,
+          darkTheme: themeProvider.darkTheme,
+          themeMode: themeProvider.flutterThemeMode,
+          routerConfig: appRouter,
         ),
-        routerConfig: appRouter,
       ),
     );
   }
