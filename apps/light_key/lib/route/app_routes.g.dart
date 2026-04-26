@@ -8,7 +8,11 @@ part of 'app_routes.dart';
 
 List<RouteBase> get $appRoutes => [
   $splashRoute,
-  $appShellRouteData,
+  $homeRoute,
+  $legacyTimelineRoute,
+  $homeShellRouteData,
+  $legacyNotificationsRoute,
+  $authRoute,
   $postRoute,
 ];
 
@@ -35,21 +39,37 @@ mixin $SplashRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-RouteBase get $appShellRouteData => ShellRouteData.$route(
-  factory: $AppShellRouteDataExtension._fromState,
-  routes: [
-    GoRouteData.$route(path: '/timeline', factory: $TimelineRoute._fromState),
-    GoRouteData.$route(path: '/auth', factory: $AuthRoute._fromState),
-  ],
-);
+RouteBase get $homeRoute =>
+    GoRouteData.$route(path: '/home', factory: $HomeRoute._fromState);
 
-extension $AppShellRouteDataExtension on AppShellRouteData {
-  static AppShellRouteData _fromState(GoRouterState state) =>
-      const AppShellRouteData();
+mixin $HomeRoute on GoRouteData {
+  static HomeRoute _fromState(GoRouterState state) => const HomeRoute();
+
+  @override
+  String get location => GoRouteData.$location('/home');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
 }
 
-mixin $TimelineRoute on GoRouteData {
-  static TimelineRoute _fromState(GoRouterState state) => const TimelineRoute();
+RouteBase get $legacyTimelineRoute => GoRouteData.$route(
+  path: '/timeline',
+  factory: $LegacyTimelineRoute._fromState,
+);
+
+mixin $LegacyTimelineRoute on GoRouteData {
+  static LegacyTimelineRoute _fromState(GoRouterState state) =>
+      const LegacyTimelineRoute();
 
   @override
   String get location => GoRouteData.$location('/timeline');
@@ -67,6 +87,95 @@ mixin $TimelineRoute on GoRouteData {
   @override
   void replace(BuildContext context) => context.replace(location);
 }
+
+RouteBase get $homeShellRouteData => ShellRouteData.$route(
+  factory: $HomeShellRouteDataExtension._fromState,
+  routes: [
+    GoRouteData.$route(
+      path: '/home/timeline',
+      factory: $TimelineRoute._fromState,
+    ),
+    GoRouteData.$route(
+      path: '/home/notifications',
+      factory: $NotificationsRoute._fromState,
+    ),
+  ],
+);
+
+extension $HomeShellRouteDataExtension on HomeShellRouteData {
+  static HomeShellRouteData _fromState(GoRouterState state) =>
+      const HomeShellRouteData();
+}
+
+mixin $TimelineRoute on GoRouteData {
+  static TimelineRoute _fromState(GoRouterState state) => const TimelineRoute();
+
+  @override
+  String get location => GoRouteData.$location('/home/timeline');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $NotificationsRoute on GoRouteData {
+  static NotificationsRoute _fromState(GoRouterState state) =>
+      const NotificationsRoute();
+
+  @override
+  String get location => GoRouteData.$location('/home/notifications');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $legacyNotificationsRoute => GoRouteData.$route(
+  path: '/notifications',
+  factory: $LegacyNotificationsRoute._fromState,
+);
+
+mixin $LegacyNotificationsRoute on GoRouteData {
+  static LegacyNotificationsRoute _fromState(GoRouterState state) =>
+      const LegacyNotificationsRoute();
+
+  @override
+  String get location => GoRouteData.$location('/notifications');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $authRoute =>
+    GoRouteData.$route(path: '/auth', factory: $AuthRoute._fromState);
 
 mixin $AuthRoute on GoRouteData {
   static AuthRoute _fromState(GoRouterState state) => const AuthRoute();

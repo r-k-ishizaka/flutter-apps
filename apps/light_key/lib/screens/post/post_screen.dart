@@ -24,7 +24,6 @@ class PostScreen extends HookWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const AppNavBar(currentPath: '/post'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

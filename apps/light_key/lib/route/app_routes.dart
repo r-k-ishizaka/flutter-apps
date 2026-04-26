@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../screens/auth/auth_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
 import '../screens/post/post_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
@@ -21,19 +22,39 @@ class SplashRoute extends GoRouteData with $SplashRoute {
       const SplashScreen();
 }
 
-@TypedShellRoute<AppShellRouteData>(
+@TypedGoRoute<HomeRoute>(path: '/home')
+@immutable
+class HomeRoute extends GoRouteData with $HomeRoute {
+  const HomeRoute();
+
+  @override
+  String? redirect(BuildContext context, GoRouterState state) =>
+      const TimelineRoute().location;
+}
+
+@TypedGoRoute<LegacyTimelineRoute>(path: '/timeline')
+@immutable
+class LegacyTimelineRoute extends GoRouteData with $LegacyTimelineRoute {
+  const LegacyTimelineRoute();
+
+  @override
+  String? redirect(BuildContext context, GoRouterState state) =>
+      const TimelineRoute().location;
+}
+
+@TypedShellRoute<HomeShellRouteData>(
   routes: [
-    TypedGoRoute<TimelineRoute>(path: '/timeline'),
-    TypedGoRoute<AuthRoute>(path: '/auth'),
+    TypedGoRoute<TimelineRoute>(path: '/home/timeline'),
+    TypedGoRoute<NotificationsRoute>(path: '/home/notifications'),
   ],
 )
 @immutable
-class AppShellRouteData extends ShellRouteData {
-  const AppShellRouteData();
+class HomeShellRouteData extends ShellRouteData {
+  const HomeShellRouteData();
 
   @override
   Widget builder(BuildContext context, GoRouterState state, Widget navigator) {
-    return AppShell(currentPath: state.uri.path, child: navigator);
+    return HomeShell(currentPath: state.uri.path, child: navigator);
   }
 }
 
@@ -46,6 +67,26 @@ class TimelineRoute extends GoRouteData with $TimelineRoute {
       const TimelineScreen();
 }
 
+@immutable
+class NotificationsRoute extends GoRouteData with $NotificationsRoute {
+  const NotificationsRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const NotificationsScreen();
+}
+
+@TypedGoRoute<LegacyNotificationsRoute>(path: '/notifications')
+@immutable
+class LegacyNotificationsRoute extends GoRouteData with $LegacyNotificationsRoute {
+  const LegacyNotificationsRoute();
+
+  @override
+  String? redirect(BuildContext context, GoRouterState state) =>
+      const NotificationsRoute().location;
+}
+
+@TypedGoRoute<AuthRoute>(path: '/auth')
 @immutable
 class AuthRoute extends GoRouteData with $AuthRoute {
   const AuthRoute();
@@ -69,32 +110,32 @@ final GoRouter appRouter = GoRouter(
   routes: $appRoutes,
 );
 
-class AppShell extends StatelessWidget {
-  const AppShell({super.key, required this.currentPath, required this.child});
+class HomeShell extends StatelessWidget {
+  const HomeShell({
+    super.key,
+    required this.currentPath,
+    required this.child,
+  });
 
   final String currentPath;
   final Widget child;
-
-  bool get _isAuth => currentPath.startsWith('/auth');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isAuth ? '認証' : 'タイムライン'),
-        actions: _isAuth
-            ? null
-            : [
-                IconButton(
-                  onPressed: () => context.read<TimelineProvider>().fetch(),
-                  icon: const Icon(Icons.refresh),
-                ),
-                IconButton(
-                  onPressed: () => const PostRoute().go(context),
-                  icon: const Icon(Icons.edit_note),
-                ),
-                const ThemeSwitchButton(),
-              ],
+        title: const Text('ホーム'),
+        actions: [
+          IconButton(
+            onPressed: () => context.read<TimelineProvider>().fetch(),
+            icon: const Icon(Icons.refresh),
+          ),
+          const ThemeSwitchButton(),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => const PostRoute().push(context),
+        child: const Icon(Icons.edit_note),
       ),
       bottomNavigationBar: AppNavBar(currentPath: currentPath),
       body: child,
@@ -108,7 +149,7 @@ class AppNavBar extends StatelessWidget {
   final String currentPath;
 
   int get _currentIndex {
-    if (currentPath.startsWith('/auth')) return 1;
+    if (currentPath.startsWith('/home/notifications')) return 1;
     return 0;
   }
 
@@ -117,18 +158,25 @@ class AppNavBar extends StatelessWidget {
     return NavigationBar(
       selectedIndex: _currentIndex,
       onDestinationSelected: (index) {
+        if (index == _currentIndex) return;
         switch (index) {
           case 0:
             const TimelineRoute().go(context);
             break;
           case 1:
-            const AuthRoute().go(context);
+            const NotificationsRoute().go(context);
             break;
         }
       },
       destinations: const [
-        NavigationDestination(icon: Icon(Icons.dynamic_feed), label: 'Timeline'),
-        NavigationDestination(icon: Icon(Icons.lock_outline), label: 'Auth'),
+        NavigationDestination(
+          icon: Icon(Icons.dynamic_feed),
+          label: 'Timeline',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.notifications_none),
+          label: 'Notifications',
+        ),
       ],
     );
   }
