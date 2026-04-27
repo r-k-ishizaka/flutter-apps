@@ -6,6 +6,16 @@
 
 ## ファイル命名規則
 
+### Model（`models/`）
+
+- モデルは **1ファイル1クラス** を必須とします。
+- 関連モデルであっても同居させず、必要な側から import して利用します。
+
+| ファイル名 | クラス名 |
+|---|---|
+| `note_file.dart` | `NoteFile` |
+| `note_file_properties.dart` | `NoteFileProperties` |
+
 ### DataSource（`datasources/`）
 
 - ファイル名は **実装種別を先頭** にした `<backend>_<entity>_data_source.dart` 形式を推奨します。
