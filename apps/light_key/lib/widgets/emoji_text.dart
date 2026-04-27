@@ -16,7 +16,7 @@ class EmojiText extends StatelessWidget {
     this.text, {
     super.key,
     this.style,
-    this.emojiSize = 20.0,
+    this.emojiSize = 25.0,
     this.maxLines,
     this.overflow,
   });
@@ -24,7 +24,7 @@ class EmojiText extends StatelessWidget {
   final String text;
   final TextStyle? style;
 
-  /// 絵文字画像の一辺サイズ（正方形）。
+  /// 絵文字画像の表示高さ。
   final double emojiSize;
 
   final int? maxLines;
@@ -76,12 +76,20 @@ class EmojiText extends StatelessWidget {
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
-            child: CachedNetworkImage(
-              imageUrl: url,
-              width: emojiSize,
-              height: emojiSize,
-              fit: BoxFit.contain,
-              errorWidget: (_, _, _) => Text(':$name:'),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: emojiSize * 8,
+              ),
+              child: CachedNetworkImage(
+                imageUrl: url,
+                height: emojiSize,
+                fit: BoxFit.fitHeight,
+                placeholder: (_, _) => SizedBox(
+                  width: emojiSize,
+                  height: emojiSize,
+                ),
+                errorWidget: (_, _, _) => Text(':$name:'),
+              ),
             ),
           ),
         );
