@@ -1,15 +1,6 @@
+import 'note_file.dart';
+import 'note_type.dart';
 import 'user.dart';
-
-enum NoteType {
-  /// 通常ノート（renote なし）
-  normal,
-
-  /// 純粋リノート（本文なし・renote あり）
-  pureRenote,
-
-  /// 引用リノート（本文あり・renote あり）
-  quoteRenote,
-}
 
 class Note {
   const Note({
@@ -17,6 +8,7 @@ class Note {
     required this.text,
     required this.createdAt,
     required this.user,
+    this.files = const [],
     this.renote,
   });
 
@@ -24,6 +16,7 @@ class Note {
   final String text;
   final DateTime createdAt;
   final User user;
+  final List<NoteFile> files;
 
   /// リノート元のノート。純粋リノート・引用リノートの場合に設定される。
   final Note? renote;
@@ -36,6 +29,7 @@ class Note {
 
   factory Note.fromJson(Map<String, dynamic> json) {
     final renoteJson = json['renote'];
+    final filesJson = json['files'] as List? ?? const [];
     return Note(
       id: json['id'] as String? ?? '',
       text: json['text'] as String? ?? '',
@@ -45,10 +39,13 @@ class Note {
       user: User.fromJson(
         Map<String, dynamic>.from(json['user'] as Map? ?? const {}),
       ),
-      renote:
-          renoteJson != null
-              ? Note.fromJson(Map<String, dynamic>.from(renoteJson as Map))
-              : null,
+      files: filesJson
+          .whereType<Map>()
+          .map((file) => NoteFile.fromJson(Map<String, dynamic>.from(file)))
+          .toList(growable: false),
+      renote: renoteJson != null
+          ? Note.fromJson(Map<String, dynamic>.from(renoteJson as Map))
+          : null,
     );
   }
 }

@@ -3,7 +3,9 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter/material.dart';
 
 import '../models/note.dart';
+import '../models/note_type.dart';
 import 'emoji_text.dart';
+import 'note_media_list.dart';
 import 'renote_card.dart';
 
 class TimelineNoteItem extends StatelessWidget {
@@ -28,8 +30,9 @@ class TimelineNoteItem extends StatelessWidget {
     );
 
     // 純粋リノートの場合はリノート元を主役として表示
-    final displayNote =
-        note.noteType == NoteType.pureRenote ? note.renote! : note;
+    final displayNote = note.noteType == NoteType.pureRenote
+        ? note.renote!
+        : note;
 
     return SizeTransition(
       sizeFactor: curved,
@@ -108,12 +111,28 @@ class TimelineNoteItem extends StatelessWidget {
                               NoteType.quoteRenote => Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  EmojiText(note.text),
+                                  EmojiText(
+                                    note.text.isEmpty ? '(本文なし)' : note.text,
+                                  ),
+                                  if (note.files.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    NoteMediaList(files: note.files),
+                                  ],
                                   const SizedBox(height: 8),
                                   RenoteCard(renote: note.renote!),
                                 ],
                               ),
                             },
+                            if (note.noteType == NoteType.normal &&
+                                note.files.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              NoteMediaList(files: note.files),
+                            ],
+                            if (note.noteType == NoteType.pureRenote &&
+                                displayNote.files.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              NoteMediaList(files: displayNote.files),
+                            ],
                           ],
                         ),
                       ),
@@ -174,11 +193,10 @@ class _UserAvatar extends StatelessWidget {
             ),
           );
         },
-        errorWidget: (context, _, _) =>
-            CircleAvatar(
-              radius: size / 2,
-              child: Icon(Icons.person_outline, size: size * 0.5),
-            ),
+        errorWidget: (context, _, _) => CircleAvatar(
+          radius: size / 2,
+          child: Icon(Icons.person_outline, size: size * 0.5),
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/note.dart';
 import 'emoji_text.dart';
+import 'note_media_list.dart';
 
 /// リノート元ノートを枠線付きカードで表示するウィジェット。
 /// 多段リノートは 1 段のみ表示。
@@ -68,6 +69,10 @@ class RenoteCard extends StatelessWidget {
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (renote.files.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  NoteMediaList(files: renote.files),
+                ],
               ],
             ),
           ),
@@ -121,11 +126,10 @@ class _UserAvatar extends StatelessWidget {
             ),
           );
         },
-        errorWidget: (context, _, _) =>
-            CircleAvatar(
-              radius: size / 2,
-              child: Icon(Icons.person_outline, size: size * 0.5),
-            ),
+        errorWidget: (context, _, _) => CircleAvatar(
+          radius: size / 2,
+          child: Icon(Icons.person_outline, size: size * 0.5),
+        ),
       ),
     );
   }

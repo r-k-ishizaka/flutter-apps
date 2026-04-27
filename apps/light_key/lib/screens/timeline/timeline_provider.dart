@@ -94,6 +94,7 @@ class TimelineProvider extends ChangeNotifier {
             _setTimelineError('リアルタイム購読でエラーが発生しました: $error');
             notifyListeners();
           },
+          cancelOnError: true, // エラー発生時にサブスクリプションを自動解除
         );
       },
       failure: (error, _) {
