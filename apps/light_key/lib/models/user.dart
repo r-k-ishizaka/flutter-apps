@@ -1,25 +1,30 @@
-class User {
-  const User({
-    required this.id,
-    required this.username,
-    required this.name,
-    this.avatarUrl,
-    this.avatarBlurHash,
-  });
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final String id;
-  final String username;
-  final String name;
-  final String? avatarUrl;
-  final String? avatarBlurHash;
+part 'user.freezed.dart';
+part 'user.g.dart';
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      name: json['name'] as String? ?? json['username'] as String? ?? '',
-      avatarUrl: json['avatarUrl'] as String?,
-      avatarBlurHash: json['avatarBlurhash'] as String?,
-    );
-  }
+@freezed
+sealed class User with _$User {
+  const User._();
+
+  const factory User({
+    @Default('') String id,
+    @Default('') String username,
+    @Default('') String name,
+    String? avatarUrl,
+    @JsonKey(name: 'avatarBlurhash') String? avatarBlurHash,
+  }) = _User;
+
+  factory User.fromJson(Map<String, dynamic> json) =>
+      _$UserFromJson(_normalizeUserJson(json));
+}
+
+Map<String, dynamic> _normalizeUserJson(Map<String, dynamic> json) {
+  final username = json['username'] as String? ?? '';
+  return {
+    ...json,
+    'id': json['id'] as String? ?? '',
+    'username': username,
+    'name': json['name'] as String? ?? username,
+  };
 }

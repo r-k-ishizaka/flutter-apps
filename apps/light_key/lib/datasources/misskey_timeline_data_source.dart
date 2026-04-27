@@ -7,6 +7,7 @@ import '../models/auth_session.dart';
 import '../models/note.dart';
 import '../utils/misskey_http_client.dart';
 import 'timeline_data_source.dart';
+import 'timeline_stream_event.dart';
 
 class MisskeyTimelineDataSource implements TimelineDataSource {
   MisskeyTimelineDataSource(this.client);
@@ -24,8 +25,8 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
-  Stream<Note> watchTimeline(AuthSession session) {
-    final controller = StreamController<Note>();
+  Stream<TimelineStreamEvent> watchTimeline(AuthSession session) {
+    final controller = StreamController<TimelineStreamEvent>();
     final channelId = DateTime.now().microsecondsSinceEpoch.toString();
     StreamSubscription<dynamic>? socketSubscription;
     WebSocketChannel? channel;
@@ -44,9 +45,9 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
 
         socketSubscription = channel!.stream.listen(
           (message) {
-            final note = _parseNoteEvent(message, channelId);
-            if (note != null) {
-              controller.add(note);
+            final event = _parseTimelineEvent(message, channelId);
+            if (event != null) {
+              controller.add(event);
             }
           },
           onError: controller.addError,
@@ -79,24 +80,61 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
     return controller.stream;
   }
 
-  Note? _parseNoteEvent(dynamic message, String channelId) {
+  TimelineStreamEvent? _parseTimelineEvent(dynamic message, String channelId) {
     final decoded = _decodeMessage(message);
     if (decoded is! Map) {
       return null;
     }
 
     final root = Map<String, dynamic>.from(decoded);
-    if (root['type'] != 'channel') {
+
+    // Misskey generally wraps channel payloads in {type: channel, body: {...}}.
+    // Some devtools views expose only the inner payload, so both shapes are handled.
+    if (root['type'] == 'channel') {
+      final channelBody = Map<String, dynamic>.from(root['body'] as Map? ?? const {});
+      if (channelBody['id'] != channelId) {
+        return null;
+      }
+      return _parseChannelEvent(channelBody);
+    }
+
+    return _parseChannelEvent(root);
+  }
+
+  TimelineStreamEvent? _parseChannelEvent(Map<String, dynamic> payload) {
+    final type = payload['type'] as String?;
+
+    if (type == 'note') {
+      final noteJson = Map<String, dynamic>.from(payload['body'] as Map? ?? const {});
+      return TimelineNoteReceived(Note.fromJson(noteJson));
+    }
+
+    if (type != 'noteUpdated') {
       return null;
     }
 
-    final body = Map<String, dynamic>.from(root['body'] as Map? ?? const {});
-    if (body['id'] != channelId || body['type'] != 'note') {
+    final body = Map<String, dynamic>.from(payload['body'] as Map? ?? const {});
+    final noteId = body['id'] as String? ?? '';
+    if (noteId.isEmpty) {
       return null;
     }
 
-    final noteJson = Map<String, dynamic>.from(body['body'] as Map? ?? const {});
-    return Note.fromJson(noteJson);
+    final updateType = body['type'] as String?;
+    if (updateType == 'reacted' || updateType == 'unreacted') {
+      final updateBody = Map<String, dynamic>.from(body['body'] as Map? ?? const {});
+      final reaction = updateBody['reaction'] as String? ?? '';
+      if (reaction.isEmpty) {
+        return null;
+      }
+
+      return TimelineReactionUpdated(
+        noteId: noteId,
+        reaction: reaction,
+        delta: updateType == 'reacted' ? 1 : -1,
+      );
+    }
+
+    return null;
   }
 
   dynamic _decodeMessage(dynamic message) {

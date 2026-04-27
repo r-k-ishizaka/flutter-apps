@@ -33,6 +33,9 @@ class TimelineNoteItem extends StatelessWidget {
     final displayNote = note.noteType == NoteType.pureRenote
         ? note.renote!
         : note;
+    final displayReactions = note.noteType == NoteType.pureRenote
+        ? displayNote.reactions
+        : note.reactions;
 
     return SizeTransition(
       sizeFactor: curved,
@@ -132,6 +135,31 @@ class TimelineNoteItem extends StatelessWidget {
                                 displayNote.files.isNotEmpty) ...[
                               const SizedBox(height: 8),
                               NoteMediaList(files: displayNote.files),
+                            ],
+                            if (displayReactions.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: displayReactions.entries
+                                    .where((entry) => entry.value > 0)
+                                    .map(
+                                      (entry) => Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text('${entry.key} ${entry.value}'),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                              ),
                             ],
                           ],
                         ),

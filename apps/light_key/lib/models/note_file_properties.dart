@@ -1,13 +1,17 @@
-class NoteFileProperties {
-  const NoteFileProperties({required this.width, required this.height});
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final int width;
-  final int height;
+part 'note_file_properties.freezed.dart';
+part 'note_file_properties.g.dart';
 
-  factory NoteFileProperties.fromJson(Map<String, dynamic> json) {
-    return NoteFileProperties(
-      width: json['width'] as int? ?? 0,
-      height: json['height'] as int? ?? 0,
-    );
-  }
+@freezed
+sealed class NoteFileProperties with _$NoteFileProperties {
+  const factory NoteFileProperties({
+    @JsonKey(fromJson: _intFromJson) @Default(0) int width,
+    @JsonKey(fromJson: _intFromJson) @Default(0) int height,
+  }) = _NoteFileProperties;
+
+  factory NoteFileProperties.fromJson(Map<String, dynamic> json) =>
+      _$NoteFilePropertiesFromJson(json);
 }
+
+int _intFromJson(Object? value) => (value as num?)?.toInt() ?? 0;
