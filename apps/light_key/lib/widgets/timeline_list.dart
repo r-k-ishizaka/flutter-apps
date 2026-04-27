@@ -50,6 +50,7 @@ class TimelineList extends HookWidget {
         pendingNotes.value = [];
         pendingCount.value = 0;
       } else {
+        _applyExistingNoteUpdates(visibleNotes, notes);
         final currentIds = visibleNotes.value.map((note) => note.id).toSet();
         final newNoteCount = notes
             .where((note) => !currentIds.contains(note.id))
@@ -145,5 +146,32 @@ class TimelineList extends HookWidget {
     }
 
     visibleNotes.value = List<Note>.unmodifiable(current);
+  }
+
+  static void _applyExistingNoteUpdates(
+    ValueNotifier<List<Note>> visibleNotes,
+    List<Note> nextNotes,
+  ) {
+    final nextById = {for (final note in nextNotes) note.id: note};
+    final current = visibleNotes.value;
+    var hasChanged = false;
+
+    final updated = current
+        .map((note) {
+          final next = nextById[note.id];
+          if (next == null) {
+            return note;
+          }
+          if (identical(next, note) || next == note) {
+            return note;
+          }
+          hasChanged = true;
+          return next;
+        })
+        .toList(growable: false);
+
+    if (hasChanged) {
+      visibleNotes.value = List<Note>.unmodifiable(updated);
+    }
   }
 }

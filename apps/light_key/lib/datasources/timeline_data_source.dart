@@ -1,8 +1,15 @@
 import '../models/auth_session.dart';
 import '../models/note.dart';
-import 'timeline_stream_event.dart';
+import 'timeline_connection.dart';
 
 abstract interface class TimelineDataSource {
   Future<List<Note>> fetchTimeline(AuthSession session, {int limit = 20});
-  Stream<TimelineStreamEvent> watchTimeline(AuthSession session);
+
+  /// Fetches a single note by ID.
+  Future<Note> fetchNote(AuthSession session, String noteId);
+
+  /// Opens a raw WebSocket connection.
+  /// The caller is responsible for sending connect/disconnect/subNote/unsubNote
+  /// messages and for parsing incoming messages.
+  TimelineConnection openConnection(AuthSession session);
 }
