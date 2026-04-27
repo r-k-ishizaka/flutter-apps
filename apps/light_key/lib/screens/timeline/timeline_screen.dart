@@ -16,10 +16,22 @@ class TimelineScreen extends HookWidget {
   Widget build(BuildContext context) {
     useEffect(() {
       final provider = context.read<TimelineProvider>();
+
+      // 初回起動時にリアルタイム購読を開始
       WidgetsBinding.instance.addPostFrameCallback((_) {
         provider.startRealtime();
       });
+
+      // バックグラウンド移行時に購読停止、フォアグラウンド復帰時に再接続
+      // onPause より前の onHide (resumed→inactive→hidden→paused) で止めることで
+      // ネットワークが制限される前にWebSocket接続を切断する
+      final lifecycleListener = AppLifecycleListener(
+        onHide: () => unawaited(provider.stopRealtime()),
+        onResume: () => unawaited(provider.startRealtime()),
+      );
+
       return () {
+        lifecycleListener.dispose();
         unawaited(provider.stopRealtime());
       };
     }, const []);
