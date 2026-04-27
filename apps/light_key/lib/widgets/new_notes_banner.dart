@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 
 class NewNotesBanner extends StatelessWidget {
   const NewNotesBanner({
-    required this.pendingCount,
     required this.onTap,
     super.key,
   });
 
-  final int pendingCount;
   final VoidCallback onTap;
 
   @override
@@ -32,7 +30,7 @@ class NewNotesBanner extends StatelessWidget {
             const Icon(Icons.arrow_upward, color: Colors.white, size: 18),
             const SizedBox(width: 8),
             Text(
-              '新しいノートがあります（$pendingCount）',
+              '新しいノートがあります',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w500,

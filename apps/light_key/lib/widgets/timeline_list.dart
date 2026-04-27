@@ -20,7 +20,6 @@ class TimelineList extends HookWidget {
     final visibleNotes = useState<List<Note>>(List<Note>.from(notes));
     final isFirstSync = useRef(true);
     final pendingNotes = useRef<List<Note>>([]);
-    final pendingCount = useState(0);
     final isAtTop = useState(true);
 
     useEffect(() {
@@ -31,7 +30,6 @@ class TimelineList extends HookWidget {
         if (atTop && pendingNotes.value.isNotEmpty) {
           _applyNoteUpdates(listKey, visibleNotes, pendingNotes.value);
           pendingNotes.value = [];
-          pendingCount.value = 0;
         }
       }
 
@@ -48,7 +46,6 @@ class TimelineList extends HookWidget {
       if (isAtTop.value) {
         _applyNoteUpdates(listKey, visibleNotes, notes);
         pendingNotes.value = [];
-        pendingCount.value = 0;
       } else {
         _applyExistingNoteUpdates(visibleNotes, notes);
         final currentIds = visibleNotes.value.map((note) => note.id).toSet();
@@ -56,8 +53,9 @@ class TimelineList extends HookWidget {
             .where((note) => !currentIds.contains(note.id))
             .length;
 
-        pendingNotes.value = List<Note>.from(notes);
-        pendingCount.value = newNoteCount;
+        if (newNoteCount > 0) {
+          pendingNotes.value = List<Note>.from(notes);
+        }
       }
 
       return null;
@@ -84,14 +82,12 @@ class TimelineList extends HookWidget {
             left: 0,
             right: 0,
             child: NewNotesBanner(
-              pendingCount: pendingCount.value,
               onTap: () {
                 // タップ時点でノートをキャプチャし、即座にクリアする。
                 // スクロールリスナーが offset==0 で同じ pendingNotes を処理する
                 // 競合を防ぐため、先にクリアして二重適用を回避する。
                 final captured = List<Note>.from(pendingNotes.value);
                 pendingNotes.value = [];
-                pendingCount.value = 0;
                 scrollController.animateTo(
                   0,
                   duration: const Duration(milliseconds: 300),
