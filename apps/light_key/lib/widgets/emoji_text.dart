@@ -78,7 +78,7 @@ class EmojiText extends StatelessWidget {
             alignment: PlaceholderAlignment.middle,
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: emojiSize * 8,
+                maxWidth: emojiSize * 11,
               ),
               child: CachedNetworkImage(
                 imageUrl: url,

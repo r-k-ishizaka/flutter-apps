@@ -22,6 +22,15 @@ class TimelineNoteItem extends StatelessWidget {
     return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
   }
 
+  // `:name@.:` は同一サーバ絵文字なので `:name:` に正規化する。
+  String _normalizeReaction(String reaction) {
+    final match = RegExp(r'^:([a-zA-Z0-9_]+)@\.:$').firstMatch(reaction);
+    if (match == null) {
+      return reaction;
+    }
+    return ':${match.group(1)}:';
+  }
+
   @override
   Widget build(BuildContext context) {
     final curved = CurvedAnimation(
@@ -155,7 +164,19 @@ class TimelineNoteItem extends StatelessWidget {
                                               .surfaceContainerHighest,
                                           borderRadius: BorderRadius.circular(12),
                                         ),
-                                        child: Text('${entry.key} ${entry.value}'),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            EmojiText(
+                                              _normalizeReaction(entry.key),
+                                              emojiSize: 18,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text('${entry.value}'),
+                                          ],
+                                        ),
                                       ),
                                     )
                                     .toList(growable: false),
