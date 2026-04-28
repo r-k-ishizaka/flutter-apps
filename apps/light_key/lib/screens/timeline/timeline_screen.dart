@@ -44,7 +44,12 @@ class TimelineScreen extends HookWidget {
         message: state.message ?? 'エラーが発生しました。',
         onRetry: () => context.read<TimelineProvider>().fetch(),
       ),
-      _ => TimelineList(notes: state.notes, message: state.message),
+      _ => TimelineList(
+        notes: state.notes,
+        isRefreshing: state.isRefreshing,
+        message: state.message,
+        onRefresh: () => context.read<TimelineProvider>().fetch(showLoading: false),
+      ),
     };
   }
 }

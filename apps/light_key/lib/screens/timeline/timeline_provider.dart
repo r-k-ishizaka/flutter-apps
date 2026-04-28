@@ -23,9 +23,22 @@ class TimelineProvider extends ChangeNotifier {
   TimelineScreenState _state = const TimelineScreenState.idle();
   TimelineScreenState get state => _state;
 
-  Future<void> fetch() async {
-    _state = _state.copyWith(status: TimelineStatus.loading, clearMessage: true);
-    notifyListeners();
+  Future<void> fetch({bool showLoading = true}) async {
+    final shouldShowLoading = showLoading || _state.notes.isEmpty;
+
+    if (shouldShowLoading) {
+      _state = _state.copyWith(
+        status: TimelineStatus.loading,
+        isRefreshing: false,
+        clearMessage: true,
+      );
+      notifyListeners();
+    } else {
+      _state = _state.copyWith(isRefreshing: true, clearMessage: true);
+      notifyListeners();
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 500));
 
     final sessionResult = await _authRepository.restoreSession();
     await sessionResult.when(
@@ -41,6 +54,8 @@ class TimelineProvider extends ChangeNotifier {
             _state = _state.copyWith(
               status: TimelineStatus.loaded,
               notes: notes,
+              isRefreshing: false,
+              clearMessage: true,
             );
           },
           failure: (error, _) {
@@ -61,7 +76,11 @@ class TimelineProvider extends ChangeNotifier {
 
     // 前のデータがない場合のみ loading 状態をセット
     if (_state.notes.isEmpty) {
-      _state = _state.copyWith(status: TimelineStatus.loading, clearMessage: true);
+      _state = _state.copyWith(
+        status: TimelineStatus.loading,
+        isRefreshing: false,
+        clearMessage: true,
+      );
       notifyListeners();
     }
 
@@ -81,6 +100,7 @@ class TimelineProvider extends ChangeNotifier {
                 _state = _state.copyWith(
                   status: TimelineStatus.loaded,
                   notes: notes,
+                  isRefreshing: false,
                   clearMessage: true,
                 );
               },
@@ -118,6 +138,7 @@ class TimelineProvider extends ChangeNotifier {
   void _setTimelineError(String message) {
     _state = _state.copyWith(
       status: _state.notes.isEmpty ? TimelineStatus.error : TimelineStatus.loaded,
+      isRefreshing: false,
       message: message,
     );
   }

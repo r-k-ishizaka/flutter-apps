@@ -8,10 +8,18 @@ import 'new_notes_banner.dart';
 import 'timeline_note_item.dart';
 
 class TimelineList extends HookWidget {
-  const TimelineList({required this.notes, this.message, super.key});
+  const TimelineList({
+    required this.notes,
+    this.isRefreshing = false,
+    this.message,
+    this.onRefresh,
+    super.key,
+  });
 
   final List<Note> notes;
+  final bool isRefreshing;
   final String? message;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +29,21 @@ class TimelineList extends HookWidget {
     final isFirstSync = useRef(true);
     final pendingNotes = useRef<List<Note>>([]);
     final isAtTop = useState(true);
+    final localRefreshing = useState(false);
+
+    Future<void> handleRefresh() async {
+      final refresh = onRefresh;
+      if (refresh == null) return;
+
+      localRefreshing.value = true;
+      try {
+        await refresh();
+      } finally {
+        localRefreshing.value = false;
+      }
+    }
+
+    final shouldDim = isRefreshing || localRefreshing.value;
 
     useEffect(() {
       void listener() {
@@ -62,19 +85,46 @@ class TimelineList extends HookWidget {
     }, [notes]);
 
     if (visibleNotes.value.isEmpty) {
-      return Center(child: Text(message ?? '投稿がありません。認証後に再取得してください。'));
+      if (onRefresh == null) {
+        return Center(child: Text(message ?? '投稿がありません。認証後に再取得してください。'));
+      }
+
+      return RefreshIndicator(
+        onRefresh: handleRefresh,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: Text(message ?? '投稿がありません。認証後に再取得してください。'),
+                ),
+              ),
+            );
+          },
+        ),
+      );
     }
 
-    return Stack(
+    final content = Stack(
       children: [
-        AnimatedList(
-          key: listKey,
-          controller: scrollController,
-          initialItemCount: visibleNotes.value.length,
-          itemBuilder: (context, index, animation) {
-            final note = visibleNotes.value[index];
-            return TimelineNoteItem(note: note, animation: animation);
-          },
+        AnimatedOpacity(
+          opacity: shouldDim ? 0.4 : 1.0,
+          duration: shouldDim
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          child: AnimatedList(
+            key: listKey,
+            controller: scrollController,
+            initialItemCount: visibleNotes.value.length,
+            itemBuilder: (context, index, animation) {
+              final note = visibleNotes.value[index];
+              return TimelineNoteItem(note: note, animation: animation);
+            },
+          ),
         ),
         if (pendingNotes.value.isNotEmpty)
           Positioned(
@@ -101,6 +151,12 @@ class TimelineList extends HookWidget {
           ),
       ],
     );
+
+    if (onRefresh == null) {
+      return content;
+    }
+
+    return RefreshIndicator(onRefresh: handleRefresh, child: content);
   }
 
   static void _applyNoteUpdates(

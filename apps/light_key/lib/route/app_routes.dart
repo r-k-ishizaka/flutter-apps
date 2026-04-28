@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import '../screens/auth/auth_screen.dart';
+import '../screens/home/home_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/post/post_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
-import '../screens/timeline/timeline_provider.dart';
 import '../widgets/theme_switch_button.dart';
 
 part 'app_routes.g.dart';
@@ -54,7 +53,28 @@ class HomeShellRouteData extends ShellRouteData {
 
   @override
   Widget builder(BuildContext context, GoRouterState state, Widget navigator) {
-    return HomeShell(currentPath: state.uri.path, child: navigator);
+    final currentPath = state.uri.path;
+    final selectedIndex = currentPath.startsWith('/home/notifications') ? 1 : 0;
+
+    return HomeScreen(
+      currentPath: currentPath,
+      selectedIndex: selectedIndex,
+      actions: const [ThemeSwitchButton()],
+      onPostTap: () => const PostRoute().push(context),
+      onDestinationSelected: (index) {
+        if (index == selectedIndex) return;
+
+        switch (index) {
+          case 0:
+            const TimelineRoute().go(context);
+            break;
+          case 1:
+            const NotificationsRoute().go(context);
+            break;
+        }
+      },
+      child: navigator,
+    );
   }
 }
 
@@ -109,75 +129,3 @@ final GoRouter appRouter = GoRouter(
   overridePlatformDefaultLocation: true,
   routes: $appRoutes,
 );
-
-class HomeShell extends StatelessWidget {
-  const HomeShell({
-    super.key,
-    required this.currentPath,
-    required this.child,
-  });
-
-  final String currentPath;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ホーム'),
-        actions: [
-          IconButton(
-            onPressed: () => context.read<TimelineProvider>().fetch(),
-            icon: const Icon(Icons.refresh),
-          ),
-          const ThemeSwitchButton(),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => const PostRoute().push(context),
-        child: const Icon(Icons.edit_note),
-      ),
-      bottomNavigationBar: AppNavBar(currentPath: currentPath),
-      body: child,
-    );
-  }
-}
-
-class AppNavBar extends StatelessWidget {
-  const AppNavBar({super.key, required this.currentPath});
-
-  final String currentPath;
-
-  int get _currentIndex {
-    if (currentPath.startsWith('/home/notifications')) return 1;
-    return 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: _currentIndex,
-      onDestinationSelected: (index) {
-        if (index == _currentIndex) return;
-        switch (index) {
-          case 0:
-            const TimelineRoute().go(context);
-            break;
-          case 1:
-            const NotificationsRoute().go(context);
-            break;
-        }
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dynamic_feed),
-          label: 'Timeline',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.notifications_none),
-          label: 'Notifications',
-        ),
-      ],
-    );
-  }
-}
