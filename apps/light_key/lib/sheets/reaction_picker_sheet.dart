@@ -6,32 +6,7 @@ import '../services/app_database.dart';
 import '../services/emoji_cache.dart';
 
 /// よく使われる絵文字リアクションの一覧（仮）。
-const _kFrequentReactions = [
-  '👍',
-  '❤️',
-  '😂',
-  '😮',
-  '😢',
-  '🙏',
-  '🔥',
-  '🎉',
-  '✨',
-  '👏',
-  '🤔',
-  '😍',
-  '😎',
-  '🥳',
-  '😅',
-  '🤣',
-  '🥺',
-  '💯',
-  '🚀',
-  '⭐',
-  '💪',
-  '👀',
-  '🌟',
-  '🫶',
-];
+const _kFrequentReactions = <String>[];
 
 /// リアクション選択ボトムシート。
 ///
