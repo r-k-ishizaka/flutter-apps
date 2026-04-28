@@ -58,47 +58,86 @@ class ReactionPickerSheet extends HookWidget {
     };
   }
 
-  Map<String, List<_CustomEmojiItem>> _filteredCustomByCategory(
-    Map<String, List<_CustomEmojiItem>> source,
-    String query,
+  /// 現在のパスの直下にあるサブカテゴリと絵文字を取得
+  Map<String, dynamic> _getSubItemsForPath(
+    Map<String, List<_CustomEmojiItem>> allCategories,
+    List<String> currentPath,
   ) {
-    if (query.isEmpty) return source;
-    final normalized = query.toLowerCase();
-    final filtered = <String, List<_CustomEmojiItem>>{};
+    final subCategories = <String, List<_CustomEmojiItem>>{};
+    final emojis = <_CustomEmojiItem>[];
 
-    for (final entry in source.entries) {
-      final category = entry.key;
-      final categoryMatches = category.toLowerCase().contains(normalized);
-      final items = entry.value
-          .where(
-            (item) =>
-                categoryMatches || item.name.toLowerCase().contains(normalized),
-          )
-          .toList(growable: false);
+    for (final entry in allCategories.entries) {
+      final fullPathParts = entry.key.split('/');
 
-      if (items.isNotEmpty) {
-        filtered[category] = items;
+      // 現在パスと共通プレフィックスが一致しないカテゴリは対象外。
+      if (fullPathParts.length < currentPath.length) {
+        continue;
+      }
+      var matchesPrefix = true;
+      for (var i = 0; i < currentPath.length; i++) {
+        if (fullPathParts[i] != currentPath[i]) {
+          matchesPrefix = false;
+          break;
+        }
+      }
+      if (!matchesPrefix) {
+        continue;
+      }
+
+      if (fullPathParts.length == currentPath.length) {
+        // 現在のカテゴリ自身に紐づく絵文字。
+        emojis.addAll(entry.value);
+      } else {
+        // 1階層下のカテゴリ名だけを抽出して一覧化。
+        final subCatName = fullPathParts[currentPath.length];
+        subCategories.putIfAbsent(
+          subCatName,
+          () => const <_CustomEmojiItem>[],
+        );
       }
     }
-    return filtered;
+
+    return {
+      'subCategories': subCategories,
+      'emojis': emojis,
+    };
   }
 
-  List<_CustomEmojiItem> _filteredCategoryItems(
-    List<_CustomEmojiItem> source,
+  /// パス配下のカテゴリをフィルター
+  Map<String, dynamic> _filterSubItems(
+    Map<String, dynamic> subItems,
     String query,
   ) {
-    if (query.isEmpty) return source;
+    if (query.isEmpty) return subItems;
     final normalized = query.toLowerCase();
-    return source
+
+    final subCategories =
+        (subItems['subCategories'] as Map<String, List<_CustomEmojiItem>>)
+            .entries
+            .where((e) => e.key.toLowerCase().contains(normalized))
+            .fold<Map<String, List<_CustomEmojiItem>>>(
+              <String, List<_CustomEmojiItem>>{},
+              (acc, e) {
+                acc[e.key] = e.value;
+                return acc;
+              },
+            );
+
+    final emojis = (subItems['emojis'] as List<_CustomEmojiItem>)
         .where((item) => item.name.toLowerCase().contains(normalized))
         .toList(growable: false);
+
+    return {
+      'subCategories': subCategories,
+      'emojis': emojis,
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     final searchController = useTextEditingController();
     final query = useState('');
-    final selectedCategory = useState<String?>(null);
+    final categoryPath = useState<List<String>>([]);
     final customByCategoryFuture = useMemoized(
       () => _loadCustomEmojisByCategory(),
     );
@@ -119,13 +158,18 @@ class ReactionPickerSheet extends HookWidget {
                 pinned: true,
                 delegate: _PinnedSheetHeaderDelegate(
                   colorScheme: colorScheme,
-                  selectedCategory: selectedCategory.value,
+                  categoryPath: categoryPath.value,
                   query: query.value,
                   searchController: searchController,
-                  onBack: selectedCategory.value == null
+                  onBack: categoryPath.value.isEmpty
                       ? null
                       : () {
-                          selectedCategory.value = null;
+                          categoryPath.value = categoryPath.value.isEmpty
+                              ? []
+                              : categoryPath.value.sublist(
+                                  0,
+                                  categoryPath.value.length - 1,
+                                );
                           searchController.clear();
                           query.value = '';
                         },
@@ -141,7 +185,7 @@ class ReactionPickerSheet extends HookWidget {
               ),
             ];
 
-            if (selectedCategory.value == null) {
+            if (categoryPath.value.isEmpty) {
               slivers.add(
                 SliverToBoxAdapter(
                   child: Padding(
@@ -190,7 +234,7 @@ class ReactionPickerSheet extends HookWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Text(
-                    selectedCategory.value == null ? 'リアクション一覧' : 'カテゴリ詳細',
+                    categoryPath.value.isEmpty ? 'リアクション一覧' : 'カテゴリ詳細',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
@@ -217,15 +261,18 @@ class ReactionPickerSheet extends HookWidget {
               );
             } else {
               final raw = snapshot.data ?? const <String, List<_CustomEmojiItem>>{};
-              if (selectedCategory.value != null) {
-                final selectedItems =
-                    raw[selectedCategory.value] ?? const <_CustomEmojiItem>[];
-                final filteredItems = _filteredCategoryItems(
-                  selectedItems,
-                  query.value,
-                );
 
-                if (filteredItems.isEmpty) {
+              if (categoryPath.value.isNotEmpty) {
+                // カテゴリ詳細ビュー
+                final subItems = _getSubItemsForPath(raw, categoryPath.value);
+                final filteredItems = _filterSubItems(subItems, query.value);
+                final subCategories =
+                    filteredItems['subCategories'] as Map<String, List<_CustomEmojiItem>>;
+                final emojis = filteredItems['emojis'] as List<_CustomEmojiItem>;
+
+                final hasContent = subCategories.isNotEmpty || emojis.isNotEmpty;
+
+                if (!hasContent) {
                   slivers.add(
                     SliverToBoxAdapter(
                       child: Padding(
@@ -239,31 +286,78 @@ class ReactionPickerSheet extends HookWidget {
                     ),
                   );
                 } else {
-                  slivers.add(
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                      sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 8,
-                          childAspectRatio: 1,
-                        ),
+                  // サブカテゴリを表示
+                  if (subCategories.isNotEmpty) {
+                    slivers.add(
+                      SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
-                          final item = filteredItems[index];
-                          return _CustomEmojiCell(
-                            name: item.name,
-                            url: item.url,
-                            onTap: () => onSelected(':${item.name}:'),
+                          final subCatName =
+                              subCategories.keys.elementAt(index);
+                          return ListTile(
+                            dense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16),
+                            title: Text(subCatName),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              categoryPath.value = [
+                                ...categoryPath.value,
+                                subCatName,
+                              ];
+                              searchController.clear();
+                              query.value = '';
+                            },
                           );
-                        }, childCount: filteredItems.length),
+                        }, childCount: subCategories.length),
                       ),
-                    ),
-                  );
+                    );
+                  }
+
+                  // 絵文字グリッドを表示
+                  if (emojis.isNotEmpty) {
+                    slivers.add(
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 8,
+                            childAspectRatio: 1,
+                          ),
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            final item = emojis[index];
+                            return _CustomEmojiCell(
+                              name: item.name,
+                              url: item.url,
+                              onTap: () => onSelected(':${item.name}:'),
+                            );
+                          }, childCount: emojis.length),
+                        ),
+                      ),
+                    );
+                  }
                 }
               } else {
-                final filtered = _filteredCustomByCategory(
-                  raw,
-                  query.value,
-                ).entries.toList(growable: false);
+                // トップレベルのカテゴリ一覧
+                final topLevelCategories =
+                    <String, int>{}; // カテゴリ名 -> アイテム数
+                for (final entry in raw.entries) {
+                  final fullPath = entry.key;
+                  final parts = fullPath.split('/');
+                  final topLevelCat = parts[0];
+                  topLevelCategories[topLevelCat] =
+                      (topLevelCategories[topLevelCat] ?? 0) + entry.value.length;
+                }
+
+                final filtered = topLevelCategories.entries
+                    .where((e) {
+                  if (query.value.isEmpty) return true;
+                  final normalized = query.value.toLowerCase();
+                  return e.key.toLowerCase().contains(normalized);
+                })
+                    .toList(growable: false)
+                  ..sort((a, b) => a.key.compareTo(b.key));
+
                 if (filtered.isEmpty) {
                   slivers.add(
                     SliverToBoxAdapter(
@@ -283,16 +377,17 @@ class ReactionPickerSheet extends HookWidget {
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final entry = filtered[index];
                         final category = entry.key;
-                        final count = entry.value.length;
+                        final count = entry.value;
 
                         return ListTile(
                           dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                           title: Text(category),
                           subtitle: Text('$count 件'),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
-                            selectedCategory.value = category;
+                            categoryPath.value = [category];
                             searchController.clear();
                             query.value = '';
                           },
@@ -300,7 +395,8 @@ class ReactionPickerSheet extends HookWidget {
                       }, childCount: filtered.length),
                     ),
                   );
-                  slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 16)));
+                  slivers.add(
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)));
                 }
               }
             }
@@ -344,7 +440,7 @@ class _CustomEmojiItem {
 class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _PinnedSheetHeaderDelegate({
     required this.colorScheme,
-    required this.selectedCategory,
+    required this.categoryPath,
     required this.query,
     required this.searchController,
     required this.onClose,
@@ -354,7 +450,7 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   final ColorScheme colorScheme;
-  final String? selectedCategory;
+  final List<String> categoryPath;
   final String query;
   final TextEditingController searchController;
   final VoidCallback? onBack;
@@ -403,8 +499,12 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
                     ),
                   Expanded(
                     child: Text(
-                      selectedCategory ?? 'リアクションを選択',
+                      categoryPath.isEmpty
+                          ? 'リアクションを選択'
+                          : categoryPath.join(' / '),
                       style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
@@ -438,7 +538,7 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _PinnedSheetHeaderDelegate oldDelegate) {
     return colorScheme != oldDelegate.colorScheme ||
-        selectedCategory != oldDelegate.selectedCategory ||
+        categoryPath != oldDelegate.categoryPath ||
         query != oldDelegate.query ||
         searchController != oldDelegate.searchController ||
         onBack != oldDelegate.onBack ||
