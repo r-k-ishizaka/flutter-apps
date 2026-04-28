@@ -20,4 +20,7 @@ class EmojiCache {
 
   /// キャッシュに登録されている絵文字数。
   int get length => _cache.length;
+
+  /// 登録済みの絵文字マップを読み取り専用で返す。
+  Map<String, String> get entries => Map.unmodifiable(_cache);
 }

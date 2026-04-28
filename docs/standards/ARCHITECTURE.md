@@ -59,6 +59,7 @@ flowchart TD
 
 - 各画面は「状態（State）」と「副作用（Effect）」を明確に分離して設計します。
 - `screens/` 配下の画面Widgetは `StatefulWidget` を原則使用せず、`HookWidget` と Provider の組み合わせで実装します。
+- `sheets/` 配下のUIも同方針とし、画面の状態はProvider、widgetの状態（controllerなど）はhooksで管理します。
 - 画面の状態はProvider（ChangeNotifier）で一元管理し、UIはその状態を監視して自動的に再描画されます。
 - 画面の状態（例: stable, updating, errorなど）はenumやsealed classで表現し、状態ごとにUIを切り替えます。
 - ユーザー操作（入力・ボタン押下など）はProviderのメソッドを通じて状態を更新します。
