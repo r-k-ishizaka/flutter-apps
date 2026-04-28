@@ -1,10 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter/material.dart';
 
 import '../models/note.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
+import 'user_avatar.dart';
 
 /// リノート元ノートを枠線付きカードで表示するウィジェット。
 /// 多段リノートは 1 段のみ表示。
@@ -31,7 +30,7 @@ class RenoteCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _UserAvatar(
+          UserAvatar(
             avatarUrl: renote.user.avatarUrl,
             avatarBlurHash: renote.user.avatarBlurHash,
             size: 32,
@@ -77,59 +76,6 @@ class RenoteCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({
-    required this.avatarUrl,
-    this.avatarBlurHash,
-    this.size = 40,
-  });
-
-  final String? avatarUrl;
-  final String? avatarBlurHash;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final url = avatarUrl;
-    if (url == null || url.isEmpty) {
-      return CircleAvatar(
-        radius: size / 2,
-        child: Icon(Icons.person_outline, size: size * 0.5),
-      );
-    }
-
-    return ClipOval(
-      child: CachedNetworkImage(
-        imageUrl: url,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        placeholder: (context, _) {
-          final blurHash = avatarBlurHash;
-          if (blurHash != null && blurHash.isNotEmpty) {
-            return BlurHash(hash: blurHash);
-          }
-          return SizedBox(
-            width: size,
-            height: size,
-            child: Center(
-              child: SizedBox(
-                width: size * 0.4,
-                height: size * 0.4,
-                child: const CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        },
-        errorWidget: (context, _, _) => CircleAvatar(
-          radius: size / 2,
-          child: Icon(Icons.person_outline, size: size * 0.5),
-        ),
       ),
     );
   }

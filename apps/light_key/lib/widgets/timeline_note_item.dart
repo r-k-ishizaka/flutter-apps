@@ -1,12 +1,12 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter/material.dart';
 
 import '../models/note.dart';
 import '../models/note_type.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
+import 'note_reaction_list.dart';
 import 'renote_card.dart';
+import 'user_avatar.dart';
 
 class TimelineNoteItem extends StatelessWidget {
   const TimelineNoteItem({
@@ -22,14 +22,15 @@ class TimelineNoteItem extends StatelessWidget {
     return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
   }
 
-  // `:name@.:` は同一サーバ絵文字なので `:name:` に正規化する。
-  String _normalizeReaction(String reaction) {
-    final match = RegExp(r'^:([a-zA-Z0-9_]+)@\.:$').firstMatch(reaction);
-    if (match == null) {
-      return reaction;
-    }
-    return ':${match.group(1)}:';
+  void _showComingSoonSnackBar(BuildContext context, String label) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$label は準備中です')));
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +68,7 @@ class TimelineNoteItem extends StatelessWidget {
                         children: [
                           const Icon(Icons.repeat, size: 14),
                           const SizedBox(width: 4),
-                          _UserAvatar(
+                          UserAvatar(
                             avatarUrl: note.user.avatarUrl,
                             avatarBlurHash: note.user.avatarBlurHash,
                             size: 16,
@@ -87,7 +88,7 @@ class TimelineNoteItem extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _UserAvatar(
+                      UserAvatar(
                         avatarUrl: displayNote.user.avatarUrl,
                         avatarBlurHash: displayNote.user.avatarBlurHash,
                       ),
@@ -145,42 +146,24 @@ class TimelineNoteItem extends StatelessWidget {
                               const SizedBox(height: 8),
                               NoteMediaList(files: displayNote.files),
                             ],
+                            const SizedBox(height: 8),
+                            _TimelineNoteActionRow(
+                              onReply: () => _showComingSoonSnackBar(
+                                context,
+                                'リプライ',
+                              ),
+                              onRenote: () => _showComingSoonSnackBar(
+                                context,
+                                'リノート',
+                              ),
+                              onReaction: () => _showComingSoonSnackBar(
+                                context,
+                                'リアクション',
+                              ),
+                            ),
                             if (displayReactions.isNotEmpty) ...[
                               const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: displayReactions.entries
-                                    .where((entry) => entry.value > 0)
-                                    .map(
-                                      (entry) => Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest,
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            EmojiText(
-                                              _normalizeReaction(entry.key),
-                                              emojiSize: 18,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text('${entry.value}'),
-                                          ],
-                                        ),
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                              ),
+                              NoteReactionList(reactions: displayReactions),
                             ],
                           ],
                         ),
@@ -198,55 +181,64 @@ class TimelineNoteItem extends StatelessWidget {
   }
 }
 
-class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({
-    required this.avatarUrl,
-    this.avatarBlurHash,
-    this.size = 40,
+class _TimelineNoteActionRow extends StatelessWidget {
+  const _TimelineNoteActionRow({
+    required this.onReply,
+    required this.onRenote,
+    required this.onReaction,
   });
 
-  final String? avatarUrl;
-  final String? avatarBlurHash;
-  final double size;
+  final VoidCallback onReply;
+  final VoidCallback onRenote;
+  final VoidCallback onReaction;
 
   @override
   Widget build(BuildContext context) {
-    final url = avatarUrl;
-    if (url == null || url.isEmpty) {
-      return CircleAvatar(
-        radius: size / 2,
-        child: Icon(Icons.person_outline, size: size * 0.5),
-      );
-    }
-
-    return ClipOval(
-      child: CachedNetworkImage(
-        imageUrl: url,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        placeholder: (context, _) {
-          final blurHash = avatarBlurHash;
-          if (blurHash != null && blurHash.isNotEmpty) {
-            return BlurHash(hash: blurHash);
-          }
-          return SizedBox(
-            width: size,
-            height: size,
-            child: Center(
-              child: SizedBox(
-                width: size * 0.4,
-                height: size * 0.4,
-                child: const CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        },
-        errorWidget: (context, _, _) => CircleAvatar(
-          radius: size / 2,
-          child: Icon(Icons.person_outline, size: size * 0.5),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      spacing: 8,
+      children: [
+        _TimelineNoteActionButton(
+          icon: Icons.reply_outlined,
+          tooltip: 'リプライ',
+          onPressed: onReply,
         ),
-      ),
+        _TimelineNoteActionButton(
+          icon: Icons.repeat,
+          tooltip: 'リノート',
+          onPressed: onRenote,
+        ),
+        _TimelineNoteActionButton(
+          icon: Icons.add_reaction_outlined,
+          tooltip: 'リアクション',
+          onPressed: onReaction,
+        ),
+      ],
+    );
+  }
+}
+
+class _TimelineNoteActionButton extends StatelessWidget {
+  const _TimelineNoteActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      constraints: const BoxConstraints(minHeight: 36),
+      alignment: Alignment.centerLeft,
     );
   }
 }
