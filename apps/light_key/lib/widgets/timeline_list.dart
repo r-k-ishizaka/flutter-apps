@@ -199,13 +199,10 @@ class TimelineList extends HookWidget {
           duration: const Duration(milliseconds: 280),
         );
       } else {
-        final existing = current[currentIndex];
-        // 既存の myReaction を保持する
-        if (existing.myReaction != null && note.myReaction == null) {
-          current[currentIndex] = note.copyWith(myReaction: existing.myReaction);
-        } else {
-          current[currentIndex] = note;
-        }
+        current[currentIndex] = _mergeNotePreservingMyReaction(
+          current[currentIndex],
+          note,
+        );
       }
     }
 
@@ -245,16 +242,26 @@ class TimelineList extends HookWidget {
             return note;
           }
           hasChanged = true;
-          // 既存の myReaction を保持する
-          if (note.myReaction != null && next.myReaction == null) {
-            return next.copyWith(myReaction: note.myReaction);
-          }
-          return next;
+          return _mergeNotePreservingMyReaction(note, next);
         })
         .toList(growable: false);
 
     if (hasChanged) {
       visibleNotes.value = List<Note>.unmodifiable(updated);
     }
+  }
+
+  static Note _mergeNotePreservingMyReaction(Note current, Note incoming) {
+    final mergedRenote = switch ((current.renote, incoming.renote)) {
+      (final currentRenote?, final incomingRenote?) =>
+        _mergeNotePreservingMyReaction(currentRenote, incomingRenote),
+      (_, final incomingRenote?) => incomingRenote,
+      _ => null,
+    };
+
+    return incoming.copyWith(
+      myReaction: incoming.myReaction ?? current.myReaction,
+      renote: mergedRenote,
+    );
   }
 }

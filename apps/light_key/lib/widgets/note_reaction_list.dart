@@ -28,19 +28,27 @@ class NoteReactionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (reactions.isEmpty) return const SizedBox.shrink();
+    final normalizedMyReaction = myReaction == null
+        ? null
+        : _normalizeReaction(myReaction!);
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: reactions.entries
           .where((entry) => entry.value > 0)
           .map(
-            (entry) => _ReactionChip(
-              reactionKey: entry.key,
-              reaction: _normalizeReaction(entry.key),
-              count: entry.value,
-              isMyReaction: myReaction != null && myReaction == entry.key,
-              onTap: onReactionTap,
-            ),
+            (entry) {
+              final normalizedReaction = _normalizeReaction(entry.key);
+              return _ReactionChip(
+                reactionKey: entry.key,
+                reaction: normalizedReaction,
+                count: entry.value,
+                isMyReaction:
+                    normalizedMyReaction != null &&
+                    normalizedMyReaction == normalizedReaction,
+                onTap: onReactionTap,
+              );
+            },
           )
           .toList(growable: false),
     );

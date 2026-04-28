@@ -85,8 +85,8 @@ class TimelineRepository {
               }
 
               current = [note, ...current];
-              if (current.length > limit) {
-                current = current.sublist(0, limit);
+              if (current.length > _maxSubscribedNotes) {
+                current = current.sublist(0, _maxSubscribedNotes);
               }
 
               final nextIds = _extractSubscribableNoteIds(current);

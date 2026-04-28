@@ -54,7 +54,7 @@ class TimelineProvider extends ChangeNotifier {
           success: (notes) {
             _state = _state.copyWith(
               status: TimelineStatus.loaded,
-              notes: notes,
+              notes: _mergeNotesPreservingMyReaction(_state.notes, notes),
               isRefreshing: false,
               clearMessage: true,
             );
@@ -102,7 +102,10 @@ class TimelineProvider extends ChangeNotifier {
                   success: (notes) {
                     _state = _state.copyWith(
                       status: TimelineStatus.loaded,
-                      notes: notes,
+                      notes: _mergeNotesPreservingMyReaction(
+                        _state.notes,
+                        notes,
+                      ),
                       isRefreshing: false,
                       clearMessage: true,
                     );
@@ -186,6 +189,51 @@ class TimelineProvider extends ChangeNotifier {
 
     _state = _state.copyWith(notes: List<Note>.unmodifiable(updatedNotes));
     notifyListeners();
+  }
+
+  List<Note> _mergeNotesPreservingMyReaction(
+    List<Note> current,
+    List<Note> incoming,
+  ) {
+    final currentById = <String, Note>{
+      for (final note in current)
+        if (note.id.isNotEmpty) note.id: note,
+      for (final note in current)
+        if (note.renote case final renote? when renote.id.isNotEmpty) renote.id: renote,
+    };
+
+    return List<Note>.unmodifiable(
+      incoming
+          .map(
+            (note) => _mergeNotePreservingMyReaction(
+              note,
+              currentById[note.id],
+              currentById,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Note _mergeNotePreservingMyReaction(
+    Note incoming,
+    Note? current,
+    Map<String, Note> currentById,
+  ) {
+    final matchedCurrent = current ?? currentById[incoming.id];
+    final mergedRenote = switch (incoming.renote) {
+      final renote? => _mergeNotePreservingMyReaction(
+        renote,
+        matchedCurrent?.renote,
+        currentById,
+      ),
+      null => null,
+    };
+
+    return incoming.copyWith(
+      myReaction: incoming.myReaction ?? matchedCurrent?.myReaction,
+      renote: mergedRenote,
+    );
   }
 
   @override

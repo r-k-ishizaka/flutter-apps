@@ -14,6 +14,7 @@ import 'package:light_key/repositories/timeline_repository.dart';
 import 'package:light_key/screens/timeline/timeline_provider.dart';
 import 'package:light_key/screens/timeline/timeline_screen_state.dart';
 import 'package:light_key/services/emoji_cache.dart';
+import 'package:light_key/widgets/note_reaction_list.dart';
 import 'package:light_key/widgets/timeline_list.dart';
 
 void main() {
@@ -68,6 +69,34 @@ void main() {
       expect(provider.state.isRefreshing, isFalse);
       expect(provider.state.message, isNull);
       expect(provider.state.notes.map((note) => note.id), ['note-2', 'note-1']);
+    });
+
+    test('refresh でサーバー応答に myReaction がなくても保持する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [_note(id: 'note-1').copyWith(myReaction: '👍')],
+          () async => [_note(id: 'note-1')],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+      expect(provider.state.notes.single.myReaction, '👍');
+
+      await provider.fetch(showLoading: false);
+
+      expect(provider.state.notes.single.myReaction, '👍');
     });
   });
 
@@ -171,6 +200,84 @@ void main() {
 
       expect(tappedNote?.id, 'note-1');
       expect(tappedReaction, '👍');
+    });
+
+    testWidgets('純粋リノート更新時も renote.myReaction を保持する', (tester) async {
+      const reactionKey = ':custom@.:';
+      final theme = ThemeData(useMaterial3: true);
+
+      Note pureRenoteWithReaction(String? myReaction) {
+        return Note(
+          id: 'wrapper-1',
+          text: '',
+          createdAt: DateTime(2026, 4, 28, 12),
+          user: const User(id: 'user-2', username: 'bob', name: 'Bob'),
+          renote: _note(id: 'note-1').copyWith(
+            reactions: const {reactionKey: 1},
+            myReaction: myReaction,
+          ),
+        );
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: TimelineList(notes: [pureRenoteWithReaction(':custom:')]),
+        ),
+      );
+      await tester.pump();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: TimelineList(notes: [pureRenoteWithReaction(null)]),
+        ),
+      );
+      await tester.pump();
+
+      final decoratedBox = tester.widget<DecoratedBox>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('reaction-chip-:custom@.:')),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
+      );
+      final decoration = decoratedBox.decoration as BoxDecoration;
+
+      expect(decoration.color, theme.colorScheme.primaryContainer);
+      expect(decoration.border, isNotNull);
+    });
+
+    testWidgets('同一サーバー絵文字は正規化して myReaction と比較する', (tester) async {
+      final theme = ThemeData(useMaterial3: true);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: Center(
+              child: NoteReactionList(
+                reactions: const {':custom@.:': 1},
+                myReaction: ':custom:',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final decoratedBox = tester.widget<DecoratedBox>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('reaction-chip-:custom@.:')),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
+      );
+      final decoration = decoratedBox.decoration as BoxDecoration;
+
+      expect(decoration.color, theme.colorScheme.primaryContainer);
+      expect(decoration.border, isNotNull);
     });
 
     testWidgets('onRefresh開始直後に半透明になる', (tester) async {
