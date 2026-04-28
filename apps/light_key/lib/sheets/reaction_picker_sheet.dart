@@ -7,10 +7,30 @@ import '../services/emoji_cache.dart';
 
 /// よく使われる絵文字リアクションの一覧（仮）。
 const _kFrequentReactions = [
-  '👍', '❤️', '😂', '😮', '😢', '🙏',
-  '🔥', '🎉', '✨', '👏', '🤔', '😍',
-  '😎', '🥳', '😅', '🤣', '🥺', '💯',
-  '🚀', '⭐', '💪', '👀', '🌟', '🫶',
+  '👍',
+  '❤️',
+  '😂',
+  '😮',
+  '😢',
+  '🙏',
+  '🔥',
+  '🎉',
+  '✨',
+  '👏',
+  '🤔',
+  '😍',
+  '😎',
+  '🥳',
+  '😅',
+  '🤣',
+  '🥺',
+  '💯',
+  '🚀',
+  '⭐',
+  '💪',
+  '👀',
+  '🌟',
+  '🫶',
 ];
 
 /// リアクション選択ボトムシート。
@@ -29,7 +49,21 @@ class ReactionPickerSheet extends HookWidget {
         .toList(growable: false);
   }
 
-  Future<Map<String, List<_CustomEmojiItem>>> _loadCustomEmojisByCategory() async {
+  List<String> _splitCategoryPath(String path) {
+    return path
+        .split('/')
+        .map((segment) => segment.trim())
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String _normalizeCategoryPath(String path) {
+    final segments = _splitCategoryPath(path);
+    return segments.isEmpty ? 'その他' : segments.join('/');
+  }
+
+  Future<Map<String, List<_CustomEmojiItem>>>
+  _loadCustomEmojisByCategory() async {
     final db = getIt<AppDatabase>();
     final cache = getIt<EmojiCache>();
     final rows = await db.getAllEmojis();
@@ -39,12 +73,10 @@ class ReactionPickerSheet extends HookWidget {
       final url = cache.getUrl(row.name);
       if (url == null || url.isEmpty) continue;
 
-      final category = (row.category?.trim().isNotEmpty ?? false)
-          ? row.category!.trim()
-          : 'その他';
-      grouped.putIfAbsent(category, () => []).add(
-        _CustomEmojiItem(name: row.name, url: url),
-      );
+      final category = _normalizeCategoryPath(row.category ?? '');
+      grouped
+          .putIfAbsent(category, () => [])
+          .add(_CustomEmojiItem(name: row.name, url: url));
     }
 
     for (final list in grouped.values) {
@@ -67,7 +99,7 @@ class ReactionPickerSheet extends HookWidget {
     final emojis = <_CustomEmojiItem>[];
 
     for (final entry in allCategories.entries) {
-      final fullPathParts = entry.key.split('/');
+      final fullPathParts = _splitCategoryPath(entry.key);
 
       // 現在パスと共通プレフィックスが一致しないカテゴリは対象外。
       if (fullPathParts.length < currentPath.length) {
@@ -90,17 +122,11 @@ class ReactionPickerSheet extends HookWidget {
       } else {
         // 1階層下のカテゴリ名だけを抽出して一覧化。
         final subCatName = fullPathParts[currentPath.length];
-        subCategories.putIfAbsent(
-          subCatName,
-          () => const <_CustomEmojiItem>[],
-        );
+        subCategories.putIfAbsent(subCatName, () => const <_CustomEmojiItem>[]);
       }
     }
 
-    return {
-      'subCategories': subCategories,
-      'emojis': emojis,
-    };
+    return {'subCategories': subCategories, 'emojis': emojis};
   }
 
   /// パス配下のカテゴリをフィルター
@@ -127,10 +153,7 @@ class ReactionPickerSheet extends HookWidget {
         .where((item) => item.name.toLowerCase().contains(normalized))
         .toList(growable: false);
 
-    return {
-      'subCategories': subCategories,
-      'emojis': emojis,
-    };
+    return {'subCategories': subCategories, 'emojis': emojis};
   }
 
   @override
@@ -143,271 +166,285 @@ class ReactionPickerSheet extends HookWidget {
     );
     final colorScheme = Theme.of(context).colorScheme;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.5,
-      minChildSize: 0.3,
-      maxChildSize: 1.0,
-      expand: false,
-      builder: (context, scrollController) {
-        final frequent = _filterFrequent(query.value);
-        return FutureBuilder<Map<String, List<_CustomEmojiItem>>>(
-          future: customByCategoryFuture,
-          builder: (context, snapshot) {
-            final slivers = <Widget>[
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _PinnedSheetHeaderDelegate(
-                  colorScheme: colorScheme,
-                  categoryPath: categoryPath.value,
-                  query: query.value,
-                  searchController: searchController,
-                  onBack: categoryPath.value.isEmpty
-                      ? null
-                      : () {
-                          categoryPath.value = categoryPath.value.isEmpty
-                              ? []
-                              : categoryPath.value.sublist(
-                                  0,
-                                  categoryPath.value.length - 1,
-                                );
-                          searchController.clear();
-                          query.value = '';
-                        },
-                  onClear: query.value.isEmpty
-                      ? null
-                      : () {
-                          searchController.clear();
-                          query.value = '';
-                        },
-                  onClose: () => Navigator.of(context).pop(),
-                  onQueryChanged: (value) => query.value = value,
-                ),
-              ),
-            ];
+    void handleBackToParentCategory() {
+      if (categoryPath.value.isEmpty) return;
+      categoryPath.value = categoryPath.value.sublist(
+        0,
+        categoryPath.value.length - 1,
+      );
+      searchController.clear();
+      query.value = '';
+    }
 
-            if (categoryPath.value.isEmpty) {
-              slivers.add(
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                    child: Text(
-                      'よく使う絵文字',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
+    return PopScope(
+      canPop: categoryPath.value.isEmpty,
+      onPopInvokedWithResult: (_, _) {
+        if (categoryPath.value.isNotEmpty) {
+          handleBackToParentCategory();
+        }
+      },
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 1.0,
+        expand: false,
+        builder: (context, scrollController) {
+          final frequent = _filterFrequent(query.value);
+          return FutureBuilder<Map<String, List<_CustomEmojiItem>>>(
+            future: customByCategoryFuture,
+            builder: (context, snapshot) {
+              final slivers = <Widget>[
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _PinnedSheetHeaderDelegate(
+                    colorScheme: colorScheme,
+                    categoryPath: categoryPath.value,
+                    query: query.value,
+                    searchController: searchController,
+                    onBack: categoryPath.value.isEmpty
+                        ? null
+                        : handleBackToParentCategory,
+                    onClear: query.value.isEmpty
+                        ? null
+                        : () {
+                            searchController.clear();
+                            query.value = '';
+                          },
+                    onClose: () => Navigator.of(context).pop(),
+                    onQueryChanged: (value) => query.value = value,
                   ),
                 ),
-              );
+              ];
 
-              if (frequent.isEmpty) {
+              if (categoryPath.value.isEmpty) {
                 slivers.add(
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-                      child: Text('該当する絵文字がありません'),
-                    ),
-                  ),
-                );
-              } else {
-                slivers.add(
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                    sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 8,
-                        childAspectRatio: 1,
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                      child: Text(
+                        'よく使う絵文字',
+                        style: Theme.of(context).textTheme.labelLarge,
                       ),
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final emoji = frequent[index];
-                        return _EmojiCell(
-                          emoji: emoji,
-                          onTap: () => onSelected(emoji),
-                        );
-                      }, childCount: frequent.length),
                     ),
                   ),
                 );
-              }
-            }
 
-            slivers.add(
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Text(
-                    categoryPath.value.isEmpty ? 'リアクション一覧' : 'カテゴリ詳細',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
-              ),
-            );
-
-            if (snapshot.connectionState != ConnectionState.done) {
-              slivers.add(
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-              );
-            } else if (snapshot.hasError) {
-              slivers.add(
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Text('リアクション一覧の読み込みに失敗しました'),
-                  ),
-                ),
-              );
-            } else {
-              final raw = snapshot.data ?? const <String, List<_CustomEmojiItem>>{};
-
-              if (categoryPath.value.isNotEmpty) {
-                // カテゴリ詳細ビュー
-                final subItems = _getSubItemsForPath(raw, categoryPath.value);
-                final filteredItems = _filterSubItems(subItems, query.value);
-                final subCategories =
-                    filteredItems['subCategories'] as Map<String, List<_CustomEmojiItem>>;
-                final emojis = filteredItems['emojis'] as List<_CustomEmojiItem>;
-
-                final hasContent = subCategories.isNotEmpty || emojis.isNotEmpty;
-
-                if (!hasContent) {
+                if (frequent.isEmpty) {
                   slivers.add(
-                    SliverToBoxAdapter(
+                    const SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Text(
-                          query.value.isEmpty
-                              ? 'このカテゴリに表示できるリアクションがありません'
-                              : '検索に一致するリアクションがありません',
-                        ),
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        child: Text('該当する絵文字がありません'),
                       ),
                     ),
                   );
                 } else {
-                  // サブカテゴリを表示
-                  if (subCategories.isNotEmpty) {
+                  slivers.add(
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 8,
+                              childAspectRatio: 1,
+                            ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final emoji = frequent[index];
+                          return _EmojiCell(
+                            emoji: emoji,
+                            onTap: () => onSelected(emoji),
+                          );
+                        }, childCount: frequent.length),
+                      ),
+                    ),
+                  );
+                }
+              }
+
+              if (snapshot.connectionState != ConnectionState.done) {
+                slivers.add(
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                );
+              } else if (snapshot.hasError) {
+                slivers.add(
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Text('リアクション一覧の読み込みに失敗しました'),
+                    ),
+                  ),
+                );
+              } else {
+                final raw =
+                    snapshot.data ?? const <String, List<_CustomEmojiItem>>{};
+
+                if (categoryPath.value.isNotEmpty) {
+                  // カテゴリ詳細ビュー
+                  final subItems = _getSubItemsForPath(raw, categoryPath.value);
+                  final filteredItems = _filterSubItems(subItems, query.value);
+                  final subCategories =
+                      filteredItems['subCategories']
+                          as Map<String, List<_CustomEmojiItem>>;
+                  final emojis =
+                      filteredItems['emojis'] as List<_CustomEmojiItem>;
+
+                  final hasContent =
+                      subCategories.isNotEmpty || emojis.isNotEmpty;
+
+                  if (!hasContent) {
+                    slivers.add(
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: Text(
+                            query.value.isEmpty
+                                ? 'このカテゴリに表示できるリアクションがありません'
+                                : '検索に一致するリアクションがありません',
+                          ),
+                        ),
+                      ),
+                    );
+                  } else {
+                    // サブカテゴリを表示
+                    if (subCategories.isNotEmpty) {
+                      slivers.add(
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final subCatName = subCategories.keys.elementAt(
+                              index,
+                            );
+                            return ListTile(
+                              dense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              title: Text(subCatName),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                categoryPath.value = [
+                                  ...categoryPath.value,
+                                  subCatName,
+                                ];
+                                searchController.clear();
+                                query.value = '';
+                              },
+                            );
+                          }, childCount: subCategories.length),
+                        ),
+                      );
+                    }
+
+                    // 絵文字グリッドを表示
+                    if (emojis.isNotEmpty) {
+                      slivers.add(
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 8,
+                                  childAspectRatio: 1,
+                                ),
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final item = emojis[index];
+                              return _CustomEmojiCell(
+                                name: item.name,
+                                url: item.url,
+                                onTap: () => onSelected(':${item.name}:'),
+                              );
+                            }, childCount: emojis.length),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                } else {
+                  // トップレベルのカテゴリ一覧
+                  final topLevelCategories = <String, int>{}; // カテゴリ名 -> アイテム数
+                  for (final entry in raw.entries) {
+                    final fullPath = entry.key;
+                    final parts = _splitCategoryPath(fullPath);
+                    if (parts.isEmpty) continue;
+                    final topLevelCat = parts[0];
+                    topLevelCategories[topLevelCat] =
+                        (topLevelCategories[topLevelCat] ?? 0) +
+                        entry.value.length;
+                  }
+
+                  final filtered =
+                      topLevelCategories.entries
+                          .where((e) {
+                            if (query.value.isEmpty) return true;
+                            final normalized = query.value.toLowerCase();
+                            return e.key.toLowerCase().contains(normalized);
+                          })
+                          .toList(growable: false)
+                        ..sort((a, b) => a.key.compareTo(b.key));
+
+                  if (filtered.isEmpty) {
+                    slivers.add(
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: Text(
+                            query.value.isEmpty
+                                ? '表示できるリアクションがありません'
+                                : '検索に一致するリアクションがありません',
+                          ),
+                        ),
+                      ),
+                    );
+                  } else {
                     slivers.add(
                       SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
-                          final subCatName =
-                              subCategories.keys.elementAt(index);
+                          final entry = filtered[index];
+                          final category = entry.key;
+                          final count = entry.value;
+
                           return ListTile(
                             dense: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            title: Text(subCatName),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            title: Text(category),
+                            subtitle: Text('$count 件'),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
-                              categoryPath.value = [
-                                ...categoryPath.value,
-                                subCatName,
-                              ];
+                              categoryPath.value = [category];
                               searchController.clear();
                               query.value = '';
                             },
                           );
-                        }, childCount: subCategories.length),
+                        }, childCount: filtered.length),
                       ),
                     );
-                  }
-
-                  // 絵文字グリッドを表示
-                  if (emojis.isNotEmpty) {
                     slivers.add(
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 8,
-                            childAspectRatio: 1,
-                          ),
-                          delegate: SliverChildBuilderDelegate((context, index) {
-                            final item = emojis[index];
-                            return _CustomEmojiCell(
-                              name: item.name,
-                              url: item.url,
-                              onTap: () => onSelected(':${item.name}:'),
-                            );
-                          }, childCount: emojis.length),
-                        ),
-                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
                     );
                   }
-                }
-              } else {
-                // トップレベルのカテゴリ一覧
-                final topLevelCategories =
-                    <String, int>{}; // カテゴリ名 -> アイテム数
-                for (final entry in raw.entries) {
-                  final fullPath = entry.key;
-                  final parts = fullPath.split('/');
-                  final topLevelCat = parts[0];
-                  topLevelCategories[topLevelCat] =
-                      (topLevelCategories[topLevelCat] ?? 0) + entry.value.length;
-                }
-
-                final filtered = topLevelCategories.entries
-                    .where((e) {
-                  if (query.value.isEmpty) return true;
-                  final normalized = query.value.toLowerCase();
-                  return e.key.toLowerCase().contains(normalized);
-                })
-                    .toList(growable: false)
-                  ..sort((a, b) => a.key.compareTo(b.key));
-
-                if (filtered.isEmpty) {
-                  slivers.add(
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Text(
-                          query.value.isEmpty
-                              ? '表示できるリアクションがありません'
-                              : '検索に一致するリアクションがありません',
-                        ),
-                      ),
-                    ),
-                  );
-                } else {
-                  slivers.add(
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final entry = filtered[index];
-                        final category = entry.key;
-                        final count = entry.value;
-
-                        return ListTile(
-                          dense: true,
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16),
-                          title: Text(category),
-                          subtitle: Text('$count 件'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            categoryPath.value = [category];
-                            searchController.clear();
-                            query.value = '';
-                          },
-                        );
-                      }, childCount: filtered.length),
-                    ),
-                  );
-                  slivers.add(
-                      const SliverToBoxAdapter(child: SizedBox(height: 16)));
                 }
               }
-            }
 
-            return CustomScrollView(
-              controller: scrollController,
-              slivers: slivers,
-            );
-          },
-        );
-      },
+              return CustomScrollView(
+                controller: scrollController,
+                slivers: slivers,
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -423,9 +460,7 @@ class _EmojiCell extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
-      child: Center(
-        child: Text(emoji, style: const TextStyle(fontSize: 28)),
-      ),
+      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 28))),
     );
   }
 }
@@ -478,9 +513,7 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: overlapsContent
-              ? Border(
-                  bottom: BorderSide(color: colorScheme.outlineVariant),
-                )
+              ? Border(bottom: BorderSide(color: colorScheme.outlineVariant))
               : null,
         ),
         child: Padding(
@@ -565,7 +598,6 @@ class _SheetDragHandle extends StatelessWidget {
     );
   }
 }
-
 
 class _CustomEmojiCell extends StatelessWidget {
   const _CustomEmojiCell({
