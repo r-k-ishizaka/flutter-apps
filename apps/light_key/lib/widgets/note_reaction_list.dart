@@ -7,11 +7,15 @@ import 'emoji_text.dart';
 class NoteReactionList extends StatelessWidget {
   const NoteReactionList({
     required this.reactions,
+    this.myReaction,
     this.onReactionTap,
     super.key,
   });
 
   final Map<String, int> reactions;
+
+  /// 自分がつけたリアクション。該当するチップにアクセントが付く。
+  final String? myReaction;
   final ValueChanged<String>? onReactionTap;
 
   // `:name@.:` は同一サーバ絵文字なので `:name:` に正規化する。
@@ -34,6 +38,7 @@ class NoteReactionList extends StatelessWidget {
               reactionKey: entry.key,
               reaction: _normalizeReaction(entry.key),
               count: entry.value,
+              isMyReaction: myReaction != null && myReaction == entry.key,
               onTap: onReactionTap,
             ),
           )
@@ -47,16 +52,26 @@ class _ReactionChip extends StatelessWidget {
     required this.reactionKey,
     required this.reaction,
     required this.count,
+    this.isMyReaction = false,
     this.onTap,
   });
 
   final String reactionKey;
   final String reaction;
   final int count;
+  final bool isMyReaction;
   final ValueChanged<String>? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final backgroundColor = isMyReaction
+        ? colorScheme.primaryContainer
+        : colorScheme.surfaceContainerHighest;
+    final textColor = isMyReaction
+        ? colorScheme.onPrimaryContainer
+        : null;
+
     final content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
@@ -69,15 +84,23 @@ class _ReactionChip extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(width: 4),
-          Text('$count'),
+          Text(
+            '$count',
+            style: textColor != null
+                ? TextStyle(color: textColor, fontWeight: FontWeight.bold)
+                : null,
+          ),
         ],
       ),
     );
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
+        border: isMyReaction
+            ? Border.all(color: colorScheme.primary, width: 1.5)
+            : null,
       ),
       child: Material(
         color: Colors.transparent,

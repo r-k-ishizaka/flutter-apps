@@ -199,7 +199,13 @@ class TimelineList extends HookWidget {
           duration: const Duration(milliseconds: 280),
         );
       } else {
-        current[currentIndex] = note;
+        final existing = current[currentIndex];
+        // 既存の myReaction を保持する
+        if (existing.myReaction != null && note.myReaction == null) {
+          current[currentIndex] = note.copyWith(myReaction: existing.myReaction);
+        } else {
+          current[currentIndex] = note;
+        }
       }
     }
 
@@ -239,6 +245,10 @@ class TimelineList extends HookWidget {
             return note;
           }
           hasChanged = true;
+          // 既存の myReaction を保持する
+          if (note.myReaction != null && next.myReaction == null) {
+            return next.copyWith(myReaction: note.myReaction);
+          }
           return next;
         })
         .toList(growable: false);

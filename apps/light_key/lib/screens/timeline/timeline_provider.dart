@@ -158,12 +158,34 @@ class TimelineProvider extends ChangeNotifier {
           reaction: normalizedReaction,
         );
         return reactionResult.when(
-          success: (_) => null,
+          success: (_) {
+            _applyMyReaction(note, targetNote.id, normalizedReaction);
+            return null;
+          },
           failure: (error, _) => 'リアクション送信に失敗しました: $error',
         );
       },
       failure: (error, _) async => 'セッション取得に失敗しました: $error',
     );
+  }
+
+  /// リアクション送信成功後にローカル状態の myReaction を更新する。
+  void _applyMyReaction(Note note, String targetNoteId, String reaction) {
+    final updatedNotes = _state.notes.map((item) {
+      // 直接の note に一致する場合
+      if (item.id == targetNoteId) {
+        return item.copyWith(myReaction: reaction);
+      }
+      // 純粋リノートのリノート元に一致する場合
+      final renote = item.renote;
+      if (renote != null && renote.id == targetNoteId) {
+        return item.copyWith(renote: renote.copyWith(myReaction: reaction));
+      }
+      return item;
+    }).toList(growable: false);
+
+    _state = _state.copyWith(notes: List<Note>.unmodifiable(updatedNotes));
+    notifyListeners();
   }
 
   @override

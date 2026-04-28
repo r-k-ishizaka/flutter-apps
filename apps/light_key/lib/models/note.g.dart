@@ -19,6 +19,7 @@ _Note _$NoteFromJson(Map<String, dynamic> json) => _Note(
   reactions: json['reactions'] == null
       ? const <String, int>{}
       : _reactionsFromJson(json['reactions']),
+  myReaction: json['myReaction'] as String?,
   renote: json['renote'] == null
       ? null
       : Note.fromJson(json['renote'] as Map<String, dynamic>),
@@ -31,5 +32,6 @@ Map<String, dynamic> _$NoteToJson(_Note instance) => <String, dynamic>{
   'user': instance.user,
   'files': instance.files,
   'reactions': instance.reactions,
+  'myReaction': instance.myReaction,
   'renote': instance.renote,
 };

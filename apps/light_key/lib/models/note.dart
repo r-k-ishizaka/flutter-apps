@@ -22,6 +22,9 @@ sealed class Note with _$Note {
     @Default(<String, int>{})
     Map<String, int> reactions,
 
+    /// 自分がつけたリアクション。未リアクションの場合は null。
+    String? myReaction,
+
     /// リノート元のノート。純粋リノート・引用リノートの場合に設定される。
     Note? renote,
   }) = _Note;
@@ -42,7 +45,7 @@ sealed class Note with _$Note {
       next[reaction] = updated;
     }
 
-    return copyWith(reactions: next);
+    return copyWith(reactions: next, myReaction: myReaction);
   }
 
   NoteType get noteType {
@@ -62,6 +65,7 @@ Map<String, dynamic> _normalizeNoteJson(Map<String, dynamic> json) {
         : DateTime.fromMillisecondsSinceEpoch(0).toIso8601String(),
     'user': json['user'] is Map ? json['user'] : const <String, dynamic>{},
     'files': json['files'] is List ? json['files'] : const <dynamic>[],
+    'myReaction': json['myReaction'] as String?,
     'renote': json['renote'] is Map ? json['renote'] : null,
   };
 }

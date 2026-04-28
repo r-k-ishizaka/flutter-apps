@@ -44,6 +44,9 @@ class TimelineNoteItem extends StatelessWidget {
     final displayReactions = note.noteType == NoteType.pureRenote
         ? displayNote.reactions
         : note.reactions;
+    final displayMyReaction = note.noteType == NoteType.pureRenote
+        ? displayNote.myReaction
+        : note.myReaction;
 
     return SizeTransition(
       sizeFactor: curved,
@@ -154,6 +157,7 @@ class TimelineNoteItem extends StatelessWidget {
                               const SizedBox(height: 8),
                               NoteReactionList(
                                 reactions: displayReactions,
+                                myReaction: displayMyReaction,
                                 onReactionTap: onReactionChipTap,
                               ),
                             ],
