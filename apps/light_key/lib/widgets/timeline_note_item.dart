@@ -12,23 +12,20 @@ class TimelineNoteItem extends StatelessWidget {
   const TimelineNoteItem({
     required this.note,
     required this.animation,
+    this.onReply,
+    this.onRenote,
+    this.onReaction,
     super.key,
   });
 
   final Note note;
   final Animation<double> animation;
+  final VoidCallback? onReply;
+  final VoidCallback? onRenote;
+  final VoidCallback? onReaction;
 
   String _createdAtLabel(DateTime createdAt) {
     return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _showComingSoonSnackBar(BuildContext context, String label) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger == null) return;
-
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$label は準備中です')));
   }
 
 
@@ -148,18 +145,9 @@ class TimelineNoteItem extends StatelessWidget {
                             ],
                             const SizedBox(height: 8),
                             _TimelineNoteActionRow(
-                              onReply: () => _showComingSoonSnackBar(
-                                context,
-                                'リプライ',
-                              ),
-                              onRenote: () => _showComingSoonSnackBar(
-                                context,
-                                'リノート',
-                              ),
-                              onReaction: () => _showComingSoonSnackBar(
-                                context,
-                                'リアクション',
-                              ),
+                              onReply: onReply,
+                              onRenote: onRenote,
+                              onReaction: onReaction,
                             ),
                             if (displayReactions.isNotEmpty) ...[
                               const SizedBox(height: 8),
@@ -183,14 +171,14 @@ class TimelineNoteItem extends StatelessWidget {
 
 class _TimelineNoteActionRow extends StatelessWidget {
   const _TimelineNoteActionRow({
-    required this.onReply,
-    required this.onRenote,
-    required this.onReaction,
+    this.onReply,
+    this.onRenote,
+    this.onReaction,
   });
 
-  final VoidCallback onReply;
-  final VoidCallback onRenote;
-  final VoidCallback onReaction;
+  final VoidCallback? onReply;
+  final VoidCallback? onRenote;
+  final VoidCallback? onReaction;
 
   @override
   Widget build(BuildContext context) {
@@ -222,12 +210,12 @@ class _TimelineNoteActionButton extends StatelessWidget {
   const _TimelineNoteActionButton({
     required this.icon,
     required this.tooltip,
-    required this.onPressed,
+    this.onPressed,
   });
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

@@ -13,6 +13,9 @@ class TimelineList extends HookWidget {
     this.isRefreshing = false,
     this.message,
     this.onRefresh,
+    this.onNoteReply,
+    this.onNoteRenote,
+    this.onNoteReaction,
     super.key,
   });
 
@@ -20,6 +23,9 @@ class TimelineList extends HookWidget {
   final bool isRefreshing;
   final String? message;
   final Future<void> Function()? onRefresh;
+  final void Function(Note note)? onNoteReply;
+  final void Function(Note note)? onNoteRenote;
+  final void Function(Note note)? onNoteReaction;
 
   @override
   Widget build(BuildContext context) {
@@ -120,10 +126,16 @@ class TimelineList extends HookWidget {
             key: listKey,
             controller: scrollController,
             initialItemCount: visibleNotes.value.length,
-            itemBuilder: (context, index, animation) {
-              final note = visibleNotes.value[index];
-              return TimelineNoteItem(note: note, animation: animation);
-            },
+              itemBuilder: (context, index, animation) {
+                final note = visibleNotes.value[index];
+                return TimelineNoteItem(
+                  note: note,
+                  animation: animation,
+                  onReply: onNoteReply != null ? () => onNoteReply!(note) : null,
+                  onRenote: onNoteRenote != null ? () => onNoteRenote!(note) : null,
+                  onReaction: onNoteReaction != null ? () => onNoteReaction!(note) : null,
+                );
+              },
           ),
         ),
         if (pendingNotes.value.isNotEmpty)

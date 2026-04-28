@@ -5,12 +5,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/note.dart';
+import '../../sheets/reaction_picker_sheet.dart';
 import '../../widgets/timeline_list.dart';
 import 'timeline_provider.dart';
 import 'timeline_screen_state.dart';
 
 class TimelineScreen extends HookWidget {
   const TimelineScreen({super.key});
+
+  void _showComingSoonSnackBar(BuildContext context, String label) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$label は準備中です')));
+  }
+
+  Future<void> _onNoteReaction(BuildContext context, Note note) async {
+    final emoji = await showReactionPickerSheet(context);
+    if (emoji == null) return;
+    // TODO: リアクション送信処理
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +65,9 @@ class TimelineScreen extends HookWidget {
         isRefreshing: state.isRefreshing,
         message: state.message,
         onRefresh: () => context.read<TimelineProvider>().fetch(showLoading: false),
+        onNoteReply: (note) => _showComingSoonSnackBar(context, 'リプライ'),
+        onNoteRenote: (note) => _showComingSoonSnackBar(context, 'リノート'),
+        onNoteReaction: (note) => _onNoteReaction(context, note),
       ),
     };
   }
