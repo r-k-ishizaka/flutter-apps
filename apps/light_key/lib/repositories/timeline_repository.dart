@@ -17,6 +17,23 @@ class TimelineRepository {
   final TimelineDataSource _dataSource;
   static const int _maxSubscribedNotes = 200;
 
+  Future<Result<void>> createReaction(
+    AuthSession session, {
+    required String noteId,
+    required String reaction,
+  }) async {
+    try {
+      await _dataSource.createReaction(
+        session,
+        noteId: noteId,
+        reaction: reaction,
+      );
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
   Future<Result<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,

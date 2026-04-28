@@ -38,7 +38,7 @@ class OAuthUtils {
     required String redirectUri,
     String? state,
     String? codeChallenge,
-    String scope = 'read:account write:notes',
+    String scope = 'read:account write:notes write:reactions',
   }) {
     final uri = Uri.parse('$baseUrl/oauth/authorize');
     final queryParameters = <String, String>{

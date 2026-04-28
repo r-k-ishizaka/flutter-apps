@@ -15,6 +15,7 @@ class TimelineNoteItem extends StatelessWidget {
     this.onReply,
     this.onRenote,
     this.onReaction,
+    this.onReactionChipTap,
     super.key,
   });
 
@@ -23,11 +24,11 @@ class TimelineNoteItem extends StatelessWidget {
   final VoidCallback? onReply;
   final VoidCallback? onRenote;
   final VoidCallback? onReaction;
+  final ValueChanged<String>? onReactionChipTap;
 
   String _createdAtLabel(DateTime createdAt) {
     return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +152,10 @@ class TimelineNoteItem extends StatelessWidget {
                             ),
                             if (displayReactions.isNotEmpty) ...[
                               const SizedBox(height: 8),
-                              NoteReactionList(reactions: displayReactions),
+                              NoteReactionList(
+                                reactions: displayReactions,
+                                onReactionTap: onReactionChipTap,
+                              ),
                             ],
                           ],
                         ),
@@ -170,11 +174,7 @@ class TimelineNoteItem extends StatelessWidget {
 }
 
 class _TimelineNoteActionRow extends StatelessWidget {
-  const _TimelineNoteActionRow({
-    this.onReply,
-    this.onRenote,
-    this.onReaction,
-  });
+  const _TimelineNoteActionRow({this.onReply, this.onRenote, this.onReaction});
 
   final VoidCallback? onReply;
   final VoidCallback? onRenote;

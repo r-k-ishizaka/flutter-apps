@@ -16,6 +16,7 @@ class TimelineList extends HookWidget {
     this.onNoteReply,
     this.onNoteRenote,
     this.onNoteReaction,
+    this.onNoteReactionChipTap,
     super.key,
   });
 
@@ -26,6 +27,7 @@ class TimelineList extends HookWidget {
   final void Function(Note note)? onNoteReply;
   final void Function(Note note)? onNoteRenote;
   final void Function(Note note)? onNoteReaction;
+  final void Function(Note note, String reaction)? onNoteReactionChipTap;
 
   @override
   Widget build(BuildContext context) {
@@ -126,16 +128,23 @@ class TimelineList extends HookWidget {
             key: listKey,
             controller: scrollController,
             initialItemCount: visibleNotes.value.length,
-              itemBuilder: (context, index, animation) {
-                final note = visibleNotes.value[index];
-                return TimelineNoteItem(
-                  note: note,
-                  animation: animation,
-                  onReply: onNoteReply != null ? () => onNoteReply!(note) : null,
-                  onRenote: onNoteRenote != null ? () => onNoteRenote!(note) : null,
-                  onReaction: onNoteReaction != null ? () => onNoteReaction!(note) : null,
-                );
-              },
+            itemBuilder: (context, index, animation) {
+              final note = visibleNotes.value[index];
+              return TimelineNoteItem(
+                note: note,
+                animation: animation,
+                onReply: onNoteReply != null ? () => onNoteReply!(note) : null,
+                onRenote: onNoteRenote != null
+                    ? () => onNoteRenote!(note)
+                    : null,
+                onReaction: onNoteReaction != null
+                    ? () => onNoteReaction!(note)
+                    : null,
+                onReactionChipTap: onNoteReactionChipTap != null
+                    ? (reaction) => onNoteReactionChipTap!(note, reaction)
+                    : null,
+              );
+            },
           ),
         ),
         if (pendingNotes.value.isNotEmpty)

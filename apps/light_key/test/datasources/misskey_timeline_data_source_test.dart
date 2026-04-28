@@ -58,27 +58,19 @@ void main() {
       final dataSource = _FakeTimelineDataSource();
       final repository = TimelineRepository(dataSource);
 
-      final event = await repository.parseStreamEvent(
-        session,
-        {
-          'type': 'channel',
+      final event = await repository.parseStreamEvent(session, {
+        'type': 'channel',
+        'body': {
+          'id': '2',
+          'type': 'note',
           'body': {
-            'id': '2',
-            'type': 'note',
-            'body': {
-              'id': 'note-1',
-              'text': 'full payload',
-              'createdAt': '2026-04-27T00:00:00.000Z',
-              'user': {
-                'id': 'user-1',
-                'username': 'alice',
-                'name': 'Alice',
-              },
-            },
+            'id': 'note-1',
+            'text': 'full payload',
+            'createdAt': '2026-04-27T00:00:00.000Z',
+            'user': {'id': 'user-1', 'username': 'alice', 'name': 'Alice'},
           },
         },
-        '2',
-      );
+      }, '2');
 
       expect(event, isA<TimelineNoteReceived>());
       final note = (event as TimelineNoteReceived).note;
@@ -128,6 +120,13 @@ class _FakeTimelineDataSource implements TimelineDataSource {
 
   final _FetchNoteHandler? onFetchNote;
   final List<String> fetchNoteCalls = [];
+
+  @override
+  Future<void> createReaction(
+    AuthSession session, {
+    required String noteId,
+    required String reaction,
+  }) async {}
 
   @override
   Future<List<Note>> fetchTimeline(AuthSession session, {int limit = 20}) {

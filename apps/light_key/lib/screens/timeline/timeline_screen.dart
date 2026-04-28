@@ -22,10 +22,28 @@ class TimelineScreen extends HookWidget {
       ..showSnackBar(SnackBar(content: Text('$label は準備中です')));
   }
 
+  Future<void> _sendReaction(
+    BuildContext context,
+    Note note,
+    String reaction,
+  ) async {
+    final message = await context.read<TimelineProvider>().createReaction(
+      note,
+      reaction,
+    );
+    if (!context.mounted || message == null) return;
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _onNoteReaction(BuildContext context, Note note) async {
     final emoji = await showReactionPickerSheet(context);
-    if (emoji == null) return;
-    // TODO: リアクション送信処理
+    if (emoji == null || !context.mounted) return;
+    await _sendReaction(context, note, emoji);
   }
 
   @override
@@ -64,10 +82,13 @@ class TimelineScreen extends HookWidget {
         notes: state.notes,
         isRefreshing: state.isRefreshing,
         message: state.message,
-        onRefresh: () => context.read<TimelineProvider>().fetch(showLoading: false),
+        onRefresh: () =>
+            context.read<TimelineProvider>().fetch(showLoading: false),
         onNoteReply: (note) => _showComingSoonSnackBar(context, 'リプライ'),
         onNoteRenote: (note) => _showComingSoonSnackBar(context, 'リノート'),
         onNoteReaction: (note) => _onNoteReaction(context, note),
+        onNoteReactionChipTap: (note, reaction) =>
+            _sendReaction(context, note, reaction),
       ),
     };
   }

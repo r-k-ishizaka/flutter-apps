@@ -25,7 +25,12 @@ void main() {
   group('TimelineProvider.fetch', () {
     test('既存ノートありの pull-to-refresh では isRefreshing を使う', () async {
       final authRepository = AuthRepository(
-        _FakeAuthDataSource(session: const AuthSession(baseUrl: 'https://example.com', accessToken: 'token')),
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
       );
       final timelineDataSource = _FakeTimelineDataSource(
         fetchHandlers: [
@@ -66,7 +71,108 @@ void main() {
     });
   });
 
+  group('TimelineProvider.createReaction', () {
+    test('通常ノートにリアクションを送信する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [_note(id: 'note-1')],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createReaction(_note(id: 'note-1'), '👍');
+
+      expect(message, isNull);
+      expect(timelineDataSource.reactionCalls, [('note-1', '👍')]);
+    });
+
+    test('純粋リノートでは元ノートにリアクションを送信する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final pureRenote = Note(
+        id: 'renote-wrapper',
+        text: '',
+        createdAt: DateTime(2026, 4, 28, 12),
+        user: const User(id: 'user-2', username: 'bob', name: 'Bob'),
+        renote: _note(id: 'renoted-note'),
+      );
+
+      final message = await provider.createReaction(pureRenote, ':custom:');
+
+      expect(message, isNull);
+      expect(timelineDataSource.reactionCalls, [('renoted-note', ':custom:')]);
+    });
+
+    test('未認証時はエラーメッセージを返す', () async {
+      final authRepository = AuthRepository(_FakeAuthDataSource());
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createReaction(_note(id: 'note-1'), '👍');
+
+      expect(message, '先に認証してください。');
+      expect(timelineDataSource.reactionCalls, isEmpty);
+    });
+  });
+
   group('TimelineList refresh feedback', () {
+    testWidgets('表示中のリアクションをタップすると送信コールバックが呼ばれる', (tester) async {
+      Note? tappedNote;
+      String? tappedReaction;
+
+      final noteWithReaction = _note(
+        id: 'note-1',
+      ).copyWith(reactions: const {'👍': 2});
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TimelineList(
+            notes: [noteWithReaction],
+            onNoteReactionChipTap: (note, reaction) {
+              tappedNote = note;
+              tappedReaction = reaction;
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('reaction-chip-👍')));
+      await tester.pump();
+
+      expect(tappedNote?.id, 'note-1');
+      expect(tappedReaction, '👍');
+    });
+
     testWidgets('onRefresh開始直後に半透明になる', (tester) async {
       final completer = Completer<void>();
 
@@ -125,7 +231,6 @@ void main() {
           ),
         ),
       );
-
 
       final normalOpacityWidget = tester.widget<AnimatedOpacity>(
         find.byType(AnimatedOpacity),
@@ -195,20 +300,37 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   _FakeTimelineDataSource({required this.fetchHandlers});
 
   final List<Future<List<Note>> Function()> fetchHandlers;
+  final List<(String noteId, String reaction)> reactionCalls = [];
   var _fetchIndex = 0;
 
   @override
-  Future<Note> fetchNote(AuthSession session, String noteId) async => _note(id: noteId);
+  Future<void> createReaction(
+    AuthSession session, {
+    required String noteId,
+    required String reaction,
+  }) async {
+    reactionCalls.add((noteId, reaction));
+  }
 
   @override
-  Future<List<Note>> fetchTimeline(AuthSession session, {int limit = 20}) async {
-    final index = _fetchIndex < fetchHandlers.length ? _fetchIndex : fetchHandlers.length - 1;
+  Future<Note> fetchNote(AuthSession session, String noteId) async =>
+      _note(id: noteId);
+
+  @override
+  Future<List<Note>> fetchTimeline(
+    AuthSession session, {
+    int limit = 20,
+  }) async {
+    final index = _fetchIndex < fetchHandlers.length
+        ? _fetchIndex
+        : fetchHandlers.length - 1;
     _fetchIndex += 1;
     return fetchHandlers[index]();
   }
 
   @override
-  TimelineConnection openConnection(AuthSession session) => _FakeTimelineConnection();
+  TimelineConnection openConnection(AuthSession session) =>
+      _FakeTimelineConnection();
 }
 
 class _FakeTimelineConnection implements TimelineConnection {

@@ -1,4 +1,3 @@
-
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/auth_session.dart';
@@ -12,6 +11,19 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   MisskeyTimelineDataSource(this.client);
 
   final MisskeyHttpClient client;
+
+  @override
+  Future<void> createReaction(
+    AuthSession session, {
+    required String noteId,
+    required String reaction,
+  }) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/notes/reactions/create',
+      body: {'i': session.accessToken, 'noteId': noteId, 'reaction': reaction},
+    );
+  }
 
   @override
   Future<List<Note>> fetchTimeline(

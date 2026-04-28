@@ -70,6 +70,15 @@ class MisskeyHttpClient {
     throw Exception('Unexpected response format');
   }
 
+  /// POST リクエストを送り、レスポンスボディを無視する（204 No Content など）。
+  Future<void> postVoid({
+    required String baseUrl,
+    required String path,
+    required Map<String, dynamic> body,
+  }) async {
+    await _post(baseUrl: baseUrl, path: path, body: body);
+  }
+
   Future<List<Map<String, dynamic>>> postJsonList({
     required String baseUrl,
     required String path,
