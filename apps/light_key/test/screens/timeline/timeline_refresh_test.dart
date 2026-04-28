@@ -46,8 +46,9 @@ void main() {
       );
 
       await provider.fetch();
-      expect(provider.state.status, TimelineStatus.loaded);
-      expect(provider.state.notes.map((note) => note.id), ['note-1']);
+      expect(provider.state, isA<TimelineScreenStateLoaded>());
+      var loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.map((note) => note.id), ['note-1']);
 
       final refreshCompleter = Completer<List<Note>>();
       timelineDataSource.fetchHandlers[1] = () => refreshCompleter.future;
@@ -55,9 +56,10 @@ void main() {
       final refreshFuture = provider.fetch(showLoading: false);
       await Future<void>.delayed(Duration.zero);
 
-      expect(provider.state.status, TimelineStatus.loaded);
-      expect(provider.state.isRefreshing, isTrue);
-      expect(provider.state.notes.map((note) => note.id), ['note-1']);
+      expect(provider.state, isA<TimelineScreenStateLoaded>());
+      loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.isRefreshing, isTrue);
+      expect(loadedState.notes.map((note) => note.id), ['note-1']);
 
       refreshCompleter.complete([
         _note(id: 'note-2', text: 'after'),
@@ -65,10 +67,11 @@ void main() {
       ]);
       await refreshFuture;
 
-      expect(provider.state.status, TimelineStatus.loaded);
-      expect(provider.state.isRefreshing, isFalse);
-      expect(provider.state.message, isNull);
-      expect(provider.state.notes.map((note) => note.id), ['note-2', 'note-1']);
+      expect(provider.state, isA<TimelineScreenStateLoaded>());
+      loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.isRefreshing, isFalse);
+      expect(loadedState.message, isNull);
+      expect(loadedState.notes.map((note) => note.id), ['note-2', 'note-1']);
     });
 
     test('refresh でサーバー応答に myReaction がなくても保持する', () async {
@@ -92,15 +95,46 @@ void main() {
       );
 
       await provider.fetch();
-      expect(provider.state.notes.single.myReaction, '👍');
+      var loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.single.myReaction, '👍');
 
       await provider.fetch(showLoading: false);
 
-      expect(provider.state.notes.single.myReaction, '👍');
+      loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.single.myReaction, '👍');
     });
   });
 
   group('TimelineProvider.createReaction', () {
+    test('loaded 状態ではローカルの myReaction も更新する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [_note(id: 'note-1')],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+
+      final message = await provider.createReaction(_note(id: 'note-1'), '👍');
+
+      expect(message, isNull);
+      expect(provider.state, isA<TimelineScreenStateLoaded>());
+      final loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.single.myReaction, '👍');
+    });
+
     test('通常ノートにリアクションを送信する', () async {
       final authRepository = AuthRepository(
         _FakeAuthDataSource(

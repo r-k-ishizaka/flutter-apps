@@ -1,38 +1,21 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import '../../models/note.dart';
 
-enum TimelineStatus { idle, loading, loaded, error }
+part 'timeline_screen_state.freezed.dart';
 
-class TimelineScreenState {
-  const TimelineScreenState({
-    required this.status,
-    required this.notes,
-    this.isRefreshing = false,
-    this.message,
-  });
+@freezed
+sealed class TimelineScreenState with _$TimelineScreenState {
+  const factory TimelineScreenState.idle() = TimelineScreenStateIdle;
 
-  const TimelineScreenState.idle()
-    : status = TimelineStatus.idle,
-      notes = const [],
-      isRefreshing = false,
-      message = null;
+  const factory TimelineScreenState.loading() = TimelineScreenStateLoading;
 
-  final TimelineStatus status;
-  final List<Note> notes;
-  final bool isRefreshing;
-  final String? message;
-
-  TimelineScreenState copyWith({
-    TimelineStatus? status,
-    List<Note>? notes,
-    bool? isRefreshing,
+  const factory TimelineScreenState.loaded({
+    @Default(<Note>[]) List<Note> notes,
+    @Default(false) bool isRefreshing,
     String? message,
-    bool clearMessage = false,
-  }) {
-    return TimelineScreenState(
-      status: status ?? this.status,
-      notes: notes ?? this.notes,
-      isRefreshing: isRefreshing ?? this.isRefreshing,
-      message: clearMessage ? null : (message ?? this.message),
-    );
-  }
+  }) = TimelineScreenStateLoaded;
+
+  const factory TimelineScreenState.error({String? message}) =
+      TimelineScreenStateError;
 }

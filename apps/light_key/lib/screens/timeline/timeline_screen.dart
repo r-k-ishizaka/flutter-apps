@@ -72,16 +72,15 @@ class TimelineScreen extends HookWidget {
 
     final state = context.watch<TimelineProvider>().state;
 
-    return switch (state.status) {
-      TimelineStatus.loading => const LoadingContent(),
-      TimelineStatus.error => ErrorContent(
-        message: state.message ?? 'エラーが発生しました。',
-        onRetry: () => context.read<TimelineProvider>().fetch(),
-      ),
-      _ => TimelineList(
-        notes: state.notes,
-        isRefreshing: state.isRefreshing,
-        message: state.message,
+    TimelineList buildTimelineList({
+      required List<Note> notes,
+      required bool isRefreshing,
+      required String? message,
+    }) {
+      return TimelineList(
+        notes: notes,
+        isRefreshing: isRefreshing,
+        message: message,
         onRefresh: () =>
             context.read<TimelineProvider>().fetch(showLoading: false),
         onNoteReply: (note) => _showComingSoonSnackBar(context, 'リプライ'),
@@ -89,6 +88,25 @@ class TimelineScreen extends HookWidget {
         onNoteReaction: (note) => _onNoteReaction(context, note),
         onNoteReactionChipTap: (note, reaction) =>
             _sendReaction(context, note, reaction),
+      );
+    }
+
+    return switch (state) {
+      TimelineScreenStateIdle() => buildTimelineList(
+        notes: const <Note>[],
+        isRefreshing: false,
+        message: null,
+      ),
+      TimelineScreenStateLoading() => const LoadingContent(),
+      TimelineScreenStateLoaded(:final notes, :final isRefreshing, :final message) =>
+        buildTimelineList(
+          notes: notes,
+          isRefreshing: isRefreshing,
+          message: message,
+        ),
+      TimelineScreenStateError(:final message) => ErrorContent(
+        message: message ?? 'エラーが発生しました。',
+        onRetry: () => context.read<TimelineProvider>().fetch(),
       ),
     };
   }

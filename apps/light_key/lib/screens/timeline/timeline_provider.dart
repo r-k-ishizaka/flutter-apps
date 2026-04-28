@@ -24,18 +24,23 @@ class TimelineProvider extends ChangeNotifier {
   TimelineScreenState _state = const TimelineScreenState.idle();
   TimelineScreenState get state => _state;
 
+  List<Note> get _loadedNotes => switch (_state) {
+    TimelineScreenStateLoaded(:final notes) => notes,
+    _ => const <Note>[],
+  };
+
   Future<void> fetch({bool showLoading = true}) async {
-    final shouldShowLoading = showLoading || _state.notes.isEmpty;
+    final previousNotes = _loadedNotes;
+    final shouldShowLoading = showLoading || previousNotes.isEmpty;
 
     if (shouldShowLoading) {
-      _state = _state.copyWith(
-        status: TimelineStatus.loading,
-        isRefreshing: false,
-        clearMessage: true,
-      );
+      _state = const TimelineScreenState.loading();
       notifyListeners();
     } else {
-      _state = _state.copyWith(isRefreshing: true, clearMessage: true);
+      _state = TimelineScreenState.loaded(
+        notes: previousNotes,
+        isRefreshing: true,
+      );
       notifyListeners();
     }
 
@@ -52,11 +57,10 @@ class TimelineProvider extends ChangeNotifier {
         final timelineResult = await _timelineRepository.fetchTimeline(session);
         timelineResult.when(
           success: (notes) {
-            _state = _state.copyWith(
-              status: TimelineStatus.loaded,
-              notes: _mergeNotesPreservingMyReaction(_state.notes, notes),
+            final currentNotes = _loadedNotes;
+            _state = TimelineScreenState.loaded(
+              notes: _mergeNotesPreservingMyReaction(currentNotes, notes),
               isRefreshing: false,
-              clearMessage: true,
             );
           },
           failure: (error, _) {
@@ -76,12 +80,8 @@ class TimelineProvider extends ChangeNotifier {
     await stopRealtime();
 
     // 前のデータがない場合のみ loading 状態をセット
-    if (_state.notes.isEmpty) {
-      _state = _state.copyWith(
-        status: TimelineStatus.loading,
-        isRefreshing: false,
-        clearMessage: true,
-      );
+    if (_loadedNotes.isEmpty) {
+      _state = const TimelineScreenState.loading();
       notifyListeners();
     }
 
@@ -100,14 +100,13 @@ class TimelineProvider extends ChangeNotifier {
               (timelineResult) {
                 timelineResult.when(
                   success: (notes) {
-                    _state = _state.copyWith(
-                      status: TimelineStatus.loaded,
+                    final currentNotes = _loadedNotes;
+                    _state = TimelineScreenState.loaded(
                       notes: _mergeNotesPreservingMyReaction(
-                        _state.notes,
+                        currentNotes,
                         notes,
                       ),
                       isRefreshing: false,
-                      clearMessage: true,
                     );
                   },
                   failure: (error, _) {
@@ -174,7 +173,15 @@ class TimelineProvider extends ChangeNotifier {
 
   /// リアクション送信成功後にローカル状態の myReaction を更新する。
   void _applyMyReaction(Note note, String targetNoteId, String reaction) {
-    final updatedNotes = _state.notes.map((item) {
+    final loadedState = switch (_state) {
+      TimelineScreenStateLoaded() => _state as TimelineScreenStateLoaded,
+      _ => null,
+    };
+    if (loadedState == null) {
+      return;
+    }
+
+    final updatedNotes = loadedState.notes.map((item) {
       // 直接の note に一致する場合
       if (item.id == targetNoteId) {
         return item.copyWith(myReaction: reaction);
@@ -187,7 +194,9 @@ class TimelineProvider extends ChangeNotifier {
       return item;
     }).toList(growable: false);
 
-    _state = _state.copyWith(notes: List<Note>.unmodifiable(updatedNotes));
+    _state = loadedState.copyWith(
+      notes: List<Note>.unmodifiable(updatedNotes),
+    );
     notifyListeners();
   }
 
@@ -195,12 +204,17 @@ class TimelineProvider extends ChangeNotifier {
     List<Note> current,
     List<Note> incoming,
   ) {
-    final currentById = <String, Note>{
-      for (final note in current)
-        if (note.id.isNotEmpty) note.id: note,
-      for (final note in current)
-        if (note.renote case final renote? when renote.id.isNotEmpty) renote.id: renote,
-    };
+    final currentById = <String, Note>{};
+    for (final note in current) {
+      if (note.id.isNotEmpty) {
+        currentById[note.id] = note;
+      }
+
+      final renote = note.renote;
+      if (renote != null && renote.id.isNotEmpty) {
+        currentById[renote.id] = renote;
+      }
+    }
 
     return List<Note>.unmodifiable(
       incoming
@@ -243,12 +257,12 @@ class TimelineProvider extends ChangeNotifier {
   }
 
   void _setTimelineError(String message) {
-    _state = _state.copyWith(
-      status: _state.notes.isEmpty
-          ? TimelineStatus.error
-          : TimelineStatus.loaded,
-      isRefreshing: false,
-      message: message,
-    );
+    final currentState = _state;
+    if (currentState is! TimelineScreenStateLoaded) {
+      _state = TimelineScreenState.error(message: message);
+      return;
+    }
+
+    _state = currentState.copyWith(isRefreshing: false, message: message);
   }
 }
