@@ -205,6 +205,15 @@ class ReactionPickerSheet extends HookWidget {
     );
     final colorScheme = Theme.of(context).colorScheme;
 
+    void scrollToTopAfterBuild() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final scrollController = latestScrollController.value;
+        if (scrollController != null && scrollController.hasClients) {
+          scrollController.jumpTo(0);
+        }
+      });
+    }
+
     void handleBackToParentCategory() {
       if (categoryPath.value.isEmpty) return;
       categoryPath.value = categoryPath.value.sublist(
@@ -213,6 +222,14 @@ class ReactionPickerSheet extends HookWidget {
       );
       searchController.clear();
       query.value = '';
+      scrollToTopAfterBuild();
+    }
+
+    void handleCategorySelected(List<String> nextPath) {
+      categoryPath.value = nextPath;
+      searchController.clear();
+      query.value = '';
+      scrollToTopAfterBuild();
     }
 
     useEffect(() {
@@ -236,10 +253,7 @@ class ReactionPickerSheet extends HookWidget {
             );
           }
 
-          final scrollController = latestScrollController.value;
-          if (scrollController != null && scrollController.hasClients) {
-            scrollController.jumpTo(0);
-          }
+          scrollToTopAfterBuild();
         });
       }
 
@@ -446,14 +460,10 @@ class ReactionPickerSheet extends HookWidget {
                                 ),
                                 title: Text(subCatName),
                                 trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  categoryPath.value = [
-                                    ...categoryPath.value,
-                                    subCatName,
-                                  ];
-                                  searchController.clear();
-                                  query.value = '';
-                                },
+                                onTap: () => handleCategorySelected([
+                                  ...categoryPath.value,
+                                  subCatName,
+                                ]),
                               );
                             }, childCount: subCategories.length),
                           ),
@@ -559,11 +569,7 @@ class ReactionPickerSheet extends HookWidget {
                               title: Text(category),
                               subtitle: Text('$count 件'),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                categoryPath.value = [category];
-                                searchController.clear();
-                                query.value = '';
-                              },
+                              onTap: () => handleCategorySelected([category]),
                             );
                           }, childCount: categories.length),
                         ),
