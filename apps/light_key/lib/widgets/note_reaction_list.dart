@@ -31,11 +31,18 @@ class NoteReactionList extends StatelessWidget {
     final normalizedMyReaction = myReaction == null
         ? null
         : _normalizeReaction(myReaction!);
+    final sortedEntries = reactions.entries.where((entry) => entry.value > 0).toList(
+      growable: false,
+    )..sort((a, b) {
+      final countCompare = b.value.compareTo(a.value);
+      if (countCompare != 0) return countCompare;
+      return a.key.compareTo(b.key);
+    });
+
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: reactions.entries
-          .where((entry) => entry.value > 0)
+      children: sortedEntries
           .map(
             (entry) {
               final normalizedReaction = _normalizeReaction(entry.key);
