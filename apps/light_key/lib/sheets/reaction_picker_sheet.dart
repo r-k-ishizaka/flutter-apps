@@ -5,7 +5,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../di/di.dart';
 import '../services/app_database.dart';
-import '../services/emoji_cache.dart';
 
 /// よく使われる絵文字リアクションの一覧（仮）。
 const _kFrequentReactions = <String>[];
@@ -130,13 +129,11 @@ class ReactionPickerSheet extends HookWidget {
   Future<Map<String, List<_CustomEmojiItem>>>
   _loadCustomEmojisByCategory() async {
     final db = getIt<AppDatabase>();
-    final cache = getIt<EmojiCache>();
-    final rows = await db.getAllEmojis();
+    final rows = await db.getEmojisForPicker();
 
     final grouped = <String, List<_CustomEmojiItem>>{};
     for (final row in rows) {
-      final url = cache.getUrl(row.name);
-      if (url == null || url.isEmpty) continue;
+      if (row.url.isEmpty) continue;
 
       final category = _normalizeCategoryPath(row.category ?? '');
       grouped
@@ -144,7 +141,7 @@ class ReactionPickerSheet extends HookWidget {
           .add(
             _CustomEmojiItem(
               name: row.name,
-              url: url,
+              url: row.url,
               aliases: _decodeAliases(row.aliases),
               categoryPath: category,
             ),

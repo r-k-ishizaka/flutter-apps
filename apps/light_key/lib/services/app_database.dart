@@ -64,6 +64,31 @@ class AppDatabase extends _$AppDatabase {
   Future<List<EmojiTableData>> getAllEmojis() =>
       select(emojiTable).get();
 
+  /// リアクションピッカー向けに必要最小限の列のみ取得する。
+  ///
+  /// imageBytes(BLOB) を除外して初期表示時のI/Oコストを抑える。
+  Future<List<EmojiPickerRow>> getEmojisForPicker() async {
+    final rows = await (selectOnly(emojiTable)
+          ..addColumns([
+            emojiTable.name,
+            emojiTable.category,
+            emojiTable.url,
+            emojiTable.aliases,
+          ]))
+        .get();
+
+    return rows
+        .map(
+          (row) => EmojiPickerRow(
+            name: row.read(emojiTable.name)!,
+            category: row.read(emojiTable.category),
+            url: row.read(emojiTable.url)!,
+            aliases: row.read(emojiTable.aliases),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   /// 絵文字を名前で1件取得する。
   Future<EmojiTableData?> getEmojiByName(String emojiName) =>
       (select(emojiTable)..where((t) => t.name.equals(emojiName)))
@@ -85,6 +110,21 @@ class AppDatabase extends _$AppDatabase {
       });
     });
   }
+}
+
+/// リアクションピッカーが必要とする最小列の読み取りモデル。
+class EmojiPickerRow {
+  const EmojiPickerRow({
+    required this.name,
+    required this.category,
+    required this.url,
+    required this.aliases,
+  });
+
+  final String name;
+  final String? category;
+  final String url;
+  final String? aliases;
 }
 
 // ---------------------------------------------------------------------------
