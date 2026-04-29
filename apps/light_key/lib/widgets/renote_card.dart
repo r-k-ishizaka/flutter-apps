@@ -20,6 +20,9 @@ class RenoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final displayUserName = renote.user.name.isNotEmpty
+        ? renote.user.name
+        : renote.user.username;
 
     return Container(
       decoration: BoxDecoration(
@@ -43,11 +46,24 @@ class RenoteCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        '@${renote.user.username}',
-                        style: textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          EmojiText(
+                            displayUserName,
+                            style: textTheme.bodySmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            emojiSize: 18,
+                          ),
+                          Text(
+                            '@${renote.user.username}',
+                            style: textTheme.bodySmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),

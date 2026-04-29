@@ -47,6 +47,12 @@ class TimelineNoteItem extends StatelessWidget {
     final displayMyReaction = note.noteType == NoteType.pureRenote
         ? displayNote.myReaction
         : note.myReaction;
+    final displayUserName = displayNote.user.name.isNotEmpty
+        ? displayNote.user.name
+        : displayNote.user.username;
+    final renoteUserName = note.user.name.isNotEmpty
+        ? note.user.name
+        : note.user.username;
 
     return SizeTransition(
       sizeFactor: curved,
@@ -76,11 +82,12 @@ class TimelineNoteItem extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
-                              '@${note.user.username} がリノート',
+                            child: EmojiText(
+                              '$renoteUserName がリノート',
                               style: Theme.of(context).textTheme.bodySmall,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              emojiSize: 16,
                             ),
                           ),
                         ],
@@ -102,10 +109,25 @@ class TimelineNoteItem extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    '@${displayNote.user.username}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      EmojiText(
+                                        displayUserName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        emojiSize: 18,
+                                      ),
+                                      Text(
+                                        '@${displayNote.user.username}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(width: 8),
