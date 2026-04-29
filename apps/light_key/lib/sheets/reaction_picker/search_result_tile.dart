@@ -1,4 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../di/di.dart';
+import '../../services/emoji_cache.dart';
 
 /// 検索結果に表示するカスタム絵文字の一覧タイル。
 class CustomEmojiSearchResultTile extends StatelessWidget {
@@ -19,6 +23,9 @@ class CustomEmojiSearchResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cache = getIt<EmojiCache>();
+    final imageBytes = cache.getImageBytes(name);
+
     final aliasSummary = switch (aliases.length) {
       0 => null,
       <= 3 => aliases.map((a) => ':$a:').join(', '),
@@ -32,19 +39,34 @@ class CustomEmojiSearchResultTile extends StatelessWidget {
       leading: SizedBox(
         width: 32,
         height: 32,
-        child: Image.network(
-          url,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Center(
-            child: Text(
-              ':$name:',
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ),
+        child: imageBytes != null && imageBytes.isNotEmpty
+            ? Image.memory(
+                imageBytes,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Center(
+                  child: Text(
+                    ':$name:',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              )
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.contain,
+                placeholder: (context, url) => const Center(child: SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 1.5))),
+                errorWidget: (context, url, error) => Center(
+                  child: Text(
+                    ':$name:',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ),
       ),
       title: Text(':$name:'),
       subtitle: subtitle.isEmpty
