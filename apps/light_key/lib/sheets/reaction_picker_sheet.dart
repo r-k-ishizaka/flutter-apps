@@ -194,6 +194,10 @@ class ReactionPickerSheet extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final searchController = useTextEditingController();
+    final searchFocusNode = useFocusNode();
+    final sheetController = useMemoized(DraggableScrollableController.new);
+    final latestScrollController = useRef<ScrollController?>(null);
+    final wasSearchFocused = useState(false);
     final query = useState('');
     final categoryPath = useState<List<String>>([]);
     final customByCategoryFuture = useMemoized(
@@ -211,6 +215,38 @@ class ReactionPickerSheet extends HookWidget {
       query.value = '';
     }
 
+    useEffect(() {
+      void handleSearchFocusChanged() {
+        final focused = searchFocusNode.hasFocus;
+        if (focused == wasSearchFocused.value) {
+          return;
+        }
+        wasSearchFocused.value = focused;
+
+        if (!focused) {
+          return;
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (sheetController.isAttached) {
+            sheetController.animateTo(
+              1.0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+            );
+          }
+
+          final scrollController = latestScrollController.value;
+          if (scrollController != null && scrollController.hasClients) {
+            scrollController.jumpTo(0);
+          }
+        });
+      }
+
+      searchFocusNode.addListener(handleSearchFocusChanged);
+      return () => searchFocusNode.removeListener(handleSearchFocusChanged);
+    }, [searchFocusNode, sheetController, wasSearchFocused]);
+
     return PopScope(
       canPop: categoryPath.value.isEmpty,
       onPopInvokedWithResult: (_, _) {
@@ -219,11 +255,14 @@ class ReactionPickerSheet extends HookWidget {
         }
       },
       child: DraggableScrollableSheet(
+        controller: sheetController,
         initialChildSize: 0.5,
         minChildSize: 0.3,
         maxChildSize: 1.0,
         expand: false,
         builder: (context, scrollController) {
+          latestScrollController.value = scrollController;
+
           Widget buildSearchResultsSliver(List<_CustomEmojiItem> emojis) {
             return SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
@@ -251,6 +290,7 @@ class ReactionPickerSheet extends HookWidget {
                     categoryPath: categoryPath.value,
                     query: query.value,
                     searchController: searchController,
+                    searchFocusNode: searchFocusNode,
                     onBack: categoryPath.value.isEmpty
                         ? null
                         : handleBackToParentCategory,
@@ -644,6 +684,7 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.categoryPath,
     required this.query,
     required this.searchController,
+    required this.searchFocusNode,
     required this.onClose,
     required this.onQueryChanged,
     this.onBack,
@@ -654,6 +695,7 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final List<String> categoryPath;
   final String query;
   final TextEditingController searchController;
+  final FocusNode searchFocusNode;
   final VoidCallback? onBack;
   final VoidCallback? onClear;
   final VoidCallback onClose;
@@ -716,6 +758,7 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               const SizedBox(height: 8),
               SearchBar(
                 controller: searchController,
+                focusNode: searchFocusNode,
                 hintText: '絵文字を検索',
                 leading: const Icon(Icons.search),
                 trailing: [
@@ -740,6 +783,7 @@ class _PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         categoryPath != oldDelegate.categoryPath ||
         query != oldDelegate.query ||
         searchController != oldDelegate.searchController ||
+        searchFocusNode != oldDelegate.searchFocusNode ||
         onBack != oldDelegate.onBack ||
         onClear != oldDelegate.onClear ||
         onClose != oldDelegate.onClose ||
