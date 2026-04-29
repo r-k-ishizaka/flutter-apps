@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'di/di.dart';
 import 'providers/theme_provider.dart';
 import 'repositories/auth_repository.dart';
+import 'repositories/emoji_repository.dart';
 import 'repositories/post_repository.dart';
 import 'repositories/timeline_repository.dart';
 import 'route/app_routes.dart';
@@ -22,7 +23,10 @@ class LightKeyApp extends StatelessWidget {
           create: (_) => getIt<ThemeProvider>(),
         ),
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(getIt<AuthRepository>()),
+          create: (_) => AuthProvider(
+            getIt<AuthRepository>(),
+            getIt<EmojiRepository>(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => TimelineProvider(

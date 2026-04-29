@@ -125,6 +125,25 @@ class MisskeyHttpClient {
     }
     return trimmed;
   }
+
+  /// 任意 URL からバイト配列を取得する（絵文字画像用）。
+  Future<List<int>> getBytes({required String url}) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final statusCode = response.statusCode ?? 0;
+      if (statusCode < 200 || statusCode >= 300) {
+        throw Exception('Misskey asset request failed: $statusCode');
+      }
+      return response.data ?? const <int>[];
+    } on DioException catch (error) {
+      throw Exception(
+        'Misskey asset request failed: ${error.message ?? error.toString()}',
+      );
+    }
+  }
 }
 
 /// Dio の全リクエスト・レスポンスをコンソールにログ出力するインターセプター。

@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../di/di.dart';
 import '../../repositories/emoji_repository.dart';
 import '../../route/app_routes.dart';
+import '../../services/emoji_cache.dart';
 import '../auth/auth_provider.dart';
 
 class SplashScreen extends HookWidget {
@@ -15,11 +16,21 @@ class SplashScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final syncProgress = useState<double?>(null);
+    final syncMessage = useState<String>('初期化中...');
+
     useEffect(() {
       var disposed = false;
 
+      void updateProgress(double progress, String message) {
+        if (disposed) return;
+        syncProgress.value = progress.clamp(0, 1);
+        syncMessage.value = message;
+      }
+
       Future<void> bootstrap() async {
         developer.log('Bootstrap started', name: 'SplashScreen');
+        syncMessage.value = 'セッションを復元中...';
 
         final authProvider = context.read<AuthProvider>();
         await Future.wait<void>([
@@ -36,8 +47,9 @@ class SplashScreen extends HookWidget {
         final session = authProvider.state.session;
         if (session != null) {
           final emojiRepo = getIt<EmojiRepository>();
+          final emojiCache = getIt<EmojiCache>();
 
-          // DB から既存の絵文字をロード（高速・ブロッキング開始直後）
+          // まずDBキャッシュを復元。空なら初回起動扱いで同期完了まで待機する。
           developer.log('Loading emojis from DB...', name: 'SplashScreen');
           await emojiRepo.loadToCache().catchError((Object err) {
             developer.log(
@@ -45,21 +57,38 @@ class SplashScreen extends HookWidget {
               name: 'SplashScreen',
               error: err,
             );
-            // DB が空の場合もここで catch（初回起動時など）
           });
 
-          // バックグラウンドで最新の絵文字を同期（非ブロッキング）
-          // スプラッシュ画面は即座に遷移し、タイムライン表示後に非同期で更新される
-          developer.log('Starting background emoji sync...', name: 'SplashScreen');
-          unawaited(
-            emojiRepo.syncEmojis(session).catchError((Object e) {
+          if (emojiCache.isEmpty) {
+            developer.log('Emoji cache is empty. Running blocking sync...', name: 'SplashScreen');
+            syncProgress.value = 0;
+            syncMessage.value = '絵文字を同期中...';
+            await emojiRepo.syncEmojis(
+              session,
+              onProgress: updateProgress,
+            ).catchError((Object e) {
               developer.log(
-                'Background emoji sync failed: $e',
+                'Blocking emoji sync failed: $e',
                 name: 'SplashScreen',
                 error: e,
               );
-            }),
-          );
+            });
+            syncProgress.value = 1;
+            syncMessage.value = '同期完了';
+          } else {
+            developer.log('Starting background emoji sync...', name: 'SplashScreen');
+            syncProgress.value = null;
+            syncMessage.value = '起動中...';
+            unawaited(
+              emojiRepo.syncEmojis(session).catchError((Object e) {
+                developer.log(
+                  'Background emoji sync failed: $e',
+                  name: 'SplashScreen',
+                  error: e,
+                );
+              }),
+            );
+          }
 
           if (!context.mounted || disposed) return;
           const TimelineRoute().go(context);
@@ -74,9 +103,29 @@ class SplashScreen extends HookWidget {
       };
     }, const []);
 
-    return const Scaffold(
+    final progress = syncProgress.value;
+    final percent = progress == null ? null : (progress * 100).round();
+
+    return Scaffold(
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (progress == null)
+                const CircularProgressIndicator()
+              else
+                LinearProgressIndicator(value: progress),
+              const SizedBox(height: 12),
+              Text(syncMessage.value),
+              if (percent != null) ...[
+                const SizedBox(height: 4),
+                Text('$percent%'),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

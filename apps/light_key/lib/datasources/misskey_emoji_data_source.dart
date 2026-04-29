@@ -78,4 +78,9 @@ class MisskeyEmojiDataSource implements EmojiDataSource {
       rethrow;
     }
   }
+
+  @override
+  Future<List<int>> fetchEmojiImageBytes({required String imageUrl}) {
+    return client.getBytes(url: imageUrl);
+  }
 }

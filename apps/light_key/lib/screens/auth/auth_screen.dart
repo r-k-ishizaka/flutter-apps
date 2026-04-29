@@ -69,65 +69,147 @@ class AuthScreen extends HookWidget {
       };
     }, []);
 
+    final showSyncOverlay =
+        state.status == AuthStatus.loading && state.emojiSyncProgress != null;
+
     return DefaultScaffold(
       appBar: AppBar(
         title: const Text('ログイン'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Stack(
         children: [
-          TextField(
-            controller: baseUrlController,
-            decoration: const InputDecoration(
-              labelText: 'Misskey サーバーURL',
-              hintText: 'https://example.tld',
-            ),
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TextField(
+                controller: baseUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Misskey サーバーURL',
+                  hintText: 'https://example.tld',
+                ),
+              ),
+              const SizedBox(height: 20),
+              // OAuth セクション
+              const Divider(),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                  'OAuth 2.0 でログイン',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Misskey の認可画面を通じてログインします',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: state.status == AuthStatus.loading
+                    ? null
+                    : () async {
+                        await oauthService.startOAuthFlow(
+                          baseUrl: baseUrlController.text,
+                          clientId: _indieAuthClientId,
+                        );
+                      },
+                child: const Text('Misskey でログイン'),
+              ),
+              if (state.status == AuthStatus.authenticated) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => context.read<AuthProvider>().signOut(),
+                  child: const Text('ログアウト'),
+                ),
+              ],
+              const SizedBox(height: 20),
+              if (state.session != null)
+                Text('接続先: ${state.session!.baseUrl}'),
+              if (state.user != null)
+                Text('ユーザー: @${state.user!.username} (${state.user!.name})'),
+              if (state.message != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(state.message!),
+                ),
+            ],
           ),
-          const SizedBox(height: 20),
-          // OAuth セクション
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              'OAuth 2.0 でログイン',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+          // 絵文字同期中：グレー半透明オーバーレイ
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: showSyncOverlay
+                ? _EmojiSyncOverlay(
+                    key: const ValueKey('overlay'),
+                    progress: state.emojiSyncProgress!,
+                    message: state.message,
+                  )
+                : const SizedBox.shrink(key: ValueKey('hidden')),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Misskey の認可画面を通じてログインします',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: state.status == AuthStatus.loading
-                ? null
-                : () async {
-                    await oauthService.startOAuthFlow(
-                      baseUrl: baseUrlController.text,
-                      clientId: _indieAuthClientId,
-                    );
-                  },
-            child: const Text('Misskey でログイン'),
-          ),
-          if (state.status == AuthStatus.authenticated) ...[
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.read<AuthProvider>().signOut(),
-              child: const Text('ログアウト'),
-            ),
-          ],
-          const SizedBox(height: 20),
-          if (state.session != null)
-            Text('接続先: ${state.session!.baseUrl}'),
-          if (state.user != null)
-            Text('ユーザー: @${state.user!.username} (${state.user!.name})'),
-          if (state.message != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(state.message!),
-            ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmojiSyncOverlay extends StatelessWidget {
+  const _EmojiSyncOverlay({
+    super.key,
+    required this.progress,
+    this.message,
+  });
+
+  final double progress;
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final percent = (progress * 100).round();
+
+    return Container(
+      color: Colors.black.withValues(alpha: 0.45),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '絵文字を準備中...',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 20),
+              LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '$percent%',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              if (message != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  message!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

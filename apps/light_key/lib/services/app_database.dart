@@ -26,6 +26,9 @@ class EmojiTable extends Table {
   /// 画像 URL。
   TextColumn get url => text()();
 
+  /// 画像バイナリ（取得済みの場合）。
+  BlobColumn get imageBytes => blob().nullable()();
+
   /// エイリアスを JSON 文字列として保存。例: '["ai","acid"]'
   TextColumn get aliases => text().nullable()();
 
@@ -42,7 +45,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await customStatement(
+          'ALTER TABLE emojis ADD COLUMN image_bytes BLOB',
+        );
+      }
+    },
+  );
 
   // -- Emoji CRUD -----------------------------------------------------------
 

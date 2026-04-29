@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../di/di.dart';
@@ -8,8 +9,8 @@ import '../services/emoji_cache.dart';
 
 /// Misskey のノート本文を絵文字付きでレンダリングするウィジェット。
 ///
-/// テキスト中の `:shortcode:` を検出し、[EmojiCache] から URL を引いて
-/// [CachedNetworkImage] でインライン表示する。
+/// テキスト中の `:shortcode:` を検出し、[EmojiCache] から画像バイナリを優先参照して
+/// インライン表示する。バイナリ未保存時のみ URL を使ってフォールバックする。
 /// キャッシュに該当エントリがない場合は `:shortcode:` をそのままテキスト表示。
 class EmojiText extends StatelessWidget {
   const EmojiText(
@@ -30,15 +31,24 @@ class EmojiText extends StatelessWidget {
   final int? maxLines;
   final TextOverflow? overflow;
 
-  static final _emojiPattern = RegExp(r':([a-zA-Z0-9_]+):');
+  // :shortcode: に加えて :shortcode@host: 形式も許可する。
+  static final _emojiPattern = RegExp(
+    r':([a-zA-Z0-9_.-]+)(?:@[a-zA-Z0-9.-]+)?:',
+  );
+  static const int _debugTextPreviewLength = 80;
 
   @override
   Widget build(BuildContext context) {
     final cache = getIt<EmojiCache>();
-    developer.log(
-      'EmojiText.build() - Cache size: ${cache.length}, Text: "$text"',
-      name: 'EmojiText',
-    );
+    if (kDebugMode) {
+      final preview = text.length > _debugTextPreviewLength
+          ? '${text.substring(0, _debugTextPreviewLength)}...'
+          : text;
+      developer.log(
+        'EmojiText.build() - Cache size: ${cache.length}, Text length: ${text.length}, Preview: "$preview"',
+        name: 'EmojiText',
+      );
+    }
 
     final spans = _buildSpans(text, cache, context);
 
@@ -65,14 +75,28 @@ class EmojiText extends StatelessWidget {
       }
 
       final name = match.group(1)!;
+      final imageBytes = cache.getImageBytes(name);
       final url = cache.getUrl(name);
 
-      developer.log(
-        'Emoji code: $name -> ${url != null ? "Found: $url" : "Not found in cache"}',
-        name: 'EmojiText',
-      );
 
-      if (url != null && url.isNotEmpty) {
+      if (imageBytes != null && imageBytes.isNotEmpty) {
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: emojiSize * 11,
+              ),
+              child: Image.memory(
+                imageBytes,
+                height: emojiSize,
+                fit: BoxFit.fitHeight,
+                errorBuilder: (_, _, _) => Text(':$name:'),
+              ),
+            ),
+          ),
+        );
+      } else if (url != null && url.isNotEmpty) {
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,

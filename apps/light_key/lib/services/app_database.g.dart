@@ -38,6 +38,17 @@ class $EmojiTableTable extends EmojiTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _imageBytesMeta = const VerificationMeta(
+    'imageBytes',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> imageBytes = GeneratedColumn<Uint8List>(
+    'image_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _aliasesMeta = const VerificationMeta(
     'aliases',
   );
@@ -50,7 +61,13 @@ class $EmojiTableTable extends EmojiTable
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [name, category, url, aliases];
+  List<GeneratedColumn> get $columns => [
+    name,
+    category,
+    url,
+    imageBytes,
+    aliases,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -85,6 +102,12 @@ class $EmojiTableTable extends EmojiTable
     } else if (isInserting) {
       context.missing(_urlMeta);
     }
+    if (data.containsKey('image_bytes')) {
+      context.handle(
+        _imageBytesMeta,
+        imageBytes.isAcceptableOrUnknown(data['image_bytes']!, _imageBytesMeta),
+      );
+    }
     if (data.containsKey('aliases')) {
       context.handle(
         _aliasesMeta,
@@ -112,6 +135,10 @@ class $EmojiTableTable extends EmojiTable
         DriftSqlType.string,
         data['${effectivePrefix}url'],
       )!,
+      imageBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}image_bytes'],
+      ),
       aliases: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}aliases'],
@@ -135,12 +162,16 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
   /// 画像 URL。
   final String url;
 
+  /// 画像バイナリ（取得済みの場合）。
+  final Uint8List? imageBytes;
+
   /// エイリアスを JSON 文字列として保存。例: '["ai","acid"]'
   final String? aliases;
   const EmojiTableData({
     required this.name,
     this.category,
     required this.url,
+    this.imageBytes,
     this.aliases,
   });
   @override
@@ -151,6 +182,9 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
       map['category'] = Variable<String>(category);
     }
     map['url'] = Variable<String>(url);
+    if (!nullToAbsent || imageBytes != null) {
+      map['image_bytes'] = Variable<Uint8List>(imageBytes);
+    }
     if (!nullToAbsent || aliases != null) {
       map['aliases'] = Variable<String>(aliases);
     }
@@ -164,6 +198,9 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
           ? const Value.absent()
           : Value(category),
       url: Value(url),
+      imageBytes: imageBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageBytes),
       aliases: aliases == null && nullToAbsent
           ? const Value.absent()
           : Value(aliases),
@@ -179,6 +216,7 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
       name: serializer.fromJson<String>(json['name']),
       category: serializer.fromJson<String?>(json['category']),
       url: serializer.fromJson<String>(json['url']),
+      imageBytes: serializer.fromJson<Uint8List?>(json['imageBytes']),
       aliases: serializer.fromJson<String?>(json['aliases']),
     );
   }
@@ -189,6 +227,7 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
       'name': serializer.toJson<String>(name),
       'category': serializer.toJson<String?>(category),
       'url': serializer.toJson<String>(url),
+      'imageBytes': serializer.toJson<Uint8List?>(imageBytes),
       'aliases': serializer.toJson<String?>(aliases),
     };
   }
@@ -197,11 +236,13 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
     String? name,
     Value<String?> category = const Value.absent(),
     String? url,
+    Value<Uint8List?> imageBytes = const Value.absent(),
     Value<String?> aliases = const Value.absent(),
   }) => EmojiTableData(
     name: name ?? this.name,
     category: category.present ? category.value : this.category,
     url: url ?? this.url,
+    imageBytes: imageBytes.present ? imageBytes.value : this.imageBytes,
     aliases: aliases.present ? aliases.value : this.aliases,
   );
   EmojiTableData copyWithCompanion(EmojiTableCompanion data) {
@@ -209,6 +250,9 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
       name: data.name.present ? data.name.value : this.name,
       category: data.category.present ? data.category.value : this.category,
       url: data.url.present ? data.url.value : this.url,
+      imageBytes: data.imageBytes.present
+          ? data.imageBytes.value
+          : this.imageBytes,
       aliases: data.aliases.present ? data.aliases.value : this.aliases,
     );
   }
@@ -219,13 +263,20 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('url: $url, ')
+          ..write('imageBytes: $imageBytes, ')
           ..write('aliases: $aliases')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(name, category, url, aliases);
+  int get hashCode => Object.hash(
+    name,
+    category,
+    url,
+    $driftBlobEquality.hash(imageBytes),
+    aliases,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -233,6 +284,7 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
           other.name == this.name &&
           other.category == this.category &&
           other.url == this.url &&
+          $driftBlobEquality.equals(other.imageBytes, this.imageBytes) &&
           other.aliases == this.aliases);
 }
 
@@ -240,12 +292,14 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
   final Value<String> name;
   final Value<String?> category;
   final Value<String> url;
+  final Value<Uint8List?> imageBytes;
   final Value<String?> aliases;
   final Value<int> rowid;
   const EmojiTableCompanion({
     this.name = const Value.absent(),
     this.category = const Value.absent(),
     this.url = const Value.absent(),
+    this.imageBytes = const Value.absent(),
     this.aliases = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -253,6 +307,7 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
     required String name,
     this.category = const Value.absent(),
     required String url,
+    this.imageBytes = const Value.absent(),
     this.aliases = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name),
@@ -261,6 +316,7 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
     Expression<String>? name,
     Expression<String>? category,
     Expression<String>? url,
+    Expression<Uint8List>? imageBytes,
     Expression<String>? aliases,
     Expression<int>? rowid,
   }) {
@@ -268,6 +324,7 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
       if (name != null) 'name': name,
       if (category != null) 'category': category,
       if (url != null) 'url': url,
+      if (imageBytes != null) 'image_bytes': imageBytes,
       if (aliases != null) 'aliases': aliases,
       if (rowid != null) 'rowid': rowid,
     });
@@ -277,6 +334,7 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
     Value<String>? name,
     Value<String?>? category,
     Value<String>? url,
+    Value<Uint8List?>? imageBytes,
     Value<String?>? aliases,
     Value<int>? rowid,
   }) {
@@ -284,6 +342,7 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
       name: name ?? this.name,
       category: category ?? this.category,
       url: url ?? this.url,
+      imageBytes: imageBytes ?? this.imageBytes,
       aliases: aliases ?? this.aliases,
       rowid: rowid ?? this.rowid,
     );
@@ -301,6 +360,9 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
     if (url.present) {
       map['url'] = Variable<String>(url.value);
     }
+    if (imageBytes.present) {
+      map['image_bytes'] = Variable<Uint8List>(imageBytes.value);
+    }
     if (aliases.present) {
       map['aliases'] = Variable<String>(aliases.value);
     }
@@ -316,6 +378,7 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('url: $url, ')
+          ..write('imageBytes: $imageBytes, ')
           ..write('aliases: $aliases, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -339,6 +402,7 @@ typedef $$EmojiTableTableCreateCompanionBuilder =
       required String name,
       Value<String?> category,
       required String url,
+      Value<Uint8List?> imageBytes,
       Value<String?> aliases,
       Value<int> rowid,
     });
@@ -347,6 +411,7 @@ typedef $$EmojiTableTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> category,
       Value<String> url,
+      Value<Uint8List?> imageBytes,
       Value<String?> aliases,
       Value<int> rowid,
     });
@@ -372,6 +437,11 @@ class $$EmojiTableTableFilterComposer
 
   ColumnFilters<String> get url => $composableBuilder(
     column: $table.url,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get imageBytes => $composableBuilder(
+    column: $table.imageBytes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -405,6 +475,11 @@ class $$EmojiTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<Uint8List> get imageBytes => $composableBuilder(
+    column: $table.imageBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get aliases => $composableBuilder(
     column: $table.aliases,
     builder: (column) => ColumnOrderings(column),
@@ -428,6 +503,11 @@ class $$EmojiTableTableAnnotationComposer
 
   GeneratedColumn<String> get url =>
       $composableBuilder(column: $table.url, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get imageBytes => $composableBuilder(
+    column: $table.imageBytes,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get aliases =>
       $composableBuilder(column: $table.aliases, builder: (column) => column);
@@ -467,12 +547,14 @@ class $$EmojiTableTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> category = const Value.absent(),
                 Value<String> url = const Value.absent(),
+                Value<Uint8List?> imageBytes = const Value.absent(),
                 Value<String?> aliases = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EmojiTableCompanion(
                 name: name,
                 category: category,
                 url: url,
+                imageBytes: imageBytes,
                 aliases: aliases,
                 rowid: rowid,
               ),
@@ -481,12 +563,14 @@ class $$EmojiTableTableTableManager
                 required String name,
                 Value<String?> category = const Value.absent(),
                 required String url,
+                Value<Uint8List?> imageBytes = const Value.absent(),
                 Value<String?> aliases = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EmojiTableCompanion.insert(
                 name: name,
                 category: category,
                 url: url,
+                imageBytes: imageBytes,
                 aliases: aliases,
                 rowid: rowid,
               ),
