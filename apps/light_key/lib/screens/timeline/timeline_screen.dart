@@ -6,7 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
-import '../../sheets/reaction_picker_sheet.dart';
+import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../widgets/timeline_list.dart';
 import 'timeline_provider.dart';
 import 'timeline_screen_state.dart';
