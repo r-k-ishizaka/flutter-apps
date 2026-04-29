@@ -236,6 +236,38 @@ void main() {
       expect(tappedReaction, '👍');
     });
 
+    testWidgets('他サーバー絵文字のリアクションチップはタップできない', (tester) async {
+      var tapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteReactionList(
+              reactions: const {':custom@example.com:': 1},
+              onReactionTap: (_) => tapped = true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('reaction-chip-:custom@example.com:')));
+      await tester.pump();
+
+      final decoratedBox = tester.widget<DecoratedBox>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('reaction-chip-:custom@example.com:')),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
+      );
+      final decoration = decoratedBox.decoration as BoxDecoration;
+
+      expect(tapped, isFalse);
+      expect(decoration.color, isNull);
+      expect(find.byType(Opacity), findsOneWidget);
+    });
+
     testWidgets('純粋リノート更新時も renote.myReaction を保持する', (tester) async {
       const reactionKey = ':custom@.:';
       final theme = ThemeData(useMaterial3: true);

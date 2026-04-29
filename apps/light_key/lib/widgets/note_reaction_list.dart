@@ -25,6 +25,12 @@ class NoteReactionList extends StatelessWidget {
     return ':${match.group(1)}:';
   }
 
+  // `:name@host:` 形式で host が `.` 以外なら他サーバ絵文字として扱う。
+  static bool _isCrossServerReaction(String reaction) {
+    final match = RegExp(r'^:[a-zA-Z0-9_]+@([^:]+):$').firstMatch(reaction);
+    return match != null && match.group(1) != '.';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (reactions.isEmpty) return const SizedBox.shrink();
@@ -46,14 +52,16 @@ class NoteReactionList extends StatelessWidget {
           .map(
             (entry) {
               final normalizedReaction = _normalizeReaction(entry.key);
+              final canTap = !_isCrossServerReaction(entry.key);
               return _ReactionChip(
                 reactionKey: entry.key,
                 reaction: normalizedReaction,
                 count: entry.value,
+                isEnabled: canTap,
                 isMyReaction:
                     normalizedMyReaction != null &&
                     normalizedMyReaction == normalizedReaction,
-                onTap: onReactionTap,
+                onTap: canTap ? onReactionTap : null,
               );
             },
           )
@@ -67,6 +75,7 @@ class _ReactionChip extends StatelessWidget {
     required this.reactionKey,
     required this.reaction,
     required this.count,
+    this.isEnabled = true,
     this.isMyReaction = false,
     this.onTap,
   });
@@ -74,16 +83,21 @@ class _ReactionChip extends StatelessWidget {
   final String reactionKey;
   final String reaction;
   final int count;
+  final bool isEnabled;
   final bool isMyReaction;
   final ValueChanged<String>? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final backgroundColor = isMyReaction
+    final backgroundColor = !isEnabled
+        ? null
+        : isMyReaction
         ? colorScheme.primaryContainer
         : colorScheme.surfaceContainerHighest;
-    final textColor = isMyReaction
+    final textColor = !isEnabled
+        ? colorScheme.onSurfaceVariant
+        : isMyReaction
         ? colorScheme.onPrimaryContainer
         : null;
 
@@ -109,24 +123,26 @@ class _ReactionChip extends StatelessWidget {
       ),
     );
 
+    final chipBody = Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        key: ValueKey('reaction-chip-$reactionKey'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap == null ? null : () => onTap!(reactionKey),
+        child: content,
+      ),
+    );
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: isMyReaction
+        border: isMyReaction && isEnabled
             ? Border.all(color: colorScheme.primary, width: 1.5)
             : null,
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          key: ValueKey('reaction-chip-$reactionKey'),
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap == null ? null : () => onTap!(reactionKey),
-          child: content,
-        ),
-      ),
+      child: chipBody,
     );
   }
 }
