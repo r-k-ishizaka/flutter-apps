@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Note {
 
- String get id; String get text; DateTime get createdAt; User get user; List<NoteFile> get files;@JsonKey(fromJson: _reactionsFromJson) Map<String, int> get reactions;/// 自分がつけたリアクション。未リアクションの場合は null。
+ String get id; String get text;/// Contents Warning テキスト。null でない場合、本文・メディアを折りたたんで表示する。
+ String? get cw; DateTime get createdAt; User get user; List<NoteFile> get files;@JsonKey(fromJson: _reactionsFromJson) Map<String, int> get reactions;/// 自分がつけたリアクション。未リアクションの場合は null。
  String? get myReaction;/// リノート元のノート。純粋リノート・引用リノートの場合に設定される。
  Note? get renote;
 /// Create a copy of Note
@@ -30,16 +31,16 @@ $NoteCopyWith<Note> get copyWith => _$NoteCopyWithImpl<Note>(this as Note, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other.files, files)&&const DeepCollectionEquality().equals(other.reactions, reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.cw, cw) || other.cw == cw)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other.files, files)&&const DeepCollectionEquality().equals(other.reactions, reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,text,createdAt,user,const DeepCollectionEquality().hash(files),const DeepCollectionEquality().hash(reactions),myReaction,renote);
+int get hashCode => Object.hash(runtimeType,id,text,cw,createdAt,user,const DeepCollectionEquality().hash(files),const DeepCollectionEquality().hash(reactions),myReaction,renote);
 
 @override
 String toString() {
-  return 'Note(id: $id, text: $text, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote)';
+  return 'Note(id: $id, text: $text, cw: $cw, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote)';
 }
 
 
@@ -50,7 +51,7 @@ abstract mixin class $NoteCopyWith<$Res>  {
   factory $NoteCopyWith(Note value, $Res Function(Note) _then) = _$NoteCopyWithImpl;
 @useResult
 $Res call({
- String id, String text, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote
+ String id, String text, String? cw, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote
 });
 
 
@@ -67,11 +68,12 @@ class _$NoteCopyWithImpl<$Res>
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? text = null,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? text = null,Object? cw = freezed,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,cw: freezed == cw ? _self.cw : cw // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,user: null == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
 as User,files: null == files ? _self.files : files // ignore: cast_nullable_to_non_nullable
 as List<NoteFile>,reactions: null == reactions ? _self.reactions : reactions // ignore: cast_nullable_to_non_nullable
@@ -180,10 +182,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String text,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Note() when $default != null:
-return $default(_that.id,_that.text,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote);case _:
+return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote);case _:
   return orElse();
 
 }
@@ -201,10 +203,10 @@ return $default(_that.id,_that.text,_that.createdAt,_that.user,_that.files,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String text,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote)  $default,) {final _that = this;
 switch (_that) {
 case _Note():
-return $default(_that.id,_that.text,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote);}
+return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -218,10 +220,10 @@ return $default(_that.id,_that.text,_that.createdAt,_that.user,_that.files,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String text,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote)?  $default,) {final _that = this;
 switch (_that) {
 case _Note() when $default != null:
-return $default(_that.id,_that.text,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote);case _:
+return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote);case _:
   return null;
 
 }
@@ -233,11 +235,13 @@ return $default(_that.id,_that.text,_that.createdAt,_that.user,_that.files,_that
 @JsonSerializable()
 
 class _Note extends Note {
-  const _Note({this.id = '', this.text = '', required this.createdAt, required this.user, final  List<NoteFile> files = const <NoteFile>[], @JsonKey(fromJson: _reactionsFromJson) final  Map<String, int> reactions = const <String, int>{}, this.myReaction, this.renote}): _files = files,_reactions = reactions,super._();
+  const _Note({this.id = '', this.text = '', this.cw, required this.createdAt, required this.user, final  List<NoteFile> files = const <NoteFile>[], @JsonKey(fromJson: _reactionsFromJson) final  Map<String, int> reactions = const <String, int>{}, this.myReaction, this.renote}): _files = files,_reactions = reactions,super._();
   factory _Note.fromJson(Map<String, dynamic> json) => _$NoteFromJson(json);
 
 @override@JsonKey() final  String id;
 @override@JsonKey() final  String text;
+/// Contents Warning テキスト。null でない場合、本文・メディアを折りたたんで表示する。
+@override final  String? cw;
 @override final  DateTime createdAt;
 @override final  User user;
  final  List<NoteFile> _files;
@@ -272,16 +276,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other._files, _files)&&const DeepCollectionEquality().equals(other._reactions, _reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.cw, cw) || other.cw == cw)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other._files, _files)&&const DeepCollectionEquality().equals(other._reactions, _reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,text,createdAt,user,const DeepCollectionEquality().hash(_files),const DeepCollectionEquality().hash(_reactions),myReaction,renote);
+int get hashCode => Object.hash(runtimeType,id,text,cw,createdAt,user,const DeepCollectionEquality().hash(_files),const DeepCollectionEquality().hash(_reactions),myReaction,renote);
 
 @override
 String toString() {
-  return 'Note(id: $id, text: $text, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote)';
+  return 'Note(id: $id, text: $text, cw: $cw, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote)';
 }
 
 
@@ -292,7 +296,7 @@ abstract mixin class _$NoteCopyWith<$Res> implements $NoteCopyWith<$Res> {
   factory _$NoteCopyWith(_Note value, $Res Function(_Note) _then) = __$NoteCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String text, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote
+ String id, String text, String? cw, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote
 });
 
 
@@ -309,11 +313,12 @@ class __$NoteCopyWithImpl<$Res>
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? text = null,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? text = null,Object? cw = freezed,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,}) {
   return _then(_Note(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,cw: freezed == cw ? _self.cw : cw // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,user: null == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
 as User,files: null == files ? _self._files : files // ignore: cast_nullable_to_non_nullable
 as List<NoteFile>,reactions: null == reactions ? _self._reactions : reactions // ignore: cast_nullable_to_non_nullable

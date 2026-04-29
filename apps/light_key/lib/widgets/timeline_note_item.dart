@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
 import '../models/note_type.dart';
@@ -8,7 +9,7 @@ import 'note_reaction_list.dart';
 import 'renote_card.dart';
 import 'user_avatar.dart';
 
-class TimelineNoteItem extends StatelessWidget {
+class TimelineNoteItem extends HookWidget {
   const TimelineNoteItem({
     required this.note,
     required this.animation,
@@ -32,6 +33,7 @@ class TimelineNoteItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cwExpanded = useState(false);
     final curved = CurvedAnimation(
       parent: animation,
       curve: Curves.easeOutCubic,
@@ -53,6 +55,10 @@ class TimelineNoteItem extends StatelessWidget {
     final renoteUserName = note.user.name.isNotEmpty
         ? note.user.name
         : note.user.username;
+
+    // CW の有無
+    final cw = displayNote.cw;
+    final hasCw = cw != null && cw.isNotEmpty;
 
     return SizeTransition(
       sizeFactor: curved,
@@ -135,39 +141,52 @@ class TimelineNoteItem extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            switch (note.noteType) {
-                              NoteType.normal => EmojiText(
-                                note.text.isEmpty ? '(本文なし)' : note.text,
+                            // CW バー
+                            if (hasCw) ...[
+                              _CwBar(
+                                cwText: cw,
+                                expanded: cwExpanded.value,
+                                onToggle: () =>
+                                    cwExpanded.value = !cwExpanded.value,
                               ),
-                              NoteType.pureRenote => EmojiText(
-                                displayNote.text.isEmpty
-                                    ? '(本文なし)'
-                                    : displayNote.text,
-                              ),
-                              NoteType.quoteRenote => Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  EmojiText(
-                                    note.text.isEmpty ? '(本文なし)' : note.text,
-                                  ),
-                                  if (note.files.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    NoteMediaList(files: note.files),
-                                  ],
-                                  const SizedBox(height: 8),
-                                  RenoteCard(renote: note.renote!),
-                                ],
-                              ),
-                            },
-                            if (note.noteType == NoteType.normal &&
-                                note.files.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              NoteMediaList(files: note.files),
+                              const SizedBox(height: 4),
                             ],
-                            if (note.noteType == NoteType.pureRenote &&
-                                displayNote.files.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              NoteMediaList(files: displayNote.files),
+                            // 本文・メディア（CW がある場合は展開時のみ表示）
+                            if (!hasCw || cwExpanded.value) ...[
+                              switch (note.noteType) {
+                                NoteType.normal => EmojiText(
+                                  note.text.isEmpty ? '(本文なし)' : note.text,
+                                ),
+                                NoteType.pureRenote => EmojiText(
+                                  displayNote.text.isEmpty
+                                      ? '(本文なし)'
+                                      : displayNote.text,
+                                ),
+                                NoteType.quoteRenote => Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    EmojiText(
+                                      note.text.isEmpty ? '(本文なし)' : note.text,
+                                    ),
+                                    if (note.files.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      NoteMediaList(files: note.files),
+                                    ],
+                                    const SizedBox(height: 8),
+                                    RenoteCard(renote: note.renote!),
+                                  ],
+                                ),
+                              },
+                              if (note.noteType == NoteType.normal &&
+                                  note.files.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                NoteMediaList(files: note.files),
+                              ],
+                              if (note.noteType == NoteType.pureRenote &&
+                                  displayNote.files.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                NoteMediaList(files: displayNote.files),
+                              ],
                             ],
                             const SizedBox(height: 8),
                             _TimelineNoteActionRow(
@@ -194,6 +213,60 @@ class TimelineNoteItem extends StatelessWidget {
             const Divider(height: 1),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// CW (Contents Warning) バー。CW テキストと展開/折りたたみボタンを表示する。
+class _CwBar extends StatelessWidget {
+  const _CwBar({
+    required this.cwText,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final String cwText;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Row(
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 16,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              cwText,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onToggle,
+            child: Text(
+              expanded ? '隠す' : 'もっと見る',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

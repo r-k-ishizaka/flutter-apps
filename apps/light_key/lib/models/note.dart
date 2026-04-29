@@ -14,6 +14,9 @@ sealed class Note with _$Note {
   const factory Note({
     @Default('') String id,
     @Default('') String text,
+
+    /// Contents Warning テキスト。null でない場合、本文・メディアを折りたたんで表示する。
+    String? cw,
     required DateTime createdAt,
     required User user,
     @Default(<NoteFile>[])
@@ -60,6 +63,7 @@ Map<String, dynamic> _normalizeNoteJson(Map<String, dynamic> json) {
     ...json,
     'id': json['id'] as String? ?? '',
     'text': json['text'] as String? ?? '',
+    'cw': json['cw'] as String?,
     'createdAt': json['createdAt'] is String
         ? json['createdAt']
         : DateTime.fromMillisecondsSinceEpoch(0).toIso8601String(),
