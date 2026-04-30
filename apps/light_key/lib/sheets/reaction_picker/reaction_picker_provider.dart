@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
@@ -12,16 +13,21 @@ const _kFrequentReactions = <String>[];
 /// リアクションピッカーのUI状態とビジネスロジックを管理する ChangeNotifier。
 class ReactionPickerProvider extends ChangeNotifier {
   ReactionPickerProvider() {
-    _loadEmojis();
+    _loadInitialCategories();
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
 
   List<String> _categoryPath = const [];
   String _query = '';
+  final Map<String, EmojiPickerRow> _loadedRowsByName = {};
+  final Set<String> _loadedTopCategories = {};
+  bool _allEmojisLoaded = false;
+  Map<String, int> _topCategoryCounts = const {};
   Map<String, List<CustomEmojiItem>> _emojisByCategory = const {};
   bool _isLoading = true;
   Object? _loadError;
+  bool _disposed = false;
 
   List<String> get categoryPath => _categoryPath;
   String get query => _query;
@@ -34,7 +40,8 @@ class ReactionPickerProvider extends ChangeNotifier {
   void navigateToCategory(List<String> path) {
     _categoryPath = List.unmodifiable(path);
     _query = '';
-    notifyListeners();
+    _safeNotifyListeners();
+    unawaited(_ensureDataForPath(path));
   }
 
   /// 1段階上のカテゴリへ戻る。
@@ -44,19 +51,22 @@ class ReactionPickerProvider extends ChangeNotifier {
       _categoryPath.sublist(0, _categoryPath.length - 1),
     );
     _query = '';
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void updateQuery(String q) {
     if (_query == q) return;
     _query = q;
-    notifyListeners();
+    _safeNotifyListeners();
+    if (_query.isNotEmpty && !_allEmojisLoaded) {
+      unawaited(_ensureAllEmojisLoaded());
+    }
   }
 
   void clearQuery() {
     if (_query.isEmpty) return;
     _query = '';
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   // ── Computed ────────────────────────────────────────────────────────────────
@@ -82,14 +92,7 @@ class ReactionPickerProvider extends ChangeNotifier {
 
   /// トップレベルのカテゴリ一覧（カテゴリ名 → アイテム数）。
   List<MapEntry<String, int>> get topLevelCategories {
-    final map = <String, int>{};
-    for (final entry in _emojisByCategory.entries) {
-      final parts = _splitCategoryPath(entry.key);
-      if (parts.isEmpty) continue;
-      final top = parts[0];
-      map[top] = (map[top] ?? 0) + entry.value.length;
-    }
-    return map.entries.toList(growable: false)
+    return _topCategoryCounts.entries.toList(growable: false)
       ..sort((a, b) => a.key.compareTo(b.key));
   }
 
@@ -206,39 +209,133 @@ class ReactionPickerProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> _loadEmojis() async {
+  Future<void> _loadInitialCategories() async {
     try {
       final db = getIt<AppDatabase>();
-      final rows = await db.getEmojisForPicker();
+      final categories = await db.getEmojiCategoriesForPicker();
 
-      final grouped = <String, List<CustomEmojiItem>>{};
-      for (final row in rows) {
-        if (row.url.isEmpty) continue;
-        final category = _normalizeCategoryPath(row.category ?? '');
-        grouped.putIfAbsent(category, () => []).add(
-          CustomEmojiItem(
-            name: row.name,
-            url: row.url,
-            aliases: _decodeAliases(row.aliases),
-            categoryPath: category,
-          ),
-        );
+      final counts = <String, int>{};
+      for (final category in categories) {
+        final normalized = _normalizeCategoryPath(category ?? '');
+        final parts = _splitCategoryPath(normalized);
+        if (parts.isEmpty) continue;
+        final top = parts[0];
+        counts[top] = (counts[top] ?? 0) + 1;
       }
 
-      for (final list in grouped.values) {
-        list.sort((a, b) => a.name.compareTo(b.name));
-      }
-
-      final sortedKeys = grouped.keys.toList()..sort();
-      _emojisByCategory = {
-        for (final key in sortedKeys)
-          key: List<CustomEmojiItem>.unmodifiable(grouped[key]!),
-      };
+      _topCategoryCounts = Map.unmodifiable(counts);
       _isLoading = false;
+      _loadError = null;
     } catch (e) {
       _loadError = e;
       _isLoading = false;
     }
+    _safeNotifyListeners();
+  }
+
+  Future<void> _ensureDataForPath(List<String> path) async {
+    if (path.isEmpty) return;
+
+    final top = path.first;
+    if (_loadedTopCategories.contains(top) || _allEmojisLoaded) return;
+
+    _isLoading = true;
+    _safeNotifyListeners();
+
+    try {
+      final db = getIt<AppDatabase>();
+      final rows = await db.getEmojisForPickerByTopCategory(top);
+      _mergeRows(rows, topCategoryFilter: top);
+      _loadedTopCategories.add(top);
+      _isLoading = false;
+      _loadError = null;
+    } catch (e) {
+      _loadError = e;
+      _isLoading = false;
+    }
+    _safeNotifyListeners();
+  }
+
+  Future<void> _ensureAllEmojisLoaded() async {
+    if (_allEmojisLoaded) return;
+
+    _isLoading = true;
+    _safeNotifyListeners();
+
+    try {
+      final db = getIt<AppDatabase>();
+      final rows = await db.getEmojisForPicker();
+      _mergeRows(rows);
+      _allEmojisLoaded = true;
+      _loadedTopCategories
+        ..clear()
+        ..addAll(_topCategoryCounts.keys);
+      _isLoading = false;
+      _loadError = null;
+    } catch (e) {
+      _loadError = e;
+      _isLoading = false;
+    }
+    _safeNotifyListeners();
+  }
+
+  void _mergeRows(
+    List<EmojiPickerRow> rows, {
+    String? topCategoryFilter,
+  }) {
+    for (final row in rows) {
+      if (row.url.isEmpty) continue;
+      final category = _normalizeCategoryPath(row.category ?? '');
+      final parts = _splitCategoryPath(category);
+      if (parts.isEmpty) continue;
+      if (topCategoryFilter != null && parts.first != topCategoryFilter) {
+        continue;
+      }
+
+      _loadedRowsByName[row.name] = EmojiPickerRow(
+        name: row.name,
+        category: category,
+        url: row.url,
+        aliases: row.aliases,
+      );
+    }
+
+    _rebuildEmojiMapFromLoadedRows();
+  }
+
+  void _rebuildEmojiMapFromLoadedRows() {
+    final grouped = <String, List<CustomEmojiItem>>{};
+    for (final row in _loadedRowsByName.values) {
+      final category = row.category ?? 'その他';
+      grouped.putIfAbsent(category, () => []).add(
+        CustomEmojiItem(
+          name: row.name,
+          url: row.url,
+          aliases: _decodeAliases(row.aliases),
+          categoryPath: category,
+        ),
+      );
+    }
+
+    for (final list in grouped.values) {
+      list.sort((a, b) => a.name.compareTo(b.name));
+    }
+
+    final sortedKeys = grouped.keys.toList()..sort();
+    _emojisByCategory = {
+      for (final key in sortedKeys)
+        key: List<CustomEmojiItem>.unmodifiable(grouped[key]!),
+    };
+  }
+
+  void _safeNotifyListeners() {
+    if (_disposed) return;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
