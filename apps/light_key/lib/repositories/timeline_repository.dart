@@ -33,6 +33,18 @@ class TimelineRepository {
     }
   }
 
+  Future<Result<void>> createRenote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    try {
+      await _dataSource.createRenote(session, noteId: noteId);
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
   Future<Result<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,

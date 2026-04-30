@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
+import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/timeline_list.dart';
 import 'timeline_provider.dart';
 import 'timeline_screen_state.dart';
@@ -44,6 +45,26 @@ class TimelineScreen extends HookWidget {
     final emoji = await showReactionPickerSheet(context);
     if (emoji == null || !context.mounted) return;
     await _sendReaction(context, note, emoji);
+  }
+
+  Future<void> _onNoteRenote(BuildContext context, Note note) async {
+    final action = await showRenoteActionSheet(context);
+    if (action == null || !context.mounted) return;
+
+    switch (action) {
+      case RenoteAction.renote:
+        final message = await context.read<TimelineProvider>().createRenote(note);
+        if (!context.mounted) return;
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger == null) return;
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(message ?? 'リノートしました。')));
+        return;
+      case RenoteAction.quote:
+        _showComingSoonSnackBar(context, '引用');
+        return;
+    }
   }
 
   @override
@@ -84,7 +105,7 @@ class TimelineScreen extends HookWidget {
         onRefresh: () =>
             context.read<TimelineProvider>().fetch(showLoading: false),
         onNoteReply: (note) => _showComingSoonSnackBar(context, 'リプライ'),
-        onNoteRenote: (note) => _showComingSoonSnackBar(context, 'リノート'),
+        onNoteRenote: (note) => _onNoteRenote(context, note),
         onNoteReaction: (note) => _onNoteReaction(context, note),
         onNoteReactionChipTap: (note, reaction) =>
             _sendReaction(context, note, reaction),

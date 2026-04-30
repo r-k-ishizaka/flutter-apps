@@ -26,6 +26,18 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
+  Future<void> createRenote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/notes/create',
+      body: {'i': session.accessToken, 'renoteId': noteId},
+    );
+  }
+
+  @override
   Future<List<Note>> fetchTimeline(
     AuthSession session, {
     int limit = 20,

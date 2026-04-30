@@ -223,6 +223,12 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }) async {}
 
   @override
+  Future<void> createRenote(
+    AuthSession session, {
+    required String noteId,
+  }) async {}
+
+  @override
   Future<List<Note>> fetchTimeline(AuthSession session, {int limit = 20}) async {
     final handler = onFetchTimeline;
     if (handler == null) {

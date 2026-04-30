@@ -208,6 +208,78 @@ void main() {
     });
   });
 
+  group('TimelineProvider.createRenote', () {
+    test('通常ノートをリノート送信する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createRenote(_note(id: 'note-1'));
+
+      expect(message, isNull);
+      expect(timelineDataSource.renoteCalls, ['note-1']);
+    });
+
+    test('純粋リノートでは元ノートにリノート送信する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final pureRenote = Note(
+        id: 'renote-wrapper',
+        text: '',
+        createdAt: DateTime(2026, 4, 28, 12),
+        user: const User(id: 'user-2', username: 'bob', name: 'Bob'),
+        renote: _note(id: 'renoted-note'),
+      );
+
+      final message = await provider.createRenote(pureRenote);
+
+      expect(message, isNull);
+      expect(timelineDataSource.renoteCalls, ['renoted-note']);
+    });
+
+    test('未認証時はエラーメッセージを返す', () async {
+      final authRepository = AuthRepository(_FakeAuthDataSource());
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createRenote(_note(id: 'note-1'));
+
+      expect(message, '先に認証してください。');
+      expect(timelineDataSource.renoteCalls, isEmpty);
+    });
+  });
+
   group('TimelineList refresh feedback', () {
     testWidgets('表示中のリアクションをタップすると送信コールバックが呼ばれる', (tester) async {
       Note? tappedNote;
@@ -474,6 +546,7 @@ class _FakeTimelineDataSource implements TimelineDataSource {
 
   final List<Future<List<Note>> Function()> fetchHandlers;
   final List<(String noteId, String reaction)> reactionCalls = [];
+  final List<String> renoteCalls = [];
   var _fetchIndex = 0;
 
   @override
@@ -483,6 +556,14 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     required String reaction,
   }) async {
     reactionCalls.add((noteId, reaction));
+  }
+
+  @override
+  Future<void> createRenote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    renoteCalls.add(noteId);
   }
 
   @override
