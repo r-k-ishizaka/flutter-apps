@@ -25,13 +25,13 @@ class PinnedSheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final ValueChanged<String> onQueryChanged;
 
   // Padding 16 + handle 4 + gaps 16 + title row 48 + search bar 56 = 140.
-  static const double _height = 140;
+  static const double headerHeight = 140;
 
   @override
-  double get minExtent => _height;
+  double get minExtent => headerHeight;
 
   @override
-  double get maxExtent => _height;
+  double get maxExtent => headerHeight;
 
   @override
   Widget build(

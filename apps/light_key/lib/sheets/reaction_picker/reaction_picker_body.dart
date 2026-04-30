@@ -26,6 +26,7 @@ class ReactionPickerBody extends HookWidget {
     final latestScrollController = useRef<ScrollController?>(null);
     final wasSearchFocused = useState(false);
     final colorScheme = Theme.of(context).colorScheme;
+    const collapsedSheetSize = 1 / 3;
 
     void scrollToTopAfterBuild() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,133 +73,156 @@ class ReactionPickerBody extends HookWidget {
       onPopInvokedWithResult: (_, _) {
         if (notifier.categoryPath.isNotEmpty) handleBackToParentCategory();
       },
-      child: DraggableScrollableSheet(
-        controller: sheetController,
-        initialChildSize: 0.5,
-        minChildSize: 0.3,
-        maxChildSize: 1.0,
-        expand: false,
-        builder: (context, scrollController) {
-          latestScrollController.value = scrollController;
-
-          final slivers = <Widget>[
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: PinnedSheetHeaderDelegate(
-                colorScheme: colorScheme,
-                categoryPath: notifier.categoryPath,
-                query: notifier.query,
-                searchController: searchController,
-                searchFocusNode: searchFocusNode,
-                onBack: notifier.categoryPath.isEmpty
-                    ? null
-                    : handleBackToParentCategory,
-                onClear: notifier.query.isEmpty
-                    ? null
-                    : () {
-                        searchController.clear();
-                        notifier.clearQuery();
-                      },
-                onClose: () => Navigator.of(context).pop(),
-                onQueryChanged: notifier.updateQuery,
-              ),
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final parentHeight = constraints.maxHeight;
+          final minSheetSize =
+              (PinnedSheetHeaderDelegate.headerHeight / parentHeight).clamp(
+                0.0,
+                1.0,
+              );
+          final initialSheetSize = collapsedSheetSize < minSheetSize
+              ? minSheetSize
+              : collapsedSheetSize;
+          final snapSizes = <double>[
+            minSheetSize,
+            if (initialSheetSize > minSheetSize) initialSheetSize,
+            1.0,
           ];
 
-          // よく使う絵文字セクション（トップレベル＋クエリ未入力のみ表示）
-          if (notifier.categoryPath.isEmpty && notifier.query.isEmpty) {
-            slivers.add(
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                  child: Text(
-                    'よく使う絵文字',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
-              ),
-            );
+          return DraggableScrollableSheet(
+            controller: sheetController,
+            initialChildSize: initialSheetSize,
+            minChildSize: minSheetSize,
+            maxChildSize: 1.0,
+            shouldCloseOnMinExtent: true,
+            snap: true,
+            snapSizes: snapSizes,
+            expand: false,
+            builder: (context, scrollController) {
+              latestScrollController.value = scrollController;
 
-            final frequent = notifier.filteredFrequent;
-            if (frequent.isEmpty) {
-              slivers.add(
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: Text('該当する絵文字がありません'),
+              final slivers = <Widget>[
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: PinnedSheetHeaderDelegate(
+                    colorScheme: colorScheme,
+                    categoryPath: notifier.categoryPath,
+                    query: notifier.query,
+                    searchController: searchController,
+                    searchFocusNode: searchFocusNode,
+                    onBack: notifier.categoryPath.isEmpty
+                        ? null
+                        : handleBackToParentCategory,
+                    onClear: notifier.query.isEmpty
+                        ? null
+                        : () {
+                            searchController.clear();
+                            notifier.clearQuery();
+                          },
+                    onClose: () => Navigator.of(context).pop(),
+                    onQueryChanged: notifier.updateQuery,
                   ),
                 ),
-              );
-            } else {
-              slivers.add(
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 8,
-                          childAspectRatio: 1,
-                        ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final emoji = frequent[index];
-                        return EmojiCell(
-                          emoji: emoji,
-                          onTap: () => onSelected(emoji),
-                        );
-                      },
-                      childCount: frequent.length,
+              ];
+
+              // よく使う絵文字セクション（トップレベル＋クエリ未入力のみ表示）
+              if (notifier.categoryPath.isEmpty && notifier.query.isEmpty) {
+                slivers.add(
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                      child: Text(
+                        'よく使う絵文字',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
                     ),
                   ),
-                ),
+                );
+
+                final frequent = notifier.filteredFrequent;
+                if (frequent.isEmpty) {
+                  slivers.add(
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        child: Text('該当する絵文字がありません'),
+                      ),
+                    ),
+                  );
+                } else {
+                  slivers.add(
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 8,
+                              childAspectRatio: 1,
+                            ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final emoji = frequent[index];
+                          return EmojiCell(
+                            emoji: emoji,
+                            onTap: () => onSelected(emoji),
+                          );
+                        }, childCount: frequent.length),
+                      ),
+                    ),
+                  );
+                }
+              }
+
+              // カスタム絵文字セクション
+              if (notifier.isLoading) {
+                slivers.add(
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                );
+              } else if (notifier.loadError != null) {
+                slivers.add(
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Text('リアクション一覧の読み込みに失敗しました'),
+                    ),
+                  ),
+                );
+              } else if (notifier.categoryPath.isNotEmpty) {
+                slivers.addAll(
+                  _buildCategoryDetailSlivers(
+                    context,
+                    notifier,
+                    handleCategorySelected,
+                  ),
+                );
+              } else {
+                slivers.addAll(
+                  _buildTopLevelSlivers(
+                    context,
+                    notifier,
+                    handleCategorySelected,
+                  ),
+                );
+              }
+
+              final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+              final bottomPadding = keyboardInset > 0
+                  ? keyboardInset
+                  : MediaQuery.viewPaddingOf(context).bottom;
+              slivers.add(
+                SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
               );
-            }
-          }
 
-          // カスタム絵文字セクション
-          if (notifier.isLoading) {
-            slivers.add(
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              ),
-            );
-          } else if (notifier.loadError != null) {
-            slivers.add(
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Text('リアクション一覧の読み込みに失敗しました'),
-                ),
-              ),
-            );
-          } else if (notifier.categoryPath.isNotEmpty) {
-            slivers.addAll(
-              _buildCategoryDetailSlivers(
-                context,
-                notifier,
-                handleCategorySelected,
-              ),
-            );
-          } else {
-            slivers.addAll(
-              _buildTopLevelSlivers(context, notifier, handleCategorySelected),
-            );
-          }
-
-          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-          final bottomPadding = keyboardInset > 0
-              ? keyboardInset
-              : MediaQuery.viewPaddingOf(context).bottom;
-          slivers.add(
-            SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
-          );
-
-          return CustomScrollView(
-            controller: scrollController,
-            slivers: slivers,
+              return CustomScrollView(
+                controller: scrollController,
+                slivers: slivers,
+              );
+            },
           );
         },
       ),
@@ -233,19 +257,16 @@ class ReactionPickerBody extends HookWidget {
         ),
       ),
       SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final item = emojis[index];
-            return CustomEmojiSearchResultTile(
-              name: item.name,
-              url: item.url,
-              aliases: item.aliases,
-              categoryPath: item.categoryPath,
-              onTap: () => onSelected(':${item.name}:'),
-            );
-          },
-          childCount: emojis.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final item = emojis[index];
+          return CustomEmojiSearchResultTile(
+            name: item.name,
+            url: item.url,
+            aliases: item.aliases,
+            categoryPath: item.categoryPath,
+            onTap: () => onSelected(':${item.name}:'),
+          );
+        }, childCount: emojis.length),
       ),
       const SliverToBoxAdapter(child: SizedBox(height: 16)),
     ];
@@ -278,20 +299,17 @@ class ReactionPickerBody extends HookWidget {
     return [
       if (subCategoryNames.isNotEmpty)
         SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final subCatName = subCategoryNames[index];
-              return ListTile(
-                dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                title: Text(subCatName),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () =>
-                    onCategorySelected([...notifier.categoryPath, subCatName]),
-              );
-            },
-            childCount: subCategoryNames.length,
-          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final subCatName = subCategoryNames[index];
+            return ListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              title: Text(subCatName),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () =>
+                  onCategorySelected([...notifier.categoryPath, subCatName]),
+            );
+          }, childCount: subCategoryNames.length),
         ),
       if (emojis.isNotEmpty)
         SliverPadding(
@@ -301,17 +319,14 @@ class ReactionPickerBody extends HookWidget {
               crossAxisCount: 8,
               childAspectRatio: 1,
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final item = emojis[index];
-                return CustomEmojiCell(
-                  name: item.name,
-                  url: item.url,
-                  onTap: () => onSelected(':${item.name}:'),
-                );
-              },
-              childCount: emojis.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final item = emojis[index];
+              return CustomEmojiCell(
+                name: item.name,
+                url: item.url,
+                onTap: () => onSelected(':${item.name}:'),
+              );
+            }, childCount: emojis.length),
           ),
         ),
     ];
@@ -343,20 +358,17 @@ class ReactionPickerBody extends HookWidget {
 
     return [
       SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final entry = categories[index];
-            return ListTile(
-              dense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              title: Text(entry.key),
-              subtitle: Text('${entry.value} 件'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => onCategorySelected([entry.key]),
-            );
-          },
-          childCount: categories.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final entry = categories[index];
+          return ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            title: Text(entry.key),
+            subtitle: Text('${entry.value} 件'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => onCategorySelected([entry.key]),
+          );
+        }, childCount: categories.length),
       ),
       const SliverToBoxAdapter(child: SizedBox(height: 16)),
     ];
