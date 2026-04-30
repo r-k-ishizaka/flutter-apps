@@ -25,8 +25,9 @@ class ReactionPickerBody extends HookWidget {
     final sheetController = useMemoized(DraggableScrollableController.new);
     final latestScrollController = useRef<ScrollController?>(null);
     final wasSearchFocused = useState(false);
+    final hideBodySlivers = useValueNotifier(false);
+    final wasAtMinExtent = useRef(false);
     final colorScheme = Theme.of(context).colorScheme;
-    const collapsedSheetSize = 1 / 3;
 
     void scrollToTopAfterBuild() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -76,153 +77,225 @@ class ReactionPickerBody extends HookWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final parentHeight = constraints.maxHeight;
-          final minSheetSize =
-              (PinnedSheetHeaderDelegate.headerHeight / parentHeight).clamp(
+          final viewPadding = MediaQuery.viewPaddingOf(context);
+          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          final fallbackKeyboardInset = parentHeight / 2;
+          final reservedKeyboardInset = keyboardInset > 0
+              ? keyboardInset
+              : fallbackKeyboardInset;
+          final minSheetHeight =
+              PinnedSheetHeaderDelegate.headerHeight +
+              viewPadding.top +
+              viewPadding.bottom;
+          final minSheetSize = (minSheetHeight / parentHeight).clamp(0.0, 1.0);
+          final desiredInitialSize =
+              ((PinnedSheetHeaderDelegate.headerHeight + reservedKeyboardInset) /
+                  parentHeight)
+              .clamp(
                 0.0,
                 1.0,
               );
-          final initialSheetSize = collapsedSheetSize < minSheetSize
-              ? minSheetSize
-              : collapsedSheetSize;
-          final snapSizes = <double>[
+          final initialSheetSize =
+              desiredInitialSize < minSheetSize ? minSheetSize : desiredInitialSize;
+          const minExtentEpsilon = 0.005;
+          final rawSnapSizes = <double>[
+            0,
             minSheetSize,
-            if (initialSheetSize > minSheetSize) initialSheetSize,
+            initialSheetSize,
             1.0,
-          ];
+          ]..sort();
+          final snapSizes = <double>[];
+          for (final size in rawSnapSizes) {
+            if (snapSizes.isEmpty || (size - snapSizes.last).abs() > 0.0001) {
+              snapSizes.add(size);
+            }
+          }
 
-          return DraggableScrollableSheet(
-            controller: sheetController,
-            initialChildSize: initialSheetSize,
-            minChildSize: minSheetSize,
-            maxChildSize: 1.0,
-            shouldCloseOnMinExtent: true,
-            snap: true,
-            snapSizes: snapSizes,
-            expand: false,
-            builder: (context, scrollController) {
-              latestScrollController.value = scrollController;
+          bool isAtMinExtent(double extent) =>
+              (extent - minSheetSize).abs() <= minExtentEpsilon;
 
-              final slivers = <Widget>[
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: PinnedSheetHeaderDelegate(
-                    colorScheme: colorScheme,
-                    categoryPath: notifier.categoryPath,
-                    query: notifier.query,
-                    searchController: searchController,
-                    searchFocusNode: searchFocusNode,
-                    onBack: notifier.categoryPath.isEmpty
-                        ? null
-                        : handleBackToParentCategory,
-                    onClear: notifier.query.isEmpty
-                        ? null
-                        : () {
-                            searchController.clear();
-                            notifier.clearQuery();
-                          },
-                    onClose: () => Navigator.of(context).pop(),
-                    onQueryChanged: notifier.updateQuery,
-                  ),
-                ),
-              ];
+          bool isAwayFromMinExtent(double extent) =>
+              extent > (minSheetSize + minExtentEpsilon * 4);
 
-              // よく使う絵文字セクション（トップレベル＋クエリ未入力のみ表示）
-              if (notifier.categoryPath.isEmpty && notifier.query.isEmpty) {
-                slivers.add(
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                      child: Text(
-                        'よく使う絵文字',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
+          return NotificationListener<DraggableScrollableNotification>(
+            onNotification: (notification) {
+              if (notification.depth != 0) return false;
+
+              final extent = notification.extent;
+
+              final atMinExtent = isAtMinExtent(extent);
+
+              // ヘッダーサイズに到達したときだけキーボードを閉じる
+              if (atMinExtent && !wasAtMinExtent.value) {
+                searchFocusNode.unfocus();
+              }
+
+              // 表示切り替えは安定した遷移時だけ更新して、ドラッグ中の再ビルドを抑える
+              if (atMinExtent && !hideBodySlivers.value) {
+                hideBodySlivers.value = true;
+              } else if (!atMinExtent &&
+                  hideBodySlivers.value &&
+                  isAwayFromMinExtent(extent)) {
+                hideBodySlivers.value = false;
+              }
+
+              wasAtMinExtent.value = atMinExtent;
+
+              return false;
+            },
+            child: DraggableScrollableSheet(
+              controller: sheetController,
+              initialChildSize: initialSheetSize,
+              minChildSize: 0,
+              maxChildSize: 1.0,
+              shouldCloseOnMinExtent: true,
+              snap: true,
+              snapSizes: snapSizes,
+              expand: false,
+              builder: (context, scrollController) {
+                latestScrollController.value = scrollController;
+
+                final slivers = <Widget>[
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: PinnedSheetHeaderDelegate(
+                      colorScheme: colorScheme,
+                      categoryPath: notifier.categoryPath,
+                      query: notifier.query,
+                      searchController: searchController,
+                      searchFocusNode: searchFocusNode,
+                      onBack: notifier.categoryPath.isEmpty
+                          ? null
+                          : handleBackToParentCategory,
+                      onClear: notifier.query.isEmpty
+                          ? null
+                          : () {
+                              searchController.clear();
+                              notifier.clearQuery();
+                            },
+                      onClose: () => Navigator.of(context).pop(),
+                      onQueryChanged: notifier.updateQuery,
                     ),
                   ),
-                );
+                ];
 
-                final frequent = notifier.filteredFrequent;
-                if (frequent.isEmpty) {
-                  slivers.add(
+                final bodySlivers = <Widget>[];
+
+                // よく使う絵文字セクション（トップレベル＋クエリ未入力のみ表示）
+                if (notifier.categoryPath.isEmpty && notifier.query.isEmpty) {
+                  bodySlivers.add(
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                        child: Text(
+                          'よく使う絵文字',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                    ),
+                  );
+
+                  final frequent = notifier.filteredFrequent;
+                  if (frequent.isEmpty) {
+                    bodySlivers.add(
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+                          child: Text('該当する絵文字がありません'),
+                        ),
+                      ),
+                    );
+                  } else {
+                    bodySlivers.add(
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 8,
+                                childAspectRatio: 1,
+                              ),
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            final emoji = frequent[index];
+                            return EmojiCell(
+                              emoji: emoji,
+                              onTap: () => onSelected(emoji),
+                            );
+                          }, childCount: frequent.length),
+                        ),
+                      ),
+                    );
+                  }
+                }
+
+                // カスタム絵文字セクション
+                if (notifier.isLoading) {
+                  bodySlivers.add(
                     const SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        child: Text('該当する絵文字がありません'),
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(child: CircularProgressIndicator()),
                       ),
+                    ),
+                  );
+                } else if (notifier.loadError != null) {
+                  bodySlivers.add(
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Text('リアクション一覧の読み込みに失敗しました'),
+                      ),
+                    ),
+                  );
+                } else if (notifier.categoryPath.isNotEmpty) {
+                  bodySlivers.addAll(
+                    _buildCategoryDetailSlivers(
+                      context,
+                      notifier,
+                      handleCategorySelected,
                     ),
                   );
                 } else {
-                  slivers.add(
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 8,
-                              childAspectRatio: 1,
-                            ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final emoji = frequent[index];
-                          return EmojiCell(
-                            emoji: emoji,
-                            onTap: () => onSelected(emoji),
-                          );
-                        }, childCount: frequent.length),
-                      ),
+                  bodySlivers.addAll(
+                    _buildTopLevelSlivers(
+                      context,
+                      notifier,
+                      handleCategorySelected,
                     ),
                   );
                 }
-              }
 
-              // カスタム絵文字セクション
-              if (notifier.isLoading) {
-                slivers.add(
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: CircularProgressIndicator()),
+                final bottomPadding = keyboardInset > 0
+                    ? keyboardInset
+                    : MediaQuery.viewPaddingOf(context).bottom;
+                bodySlivers.add(
+                  SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+                );
+
+                // Bodyの表示切替だけをlistenし、シート本体の再ビルドを避ける。
+                slivers.addAll(
+                  bodySlivers.map(
+                    (sliver) => ValueListenableBuilder<bool>(
+                      valueListenable: hideBodySlivers,
+                      builder: (context, hideBody, _) {
+                        return SliverOpacity(
+                          opacity: hideBody ? 0 : 1,
+                          sliver: SliverIgnorePointer(
+                            ignoring: hideBody,
+                            sliver: sliver,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 );
-              } else if (notifier.loadError != null) {
-                slivers.add(
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: Text('リアクション一覧の読み込みに失敗しました'),
-                    ),
-                  ),
-                );
-              } else if (notifier.categoryPath.isNotEmpty) {
-                slivers.addAll(
-                  _buildCategoryDetailSlivers(
-                    context,
-                    notifier,
-                    handleCategorySelected,
-                  ),
-                );
-              } else {
-                slivers.addAll(
-                  _buildTopLevelSlivers(
-                    context,
-                    notifier,
-                    handleCategorySelected,
-                  ),
-                );
-              }
 
-              final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-              final bottomPadding = keyboardInset > 0
-                  ? keyboardInset
-                  : MediaQuery.viewPaddingOf(context).bottom;
-              slivers.add(
-                SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
-              );
-
-              return CustomScrollView(
-                controller: scrollController,
-                slivers: slivers,
-              );
-            },
+                return CustomScrollView(
+                  controller: scrollController,
+                  slivers: slivers,
+                );
+              },
+            ),
           );
         },
       ),

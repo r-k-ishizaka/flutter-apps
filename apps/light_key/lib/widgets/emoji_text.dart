@@ -1,7 +1,5 @@
-import 'dart:developer' as developer;
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../di/di.dart';
@@ -35,20 +33,10 @@ class EmojiText extends StatelessWidget {
   static final _emojiPattern = RegExp(
     r':([a-zA-Z0-9_.-]+)(?:@[a-zA-Z0-9.-]+)?:',
   );
-  static const int _debugTextPreviewLength = 80;
 
   @override
   Widget build(BuildContext context) {
     final cache = getIt<EmojiCache>();
-    if (kDebugMode) {
-      final preview = text.length > _debugTextPreviewLength
-          ? '${text.substring(0, _debugTextPreviewLength)}...'
-          : text;
-      developer.log(
-        'EmojiText.build() - Cache size: ${cache.length}, Text length: ${text.length}, Preview: "$preview"',
-        name: 'EmojiText',
-      );
-    }
 
     final spans = _buildSpans(text, cache, context);
 
