@@ -28,6 +28,7 @@ class PostScreen extends HookWidget {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
+            autofocus: true,
             controller: textController,
             maxLines: 6,
             decoration: const InputDecoration(
