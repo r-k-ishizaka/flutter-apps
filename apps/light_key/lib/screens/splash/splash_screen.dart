@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../di/di.dart';
@@ -20,12 +21,16 @@ class SplashScreen extends HookWidget {
       var disposed = false;
 
       Future<void> bootstrap() async {
-        syncMessage.value = 'セッションを復元中...';
+        syncMessage.value = 'セッションとフォントを準備中...';
 
         final authProvider = context.read<AuthProvider>();
         await Future.wait<void>([
           Future<void>.delayed(const Duration(milliseconds: 500)),
           authProvider.restoreSession(),
+          GoogleFonts.pendingFonts([
+            GoogleFonts.notoSansJp(),
+            GoogleFonts.roboto(),
+          ]),
         ]);
         if (!context.mounted || disposed) return;
 

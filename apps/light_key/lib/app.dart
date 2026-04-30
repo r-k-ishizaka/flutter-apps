@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'di/di.dart';
@@ -11,6 +12,18 @@ import 'route/app_routes.dart';
 import 'screens/auth/auth_provider.dart';
 import 'screens/post/post_provider.dart';
 import 'screens/timeline/timeline_provider.dart';
+
+TextTheme buildMixedTextTheme(TextTheme baseTheme) {
+  final jpFamily = GoogleFonts.notoSansJp().fontFamily;
+  final robotoTheme = GoogleFonts.robotoTextTheme(baseTheme);
+  if (jpFamily == null) {
+    return robotoTheme;
+  }
+
+  return robotoTheme.apply(
+    fontFamilyFallback: <String>[jpFamily],
+  );
+}
 
 class LightKeyApp extends StatelessWidget {
   const LightKeyApp({super.key});
@@ -42,13 +55,22 @@ class LightKeyApp extends StatelessWidget {
         ),
       ],
       child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) => MaterialApp.router(
-          title: 'light_key',
-          theme: themeProvider.lightTheme,
-          darkTheme: themeProvider.darkTheme,
-          themeMode: themeProvider.flutterThemeMode,
-          routerConfig: appRouter,
-        ),
+        builder: (context, themeProvider, _) {
+          final lightTheme = themeProvider.lightTheme;
+          final darkTheme = themeProvider.darkTheme;
+
+          return MaterialApp.router(
+            title: 'light_key',
+            theme: lightTheme.copyWith(
+              textTheme: buildMixedTextTheme(lightTheme.textTheme),
+            ),
+            darkTheme: darkTheme.copyWith(
+              textTheme: buildMixedTextTheme(darkTheme.textTheme),
+            ),
+            themeMode: themeProvider.flutterThemeMode,
+            routerConfig: appRouter,
+          );
+        },
       ),
     );
   }
