@@ -188,6 +188,14 @@ class ReactionPickerBody extends HookWidget {
             );
           }
 
+          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          final bottomPadding = keyboardInset > 0
+              ? keyboardInset
+              : MediaQuery.viewPaddingOf(context).bottom;
+          slivers.add(
+            SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+          );
+
           return CustomScrollView(
             controller: scrollController,
             slivers: slivers,
