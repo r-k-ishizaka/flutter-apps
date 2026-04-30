@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
+import '../utils/datetime_format.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
 import 'user_avatar.dart';
@@ -13,9 +14,7 @@ class RenoteCard extends HookWidget {
 
   final Note renote;
 
-  String _createdAtLabel(DateTime createdAt) {
-    return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
-  }
+  String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
   @override
   Widget build(BuildContext context) {

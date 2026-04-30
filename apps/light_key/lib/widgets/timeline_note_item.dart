@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
 import '../models/note_type.dart';
+import '../utils/datetime_format.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
 import 'note_reaction_list.dart';
@@ -27,9 +28,7 @@ class TimelineNoteItem extends HookWidget {
   final VoidCallback? onReaction;
   final ValueChanged<String>? onReactionChipTap;
 
-  String _createdAtLabel(DateTime createdAt) {
-    return '${createdAt.month}/${createdAt.day} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
-  }
+  String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
   @override
   Widget build(BuildContext context) {
