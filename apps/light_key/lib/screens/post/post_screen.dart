@@ -11,6 +11,8 @@ import 'post_screen_state.dart';
 
 typedef ReactionPickerLauncher = Future<String?> Function(BuildContext context);
 
+const String postSuccessMessage = '投稿に成功しました';
+
 class PostScreen extends HookWidget {
   const PostScreen({super.key, this.pickReaction = showReactionPickerSheet});
 
@@ -62,7 +64,7 @@ class PostScreen extends HookWidget {
     await context.read<PostProvider>().submit(textController.text);
     if (context.mounted &&
         context.read<PostProvider>().state.status == PostStatus.success) {
-      textController.clear();
+      Navigator.of(context).pop(postSuccessMessage);
     }
   }
 
@@ -130,7 +132,7 @@ class PostScreen extends HookWidget {
             note: previewNote,
             animation: const AlwaysStoppedAnimation(1),
           ),
-          if (state.message != null)
+          if (state.status == PostStatus.error && state.message != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(state.message!),

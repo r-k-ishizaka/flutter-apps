@@ -60,7 +60,14 @@ class HomeShellRouteData extends ShellRouteData {
       currentPath: currentPath,
       selectedIndex: selectedIndex,
       actions: const [ThemeSwitchButton()],
-      onPostTap: () => const PostRoute().push(context),
+      onPostTap: () {
+        const PostRoute().push<String>(context).then((message) {
+          if (!context.mounted || message == null || message.isEmpty) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        });
+      },
       onDestinationSelected: (index) {
         if (index == selectedIndex) return;
 
