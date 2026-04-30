@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
 
 import 'package:core/models/result.dart';
@@ -50,12 +49,13 @@ class TimelineRepository {
     AuthSession session, {
     int limit = 20,
     Duration reconnectDelay = const Duration(seconds: 2),
+    Duration idleTimeout = const Duration(minutes: 1),
   }) async* {
     final initial = await fetchTimeline(session, limit: limit);
     yield initial;
 
     var current = <Note>[];
-    var subscribedNoteIds = LinkedHashSet<String>();
+    Set<String> subscribedNoteIds = <String>{};
     initial.when(
       success: (notes) {
         current = notes;
@@ -74,7 +74,7 @@ class TimelineRepository {
           connection.subscribeNote(id);
         }
 
-        await for (final message in connection.messages) {
+        await for (final message in connection.messages.timeout(idleTimeout)) {
           final event = await parseStreamEvent(session, message, channelId);
           if (event == null) continue;
 
@@ -132,6 +132,8 @@ class TimelineRepository {
               yield Success(current);
           }
         }
+      } on TimeoutException catch (e, st) {
+        yield Failure(Exception('Realtime stream idle timeout: $e'), st);
       } on Exception catch (e, st) {
         yield Failure(e, st);
       } finally {
@@ -233,8 +235,8 @@ class TimelineRepository {
 
   void _syncSubscriptions(
     TimelineConnection connection,
-    LinkedHashSet<String> current,
-    LinkedHashSet<String> next,
+    Set<String> current,
+    Set<String> next,
   ) {
     for (final id in next) {
       if (!current.contains(id)) connection.subscribeNote(id);
@@ -244,8 +246,8 @@ class TimelineRepository {
     }
   }
 
-  LinkedHashSet<String> _extractSubscribableNoteIds(List<Note> notes) {
-    final ids = LinkedHashSet<String>();
+  Set<String> _extractSubscribableNoteIds(List<Note> notes) {
+    final ids = <String>{};
     for (final note in notes) {
       if (note.id.isNotEmpty) ids.add(note.id);
       final renoteId = note.renote?.id;

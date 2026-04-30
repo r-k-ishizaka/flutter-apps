@@ -20,6 +20,10 @@ class TimelineProvider extends ChangeNotifier {
   final TimelineRepository _timelineRepository;
 
   StreamSubscription<Result<List<Note>>>? _timelineSubscription;
+  Future<void> _realtimeOperation = Future<void>.value();
+  int _realtimeGeneration = 0;
+  bool _wantsRealtime = false;
+  bool _isDisposed = false;
 
   TimelineScreenState _state = const TimelineScreenState.idle();
   TimelineScreenState get state => _state;
@@ -77,61 +81,103 @@ class TimelineProvider extends ChangeNotifier {
   }
 
   Future<void> startRealtime() async {
-    await stopRealtime();
+    _wantsRealtime = true;
+    return _enqueueRealtimeOperation(() async {
+      if (_isDisposed) return;
+      final generation = ++_realtimeGeneration;
 
-    // 前のデータがない場合のみ loading 状態をセット
-    if (_loadedNotes.isEmpty) {
-      _state = const TimelineScreenState.loading();
-      notifyListeners();
-    }
+      await _cancelRealtimeSubscription();
 
-    final sessionResult = await _authRepository.restoreSession();
-    await sessionResult.when(
-      success: (session) async {
-        if (session == null) {
-          _setTimelineError('先に認証してください。');
-          notifyListeners();
-          return;
-        }
-
-        _timelineSubscription = _timelineRepository
-            .watchTimeline(session)
-            .listen(
-              (timelineResult) {
-                timelineResult.when(
-                  success: (notes) {
-                    final currentNotes = _loadedNotes;
-                    _state = TimelineScreenState.loaded(
-                      notes: _mergeNotesPreservingMyReaction(
-                        currentNotes,
-                        notes,
-                      ),
-                      isRefreshing: false,
-                    );
-                  },
-                  failure: (error, _) {
-                    _setTimelineError('タイムライン取得に失敗しました: $error');
-                  },
-                );
-                notifyListeners();
-              },
-              onError: (error) {
-                _setTimelineError('リアルタイム購読でエラーが発生しました: $error');
-                notifyListeners();
-              },
-              cancelOnError: true, // エラー発生時にサブスクリプションを自動解除
-            );
-      },
-      failure: (error, _) {
-        _setTimelineError('セッション取得に失敗しました: $error');
+      // 前のデータがない場合のみ loading 状態をセット
+      if (_loadedNotes.isEmpty) {
+        _state = const TimelineScreenState.loading();
         notifyListeners();
-      },
-    );
+      }
+
+      final sessionResult = await _authRepository.restoreSession();
+      if (_isDisposed || !_wantsRealtime || generation != _realtimeGeneration) {
+        return;
+      }
+
+      await sessionResult.when(
+        success: (session) async {
+          if (session == null) {
+            _setTimelineError('先に認証してください。');
+            notifyListeners();
+            return;
+          }
+
+          if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
+            return;
+          }
+
+          late final StreamSubscription<Result<List<Note>>> subscription;
+          subscription = _timelineRepository.watchTimeline(session).listen(
+            (timelineResult) {
+              if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
+                return;
+              }
+
+              timelineResult.when(
+                success: (notes) {
+                  final currentNotes = _loadedNotes;
+                  _state = TimelineScreenState.loaded(
+                    notes: _mergeNotesPreservingMyReaction(currentNotes, notes),
+                    isRefreshing: false,
+                  );
+                },
+                failure: (error, _) {
+                  _setTimelineError('タイムライン取得に失敗しました: $error');
+                },
+              );
+              notifyListeners();
+            },
+            onError: (error) {
+              if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
+                return;
+              }
+              _setTimelineError('リアルタイム購読でエラーが発生しました: $error');
+              notifyListeners();
+            },
+            onDone: () {
+              _timelineSubscription = null;
+            },
+            cancelOnError: true,
+          );
+
+          if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
+            await subscription.cancel();
+            return;
+          }
+
+          _timelineSubscription = subscription;
+        },
+        failure: (error, _) async {
+          _setTimelineError('セッション取得に失敗しました: $error');
+          notifyListeners();
+        },
+      );
+    });
   }
 
   Future<void> stopRealtime() async {
-    await _timelineSubscription?.cancel();
+    _wantsRealtime = false;
+    return _enqueueRealtimeOperation(() async {
+      ++_realtimeGeneration;
+      await _cancelRealtimeSubscription();
+    });
+  }
+
+  Future<void> _enqueueRealtimeOperation(Future<void> Function() operation) {
+    final next = _realtimeOperation.then((_) => operation());
+    _realtimeOperation = next.catchError((_) {});
+    return next;
+  }
+
+  Future<void> _cancelRealtimeSubscription() async {
+    final subscription = _timelineSubscription;
     _timelineSubscription = null;
+    await subscription?.cancel();
   }
 
   Future<String?> createReaction(Note note, String reaction) async {
@@ -252,6 +298,7 @@ class TimelineProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     unawaited(stopRealtime());
     super.dispose();
   }
