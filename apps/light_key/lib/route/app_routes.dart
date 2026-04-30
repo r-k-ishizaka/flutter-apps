@@ -98,7 +98,8 @@ class NotificationsRoute extends GoRouteData with $NotificationsRoute {
 
 @TypedGoRoute<LegacyNotificationsRoute>(path: '/notifications')
 @immutable
-class LegacyNotificationsRoute extends GoRouteData with $LegacyNotificationsRoute {
+class LegacyNotificationsRoute extends GoRouteData
+    with $LegacyNotificationsRoute {
   const LegacyNotificationsRoute();
 
   @override

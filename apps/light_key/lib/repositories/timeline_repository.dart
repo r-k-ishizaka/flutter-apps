@@ -125,10 +125,11 @@ class TimelineRepository {
 
                 final renote = item.renote;
                 if (renote != null && renote.id == noteId) {
-                  final updatedRenote = renote.applyReactionDelta(reaction, delta);
-                  updated.add(
-                    item.copyWith(renote: updatedRenote),
+                  final updatedRenote = renote.applyReactionDelta(
+                    reaction,
+                    delta,
                   );
+                  updated.add(item.copyWith(renote: updatedRenote));
                   hasChanged = true;
                   continue;
                 }

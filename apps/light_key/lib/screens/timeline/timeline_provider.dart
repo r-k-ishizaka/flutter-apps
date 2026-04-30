@@ -26,6 +26,7 @@ class TimelineProvider extends ChangeNotifier {
   bool _isDisposed = false;
 
   TimelineScreenState _state = const TimelineScreenState.idle();
+
   TimelineScreenState get state => _state;
 
   List<Note> get _loadedNotes => switch (_state) {
@@ -107,45 +108,58 @@ class TimelineProvider extends ChangeNotifier {
             return;
           }
 
-          if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
+          if (!_wantsRealtime ||
+              generation != _realtimeGeneration ||
+              _isDisposed) {
             return;
           }
 
           late final StreamSubscription<Result<List<Note>>> subscription;
-          subscription = _timelineRepository.watchTimeline(session).listen(
-            (timelineResult) {
-              if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
-                return;
-              }
+          subscription = _timelineRepository
+              .watchTimeline(session)
+              .listen(
+                (timelineResult) {
+                  if (!_wantsRealtime ||
+                      generation != _realtimeGeneration ||
+                      _isDisposed) {
+                    return;
+                  }
 
-              timelineResult.when(
-                success: (notes) {
-                  final currentNotes = _loadedNotes;
-                  _state = TimelineScreenState.loaded(
-                    notes: _mergeNotesPreservingMyReaction(currentNotes, notes),
-                    isRefreshing: false,
+                  timelineResult.when(
+                    success: (notes) {
+                      final currentNotes = _loadedNotes;
+                      _state = TimelineScreenState.loaded(
+                        notes: _mergeNotesPreservingMyReaction(
+                          currentNotes,
+                          notes,
+                        ),
+                        isRefreshing: false,
+                      );
+                    },
+                    failure: (error, _) {
+                      _setTimelineError('タイムライン取得に失敗しました: $error');
+                    },
                   );
+                  notifyListeners();
                 },
-                failure: (error, _) {
-                  _setTimelineError('タイムライン取得に失敗しました: $error');
+                onError: (error) {
+                  if (!_wantsRealtime ||
+                      generation != _realtimeGeneration ||
+                      _isDisposed) {
+                    return;
+                  }
+                  _setTimelineError('リアルタイム購読でエラーが発生しました: $error');
+                  notifyListeners();
                 },
+                onDone: () {
+                  _timelineSubscription = null;
+                },
+                cancelOnError: true,
               );
-              notifyListeners();
-            },
-            onError: (error) {
-              if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
-                return;
-              }
-              _setTimelineError('リアルタイム購読でエラーが発生しました: $error');
-              notifyListeners();
-            },
-            onDone: () {
-              _timelineSubscription = null;
-            },
-            cancelOnError: true,
-          );
 
-          if (!_wantsRealtime || generation != _realtimeGeneration || _isDisposed) {
+          if (!_wantsRealtime ||
+              generation != _realtimeGeneration ||
+              _isDisposed) {
             await subscription.cancel();
             return;
           }
@@ -255,22 +269,22 @@ class TimelineProvider extends ChangeNotifier {
       return;
     }
 
-    final updatedNotes = loadedState.notes.map((item) {
-      // 直接の note に一致する場合
-      if (item.id == targetNoteId) {
-        return item.copyWith(myReaction: reaction);
-      }
-      // 純粋リノートのリノート元に一致する場合
-      final renote = item.renote;
-      if (renote != null && renote.id == targetNoteId) {
-        return item.copyWith(renote: renote.copyWith(myReaction: reaction));
-      }
-      return item;
-    }).toList(growable: false);
+    final updatedNotes = loadedState.notes
+        .map((item) {
+          // 直接の note に一致する場合
+          if (item.id == targetNoteId) {
+            return item.copyWith(myReaction: reaction);
+          }
+          // 純粋リノートのリノート元に一致する場合
+          final renote = item.renote;
+          if (renote != null && renote.id == targetNoteId) {
+            return item.copyWith(renote: renote.copyWith(myReaction: reaction));
+          }
+          return item;
+        })
+        .toList(growable: false);
 
-    _state = loadedState.copyWith(
-      notes: List<Note>.unmodifiable(updatedNotes),
-    );
+    _state = loadedState.copyWith(notes: List<Note>.unmodifiable(updatedNotes));
     notifyListeners();
   }
 

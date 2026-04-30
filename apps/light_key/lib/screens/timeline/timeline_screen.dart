@@ -53,7 +53,9 @@ class TimelineScreen extends HookWidget {
 
     switch (action) {
       case RenoteAction.renote:
-        final message = await context.read<TimelineProvider>().createRenote(note);
+        final message = await context.read<TimelineProvider>().createRenote(
+          note,
+        );
         if (!context.mounted) return;
         final messenger = ScaffoldMessenger.maybeOf(context);
         if (messenger == null) return;
@@ -119,7 +121,11 @@ class TimelineScreen extends HookWidget {
         message: null,
       ),
       TimelineScreenStateLoading() => const LoadingContent(),
-      TimelineScreenStateLoaded(:final notes, :final isRefreshing, :final message) =>
+      TimelineScreenStateLoaded(
+        :final notes,
+        :final isRefreshing,
+        :final message,
+      ) =>
         buildTimelineList(
           notes: notes,
           isRefreshing: isRefreshing,

@@ -83,8 +83,7 @@ class RenoteCard extends HookWidget {
                   _RenoteCardCwBar(
                     cwText: cw,
                     expanded: cwExpanded.value,
-                    onToggle: () =>
-                        cwExpanded.value = !cwExpanded.value,
+                    onToggle: () => cwExpanded.value = !cwExpanded.value,
                   ),
                   const SizedBox(height: 4),
                 ],

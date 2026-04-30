@@ -27,8 +27,12 @@ class PostScreen extends HookWidget {
     }
 
     final selection = value.selection;
-    final start = selection.isValid ? clampOffset(selection.start) : value.text.length;
-    final end = selection.isValid ? clampOffset(selection.end) : value.text.length;
+    final start = selection.isValid
+        ? clampOffset(selection.start)
+        : value.text.length;
+    final end = selection.isValid
+        ? clampOffset(selection.end)
+        : value.text.length;
     final newText = value.text.replaceRange(start, end, insertedText);
     final collapsedOffset = start + insertedText.length;
 
@@ -74,11 +78,7 @@ class PostScreen extends HookWidget {
       id: 'post-preview',
       text: textValue.text,
       createdAt: previewCreatedAt,
-      user: const User(
-        id: 'post-preview-user',
-        username: 'you',
-        name: 'あなた',
-      ),
+      user: const User(id: 'post-preview-user', username: 'you', name: 'あなた'),
     );
 
     return Scaffold(
@@ -117,11 +117,8 @@ class PostScreen extends HookWidget {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               key: const ValueKey('post-emoji-picker-button'),
-              onPressed: () => _onEmojiPickerPressed(
-                context,
-                textController,
-                focusNode,
-              ),
+              onPressed: () =>
+                  _onEmojiPickerPressed(context, textController, focusNode),
               icon: const Icon(Icons.emoji_emotions_outlined),
               label: const Text('絵文字を挿入'),
             ),

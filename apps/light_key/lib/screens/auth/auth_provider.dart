@@ -8,17 +8,14 @@ import '../../repositories/emoji_repository.dart';
 import 'auth_screen_state.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider(
-    this._authRepository,
-    this._emojiRepository,
-  );
+  AuthProvider(this._authRepository, this._emojiRepository);
 
   final AuthRepository _authRepository;
   final EmojiRepository _emojiRepository;
 
   AuthScreenState _state = const AuthScreenState.idle();
-  AuthScreenState get state => _state;
 
+  AuthScreenState get state => _state;
 
   Future<void> signInWithOAuth({
     required String baseUrl,
@@ -93,10 +90,7 @@ class AuthProvider extends ChangeNotifier {
             'Emoji sync completed during OAuth login',
             name: 'AuthProvider',
           );
-          _state = _state.copyWith(
-            message: 'ログイン完了。',
-            emojiSyncProgress: 1,
-          );
+          _state = _state.copyWith(message: 'ログイン完了。', emojiSyncProgress: 1);
         } catch (e, st) {
           developer.log(
             'Emoji sync failed during OAuth login: $e',

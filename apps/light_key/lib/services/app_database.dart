@@ -51,9 +51,7 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
-        await customStatement(
-          'ALTER TABLE emojis ADD COLUMN image_bytes BLOB',
-        );
+        await customStatement('ALTER TABLE emojis ADD COLUMN image_bytes BLOB');
       }
     },
   );
@@ -61,21 +59,20 @@ class AppDatabase extends _$AppDatabase {
   // -- Emoji CRUD -----------------------------------------------------------
 
   /// 全絵文字を取得する。
-  Future<List<EmojiTableData>> getAllEmojis() =>
-      select(emojiTable).get();
+  Future<List<EmojiTableData>> getAllEmojis() => select(emojiTable).get();
 
   /// リアクションピッカー向けに必要最小限の列のみ取得する。
   ///
   /// imageBytes(BLOB) を除外して初期表示時のI/Oコストを抑える。
   Future<List<EmojiPickerRow>> getEmojisForPicker() async {
-    final rows = await (selectOnly(emojiTable)
-          ..addColumns([
-            emojiTable.name,
-            emojiTable.category,
-            emojiTable.url,
-            emojiTable.aliases,
-          ]))
-        .get();
+    final rows =
+        await (selectOnly(emojiTable)..addColumns([
+              emojiTable.name,
+              emojiTable.category,
+              emojiTable.url,
+              emojiTable.aliases,
+            ]))
+            .get();
 
     return rows
         .map(
@@ -93,9 +90,9 @@ class AppDatabase extends _$AppDatabase {
   ///
   /// 初期表示でカテゴリ一覧だけ必要なケース向けの軽量クエリ。
   Future<List<String?>> getEmojiCategoriesForPicker() async {
-    final rows = await (selectOnly(emojiTable)
-          ..addColumns([emojiTable.category]))
-        .get();
+    final rows = await (selectOnly(
+      emojiTable,
+    )..addColumns([emojiTable.category])).get();
 
     return rows
         .map((row) => row.read(emojiTable.category))
@@ -142,9 +139,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 絵文字を名前で1件取得する。
-  Future<EmojiTableData?> getEmojiByName(String emojiName) =>
-      (select(emojiTable)..where((t) => t.name.equals(emojiName)))
-          .getSingleOrNull();
+  Future<EmojiTableData?> getEmojiByName(String emojiName) => (select(
+    emojiTable,
+  )..where((t) => t.name.equals(emojiName))).getSingleOrNull();
 
   /// 絵文字を一括 upsert する（存在すれば上書き）。
   Future<void> upsertEmojis(List<EmojiTableCompanion> emojis) async {

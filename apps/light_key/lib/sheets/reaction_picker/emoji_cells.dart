@@ -62,7 +62,12 @@ class CustomEmojiCell extends StatelessWidget {
                 imageUrl: url,
                 fit: BoxFit.contain,
                 placeholder: (context, url) => const SizedBox.expand(
-                  child: Center(child: SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+                  child: Center(
+                    child: SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
                 ),
                 errorWidget: (context, url, error) => Center(
                   child: Text(

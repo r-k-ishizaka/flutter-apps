@@ -6,10 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../utils/oauth_utils.dart';
 
 class OAuthCallbackData {
-  OAuthCallbackData({
-    required this.code,
-    required this.state,
-  });
+  OAuthCallbackData({required this.code, required this.state});
 
   final String code;
   final String state;
@@ -53,17 +50,13 @@ class OAuthService {
       final state = uri.queryParameters['state'];
 
       if (code == null) {
-        _callbackController.addError(
-          OAuthException('認可コードが見つかりません'),
-        );
+        _callbackController.addError(OAuthException('認可コードが見つかりません'));
         return;
       }
 
       // State パラメータの検証
       if (_expectedState != null && state != _expectedState) {
-        _callbackController.addError(
-          OAuthException('State パラメータが一致しません'),
-        );
+        _callbackController.addError(OAuthException('State パラメータが一致しません'));
         return;
       }
 
@@ -118,9 +111,7 @@ class OAuthService {
           throw OAuthException('ブラウザの起動に失敗しました');
         }
       } else {
-        throw OAuthException(
-          'URLを開くことができません。生成されたURL: $authorizationUrl',
-        );
+        throw OAuthException('URLを開くことができません。生成されたURL: $authorizationUrl');
       }
     } catch (e) {
       debugPrint('OAuth Error: $e');

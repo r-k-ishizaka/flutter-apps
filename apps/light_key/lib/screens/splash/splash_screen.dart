@@ -39,19 +39,15 @@ class SplashScreen extends HookWidget {
           final emojiRepo = getIt<EmojiRepository>();
 
           // 起動体感を優先し、絵文字のDB復元/同期は非同期で進める。
-          unawaited(
-            () async {
-              try {
-                await emojiRepo.loadToCache();
-              } catch (_) {
-              }
+          unawaited(() async {
+            try {
+              await emojiRepo.loadToCache();
+            } catch (_) {}
 
-              try {
-                await emojiRepo.syncEmojis(session);
-              } catch (_) {
-              }
-            }(),
-          );
+            try {
+              await emojiRepo.syncEmojis(session);
+            } catch (_) {}
+          }());
 
           if (!context.mounted || disposed) return;
           const TimelineRoute().go(context);

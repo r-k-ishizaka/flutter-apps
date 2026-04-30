@@ -1,4 +1,3 @@
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -66,15 +65,12 @@ class EmojiText extends StatelessWidget {
       final imageBytes = cache.getImageBytes(name);
       final url = cache.getUrl(name);
 
-
       if (imageBytes != null && imageBytes.isNotEmpty) {
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: emojiSize * 11,
-              ),
+              constraints: BoxConstraints(maxWidth: emojiSize * 11),
               child: Image.memory(
                 imageBytes,
                 height: emojiSize,
@@ -89,17 +85,13 @@ class EmojiText extends StatelessWidget {
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: emojiSize * 11,
-              ),
+              constraints: BoxConstraints(maxWidth: emojiSize * 11),
               child: CachedNetworkImage(
                 imageUrl: url,
                 height: emojiSize,
                 fit: BoxFit.fitHeight,
-                placeholder: (_, _) => SizedBox(
-                  width: emojiSize,
-                  height: emojiSize,
-                ),
+                placeholder: (_, _) =>
+                    SizedBox(width: emojiSize, height: emojiSize),
                 errorWidget: (_, _, _) => Text(':$name:'),
               ),
             ),

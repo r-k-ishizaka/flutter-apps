@@ -60,48 +60,38 @@ class EmojiRepository {
       }
 
       final existingRows = await database.getAllEmojis();
-      final existingByName = {
-        for (final row in existingRows) row.name: row,
-      };
+      final existingByName = {for (final row in existingRows) row.name: row};
 
       var completed = 0;
       final total = dtos.length;
-      onProgress?.call(
-        _fetchListWeight,
-        '絵文字画像を取得中... 0/$total',
-      );
+      onProgress?.call(_fetchListWeight, '絵文字画像を取得中... 0/$total');
 
-      final companions = await _mapWithConcurrency<EmojiDto, EmojiTableCompanion>(
-        dtos,
-        concurrency: _imageFetchConcurrency,
-        task: (dto) {
-          final existing = existingByName[dto.name];
-          final reusableBytes =
-              existing != null &&
-                  existing.url == dto.url &&
-                  existing.imageBytes != null &&
-                  existing.imageBytes!.isNotEmpty
-              ? existing.imageBytes
-              : null;
-          return _toCompanion(dto, imageBytes: reusableBytes);
-        },
-        onItemCompleted: () {
-          completed++;
-          if (completed == total || completed % 20 == 0) {
-            final ratio = completed / total;
-            final progress = _fetchListWeight + (ratio * _fetchImageWeight);
-            onProgress?.call(
-              progress,
-              '絵文字画像を取得中... $completed/$total',
-            );
-          }
-        },
-      );
+      final companions =
+          await _mapWithConcurrency<EmojiDto, EmojiTableCompanion>(
+            dtos,
+            concurrency: _imageFetchConcurrency,
+            task: (dto) {
+              final existing = existingByName[dto.name];
+              final reusableBytes =
+                  existing != null &&
+                      existing.url == dto.url &&
+                      existing.imageBytes != null &&
+                      existing.imageBytes!.isNotEmpty
+                  ? existing.imageBytes
+                  : null;
+              return _toCompanion(dto, imageBytes: reusableBytes);
+            },
+            onItemCompleted: () {
+              completed++;
+              if (completed == total || completed % 20 == 0) {
+                final ratio = completed / total;
+                final progress = _fetchListWeight + (ratio * _fetchImageWeight);
+                onProgress?.call(progress, '絵文字画像を取得中... $completed/$total');
+              }
+            },
+          );
 
-      onProgress?.call(
-        _fetchListWeight + _fetchImageWeight,
-        '絵文字データを保存中...',
-      );
+      onProgress?.call(_fetchListWeight + _fetchImageWeight, '絵文字データを保存中...');
       await database.replaceAllEmojis(companions);
       onProgress?.call(
         _fetchListWeight + _fetchImageWeight + _saveWeight,
@@ -148,7 +138,7 @@ class EmojiRepository {
 
     final map = {
       for (final r in rows)
-        r.name: EmojiCacheEntry(url: r.url, imageBytes: r.imageBytes)
+        r.name: EmojiCacheEntry(url: r.url, imageBytes: r.imageBytes),
     };
     cache.populate(map);
 
@@ -163,19 +153,19 @@ class EmojiRepository {
     Uint8List? imageBytes,
   }) async {
     if (imageBytes == null || imageBytes.isEmpty) {
-    try {
-      final bytes = await dataSource.fetchEmojiImageBytes(imageUrl: dto.url);
-      if (bytes.isNotEmpty) {
-        imageBytes = Uint8List.fromList(bytes);
+      try {
+        final bytes = await dataSource.fetchEmojiImageBytes(imageUrl: dto.url);
+        if (bytes.isNotEmpty) {
+          imageBytes = Uint8List.fromList(bytes);
+        }
+      } catch (e, st) {
+        developer.log(
+          'Failed to fetch emoji image bytes: ${dto.name} -> ${dto.url}',
+          name: 'EmojiRepository',
+          error: e,
+          stackTrace: st,
+        );
       }
-    } catch (e, st) {
-      developer.log(
-        'Failed to fetch emoji image bytes: ${dto.name} -> ${dto.url}',
-        name: 'EmojiRepository',
-        error: e,
-        stackTrace: st,
-      );
-    }
     }
 
     return EmojiTableCompanion(

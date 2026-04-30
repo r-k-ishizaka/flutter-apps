@@ -5,6 +5,7 @@ import 'note_type.dart';
 import 'user.dart';
 
 part 'note.freezed.dart';
+
 part 'note.g.dart';
 
 @freezed
@@ -19,8 +20,7 @@ sealed class Note with _$Note {
     String? cw,
     required DateTime createdAt,
     required User user,
-    @Default(<NoteFile>[])
-    List<NoteFile> files,
+    @Default(<NoteFile>[]) List<NoteFile> files,
     @JsonKey(fromJson: _reactionsFromJson)
     @Default(<String, int>{})
     Map<String, int> reactions,

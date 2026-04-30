@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'note_file_properties.dart';
 
 part 'note_file.freezed.dart';
+
 part 'note_file.g.dart';
 
 @freezed

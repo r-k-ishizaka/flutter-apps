@@ -20,9 +20,7 @@ TextTheme buildMixedTextTheme(TextTheme baseTheme) {
     return robotoTheme;
   }
 
-  return robotoTheme.apply(
-    fontFamilyFallback: <String>[jpFamily],
-  );
+  return robotoTheme.apply(fontFamilyFallback: <String>[jpFamily]);
 }
 
 class LightKeyApp extends StatelessWidget {
@@ -36,10 +34,8 @@ class LightKeyApp extends StatelessWidget {
           create: (_) => getIt<ThemeProvider>(),
         ),
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(
-            getIt<AuthRepository>(),
-            getIt<EmojiRepository>(),
-          ),
+          create: (_) =>
+              AuthProvider(getIt<AuthRepository>(), getIt<EmojiRepository>()),
         ),
         ChangeNotifierProvider(
           create: (_) => TimelineProvider(

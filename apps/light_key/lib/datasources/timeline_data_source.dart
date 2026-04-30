@@ -11,10 +11,7 @@ abstract interface class TimelineDataSource {
     required String reaction,
   });
 
-  Future<void> createRenote(
-    AuthSession session, {
-    required String noteId,
-  });
+  Future<void> createRenote(AuthSession session, {required String noteId});
 
   /// Fetches a single note by ID.
   Future<Note> fetchNote(AuthSession session, String noteId);

@@ -18,7 +18,9 @@ class AuthScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseUrlController = useTextEditingController(text: 'https://misskey.io');
+    final baseUrlController = useTextEditingController(
+      text: 'https://misskey.io',
+    );
     final oauthService = useMemoized(() => OAuthService());
     final state = context.watch<AuthProvider>().state;
 
@@ -54,9 +56,9 @@ class AuthScreen extends HookWidget {
           },
           onError: (error) {
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('OAuth エラー: $error')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('OAuth エラー: $error')));
           },
         );
       }
@@ -73,9 +75,7 @@ class AuthScreen extends HookWidget {
         state.status == AuthStatus.loading && state.emojiSyncProgress != null;
 
     return DefaultScaffold(
-      appBar: AppBar(
-        title: const Text('ログイン'),
-      ),
+      appBar: AppBar(title: const Text('ログイン')),
       body: Stack(
         children: [
           ListView(
@@ -123,8 +123,7 @@ class AuthScreen extends HookWidget {
                 ),
               ],
               const SizedBox(height: 20),
-              if (state.session != null)
-                Text('接続先: ${state.session!.baseUrl}'),
+              if (state.session != null) Text('接続先: ${state.session!.baseUrl}'),
               if (state.user != null)
                 Text('ユーザー: @${state.user!.username} (${state.user!.name})'),
               if (state.message != null)
@@ -152,11 +151,7 @@ class AuthScreen extends HookWidget {
 }
 
 class _EmojiSyncOverlay extends StatelessWidget {
-  const _EmojiSyncOverlay({
-    super.key,
-    required this.progress,
-    this.message,
-  });
+  const _EmojiSyncOverlay({super.key, required this.progress, this.message});
 
   final double progress;
   final String? message;
@@ -193,17 +188,17 @@ class _EmojiSyncOverlay extends StatelessWidget {
               Text(
                 '$percent%',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (message != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   message!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],

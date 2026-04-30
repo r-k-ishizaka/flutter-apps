@@ -11,13 +11,13 @@ class MisskeyEmojiDataSource implements EmojiDataSource {
 
   @override
   Future<List<EmojiDto>> fetchEmojis({required String baseUrl}) async {
-    developer.log('Fetching emojis from $baseUrl/api/emojis', name: 'EmojiDataSource');
+    developer.log(
+      'Fetching emojis from $baseUrl/api/emojis',
+      name: 'EmojiDataSource',
+    );
 
     try {
-      final json = await client.getJson(
-        baseUrl: baseUrl,
-        path: '/api/emojis',
-      );
+      final json = await client.getJson(baseUrl: baseUrl, path: '/api/emojis');
 
       developer.log(
         'Response keys: ${json.keys.toList()}',
@@ -41,7 +41,8 @@ class MisskeyEmojiDataSource implements EmojiDataSource {
       final result = rawList
           .whereType<Map>()
           .map((e) {
-            final aliases = (e['aliases'] as List?)
+            final aliases =
+                (e['aliases'] as List?)
                     ?.whereType<String>()
                     .where((a) => a.isNotEmpty)
                     .toList() ??

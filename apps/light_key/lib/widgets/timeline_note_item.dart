@@ -115,7 +115,8 @@ class TimelineNoteItem extends HookWidget {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       EmojiText(
@@ -126,9 +127,9 @@ class TimelineNoteItem extends HookWidget {
                                       ),
                                       Text(
                                         '@${displayNote.user.username}',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),

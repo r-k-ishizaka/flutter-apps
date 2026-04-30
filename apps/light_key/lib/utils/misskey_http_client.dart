@@ -4,7 +4,8 @@ import 'package:dio/dio.dart';
 
 class MisskeyHttpClient {
   MisskeyHttpClient([Dio? dio])
-    : _dio = dio ??
+    : _dio =
+          dio ??
           Dio(
             BaseOptions(
               headers: const {'Content-Type': 'application/json'},
@@ -17,9 +18,7 @@ class MisskeyHttpClient {
             ),
           ) {
     // 全リクエスト・レスポンスをログ
-    _dio.interceptors.add(
-      LoggingInterceptor(),
-    );
+    _dio.interceptors.add(LoggingInterceptor());
   }
 
   final Dio _dio;
@@ -55,11 +54,7 @@ class MisskeyHttpClient {
     required String path,
     required Map<String, dynamic> body,
   }) async {
-    final response = await _post(
-      baseUrl: baseUrl,
-      path: path,
-      body: body,
-    );
+    final response = await _post(baseUrl: baseUrl, path: path, body: body);
     final data = response.data;
     if (data is Map<String, dynamic>) {
       return data;
@@ -84,11 +79,7 @@ class MisskeyHttpClient {
     required String path,
     required Map<String, dynamic> body,
   }) async {
-    final response = await _post(
-      baseUrl: baseUrl,
-      path: path,
-      body: body,
-    );
+    final response = await _post(baseUrl: baseUrl, path: path, body: body);
     final data = response.data;
     if (data is List) {
       return data
@@ -114,7 +105,9 @@ class MisskeyHttpClient {
       }
       return response;
     } on DioException catch (error) {
-      throw Exception('Misskey API request failed: ${error.message ?? error.toString()}');
+      throw Exception(
+        'Misskey API request failed: ${error.message ?? error.toString()}',
+      );
     }
   }
 
@@ -150,15 +143,9 @@ class MisskeyHttpClient {
 class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    developer.log(
-      '→ REQUEST: ${options.method} ${options.uri}',
-      name: 'Dio',
-    );
+    developer.log('→ REQUEST: ${options.method} ${options.uri}', name: 'Dio');
     if (options.data != null) {
-      developer.log(
-        '  Body: ${options.data}',
-        name: 'Dio',
-      );
+      developer.log('  Body: ${options.data}', name: 'Dio');
     }
     handler.next(options);
   }
@@ -170,10 +157,7 @@ class LoggingInterceptor extends Interceptor {
       name: 'Dio',
     );
     if (response.data != null) {
-      developer.log(
-        '  Data: ${response.data}',
-        name: 'Dio',
-      );
+      developer.log('  Data: ${response.data}', name: 'Dio');
     }
     handler.next(response);
   }
@@ -184,10 +168,7 @@ class LoggingInterceptor extends Interceptor {
       '⚠ ERROR: ${err.type} ${err.requestOptions.uri}',
       name: 'Dio',
     );
-    developer.log(
-      '  Message: ${err.message}',
-      name: 'Dio',
-    );
+    developer.log('  Message: ${err.message}', name: 'Dio');
     handler.next(err);
   }
 }

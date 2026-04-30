@@ -31,13 +31,11 @@ class ThemeSwitchButton extends StatelessWidget {
               child: const Text('システム設定に従う'),
             ),
           ],
-          icon: Icon(
-            switch (themeProvider.themeMode) {
-              theme_constants.ThemeMode.light => Icons.light_mode,
-              theme_constants.ThemeMode.dark => Icons.dark_mode,
-              theme_constants.ThemeMode.system => Icons.brightness_auto,
-            },
-          ),
+          icon: Icon(switch (themeProvider.themeMode) {
+            theme_constants.ThemeMode.light => Icons.light_mode,
+            theme_constants.ThemeMode.dark => Icons.dark_mode,
+            theme_constants.ThemeMode.system => Icons.brightness_auto,
+          }),
         );
       },
     );

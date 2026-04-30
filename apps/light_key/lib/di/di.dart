@@ -25,9 +25,7 @@ Future<void> configureDependencies() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(sharedPreferences);
 
-  getIt.registerSingleton<ThemeProvider>(
-    ThemeProvider(sharedPreferences),
-  );
+  getIt.registerSingleton<ThemeProvider>(ThemeProvider(sharedPreferences));
 
   // --- Emoji ---
   getIt.registerSingleton<AppDatabase>(AppDatabase());
@@ -61,5 +59,4 @@ Future<void> configureDependencies() async {
     () => TimelineRepository(getIt<TimelineDataSource>()),
   );
   getIt.registerLazySingleton(() => PostRepository(getIt<PostDataSource>()));
-
 }

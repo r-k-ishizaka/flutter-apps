@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NewNotesBanner extends StatelessWidget {
-  const NewNotesBanner({
-    required this.onTap,
-    super.key,
-  });
+  const NewNotesBanner({required this.onTap, super.key});
 
   final VoidCallback onTap;
 

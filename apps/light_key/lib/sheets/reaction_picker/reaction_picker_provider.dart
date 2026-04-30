@@ -30,9 +30,13 @@ class ReactionPickerProvider extends ChangeNotifier {
   bool _disposed = false;
 
   List<String> get categoryPath => _categoryPath;
+
   String get query => _query;
+
   Map<String, List<CustomEmojiItem>> get emojisByCategory => _emojisByCategory;
+
   bool get isLoading => _isLoading;
+
   Object? get loadError => _loadError;
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -203,10 +207,7 @@ class ReactionPickerProvider extends ChangeNotifier {
       }
     }
 
-    return (
-      subCategoryNames: (subCatNames.toList()..sort()),
-      emojis: emojis,
-    );
+    return (subCategoryNames: (subCatNames.toList()..sort()), emojis: emojis);
   }
 
   Future<void> _loadInitialCategories() async {
@@ -279,10 +280,7 @@ class ReactionPickerProvider extends ChangeNotifier {
     _safeNotifyListeners();
   }
 
-  void _mergeRows(
-    List<EmojiPickerRow> rows, {
-    String? topCategoryFilter,
-  }) {
+  void _mergeRows(List<EmojiPickerRow> rows, {String? topCategoryFilter}) {
     for (final row in rows) {
       if (row.url.isEmpty) continue;
       final category = _normalizeCategoryPath(row.category ?? '');
@@ -307,14 +305,16 @@ class ReactionPickerProvider extends ChangeNotifier {
     final grouped = <String, List<CustomEmojiItem>>{};
     for (final row in _loadedRowsByName.values) {
       final category = row.category ?? 'その他';
-      grouped.putIfAbsent(category, () => []).add(
-        CustomEmojiItem(
-          name: row.name,
-          url: row.url,
-          aliases: _decodeAliases(row.aliases),
-          categoryPath: category,
-        ),
-      );
+      grouped
+          .putIfAbsent(category, () => [])
+          .add(
+            CustomEmojiItem(
+              name: row.name,
+              url: row.url,
+              aliases: _decodeAliases(row.aliases),
+              categoryPath: category,
+            ),
+          );
     }
 
     for (final list in grouped.values) {

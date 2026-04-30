@@ -81,22 +81,19 @@ class ReactionPickerBody extends HookWidget {
           final reservedKeyboardInset = keyboardInset > 0
               ? keyboardInset
               : fallbackKeyboardInset;
-          final minSheetSize = 1/3;
+          final minSheetSize = 1 / 3;
           final desiredInitialSize =
-              ((PinnedSheetHeaderDelegate.headerHeight + reservedKeyboardInset + 120) /
-                  parentHeight)
-              .clamp(
-                0.0,
-                1.0,
-              );
-          final initialSheetSize =
-              desiredInitialSize < minSheetSize ? minSheetSize : desiredInitialSize;
+              ((PinnedSheetHeaderDelegate.headerHeight +
+                          reservedKeyboardInset +
+                          120) /
+                      parentHeight)
+                  .clamp(0.0, 1.0);
+          final initialSheetSize = desiredInitialSize < minSheetSize
+              ? minSheetSize
+              : desiredInitialSize;
           const minExtentEpsilon = 0.005;
-          final rawSnapSizes = <double>[
-            minSheetSize,
-            initialSheetSize,
-            1.0,
-          ]..sort();
+          final rawSnapSizes = <double>[minSheetSize, initialSheetSize, 1.0]
+            ..sort();
           final snapSizes = <double>[];
           for (final size in rawSnapSizes) {
             if (snapSizes.isEmpty || (size - snapSizes.last).abs() > 0.0001) {
@@ -196,7 +193,10 @@ class ReactionPickerBody extends HookWidget {
                                 crossAxisCount: 8,
                                 childAspectRatio: 1,
                               ),
-                          delegate: SliverChildBuilderDelegate((context, index) {
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
                             final emoji = frequent[index];
                             return EmojiCell(
                               emoji: emoji,

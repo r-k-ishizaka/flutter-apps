@@ -37,34 +37,34 @@ class NoteReactionList extends StatelessWidget {
     final normalizedMyReaction = myReaction == null
         ? null
         : _normalizeReaction(myReaction!);
-    final sortedEntries = reactions.entries.where((entry) => entry.value > 0).toList(
-      growable: false,
-    )..sort((a, b) {
-      final countCompare = b.value.compareTo(a.value);
-      if (countCompare != 0) return countCompare;
-      return a.key.compareTo(b.key);
-    });
+    final sortedEntries =
+        reactions.entries
+            .where((entry) => entry.value > 0)
+            .toList(growable: false)
+          ..sort((a, b) {
+            final countCompare = b.value.compareTo(a.value);
+            if (countCompare != 0) return countCompare;
+            return a.key.compareTo(b.key);
+          });
 
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: sortedEntries
-          .map(
-            (entry) {
-              final normalizedReaction = _normalizeReaction(entry.key);
-              final canTap = !_isCrossServerReaction(entry.key);
-              return _ReactionChip(
-                reactionKey: entry.key,
-                reaction: normalizedReaction,
-                count: entry.value,
-                isEnabled: canTap,
-                isMyReaction:
-                    normalizedMyReaction != null &&
-                    normalizedMyReaction == normalizedReaction,
-                onTap: canTap ? onReactionTap : null,
-              );
-            },
-          )
+          .map((entry) {
+            final normalizedReaction = _normalizeReaction(entry.key);
+            final canTap = !_isCrossServerReaction(entry.key);
+            return _ReactionChip(
+              reactionKey: entry.key,
+              reaction: normalizedReaction,
+              count: entry.value,
+              isEnabled: canTap,
+              isMyReaction:
+                  normalizedMyReaction != null &&
+                  normalizedMyReaction == normalizedReaction,
+              onTap: canTap ? onReactionTap : null,
+            );
+          })
           .toList(growable: false),
     );
   }

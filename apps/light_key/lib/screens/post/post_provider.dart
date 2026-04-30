@@ -15,6 +15,7 @@ class PostProvider extends ChangeNotifier {
   final PostRepository _postRepository;
 
   PostScreenState _state = const PostScreenState.idle();
+
   PostScreenState get state => _state;
 
   Future<void> submit(String text) async {
@@ -41,7 +42,10 @@ class PostProvider extends ChangeNotifier {
           return;
         }
 
-        final postResult = await _postRepository.createPost(session, text.trim());
+        final postResult = await _postRepository.createPost(
+          session,
+          text.trim(),
+        );
         postResult.when(
           success: (_) {
             _state = _state.copyWith(

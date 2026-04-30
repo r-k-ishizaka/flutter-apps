@@ -56,7 +56,12 @@ class CustomEmojiSearchResultTile extends StatelessWidget {
             : CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.contain,
-                placeholder: (context, url) => const Center(child: SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 1.5))),
+                placeholder: (context, url) => const Center(
+                  child: SizedBox.square(
+                    dimension: 12,
+                    child: CircularProgressIndicator(strokeWidth: 1.5),
+                  ),
+                ),
                 errorWidget: (context, url, error) => Center(
                   child: Text(
                     ':$name:',
