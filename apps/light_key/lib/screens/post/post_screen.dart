@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/note.dart';
+import '../../models/user.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
+import '../../widgets/timeline_note_item.dart';
 import 'post_provider.dart';
 import 'post_screen_state.dart';
 
@@ -62,8 +65,21 @@ class PostScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final textController = useTextEditingController();
+    final textValue = useValueListenable(textController);
     final focusNode = useFocusNode();
     final state = context.watch<PostProvider>().state;
+    final previewCreatedAt = useMemoized(DateTime.now);
+
+    final previewNote = Note(
+      id: 'post-preview',
+      text: textValue.text,
+      createdAt: previewCreatedAt,
+      user: const User(
+        id: 'post-preview-user',
+        username: 'you',
+        name: 'あなた',
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -109,6 +125,13 @@ class PostScreen extends HookWidget {
               icon: const Icon(Icons.emoji_emotions_outlined),
               label: const Text('絵文字を挿入'),
             ),
+          ),
+          const SizedBox(height: 8),
+          const Text('プレビュー'),
+          TimelineNoteItem(
+            key: const ValueKey('post-note-preview'),
+            note: previewNote,
+            animation: const AlwaysStoppedAnimation(1),
           ),
           if (state.message != null)
             Padding(
