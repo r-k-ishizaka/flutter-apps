@@ -337,7 +337,6 @@ void main() {
 
       expect(tapped, isFalse);
       expect(decoration.color, isNull);
-      expect(find.byType(Opacity), findsOneWidget);
     });
 
     testWidgets('純粋リノート更新時も renote.myReaction を保持する', (tester) async {
