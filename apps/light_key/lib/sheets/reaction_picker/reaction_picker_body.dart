@@ -25,7 +25,6 @@ class ReactionPickerBody extends HookWidget {
     final sheetController = useMemoized(DraggableScrollableController.new);
     final latestScrollController = useRef<ScrollController?>(null);
     final wasSearchFocused = useState(false);
-    final hideBodySlivers = useValueNotifier(false);
     final wasAtMinExtent = useRef(false);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -77,19 +76,14 @@ class ReactionPickerBody extends HookWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final parentHeight = constraints.maxHeight;
-          final viewPadding = MediaQuery.viewPaddingOf(context);
           final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
           final fallbackKeyboardInset = parentHeight / 2;
           final reservedKeyboardInset = keyboardInset > 0
               ? keyboardInset
               : fallbackKeyboardInset;
-          final minSheetHeight =
-              PinnedSheetHeaderDelegate.headerHeight +
-              viewPadding.top +
-              viewPadding.bottom;
-          final minSheetSize = (minSheetHeight / parentHeight).clamp(0.0, 1.0);
+          final minSheetSize = 1/3;
           final desiredInitialSize =
-              ((PinnedSheetHeaderDelegate.headerHeight + reservedKeyboardInset) /
+              ((PinnedSheetHeaderDelegate.headerHeight + reservedKeyboardInset + 120) /
                   parentHeight)
               .clamp(
                 0.0,
@@ -99,7 +93,6 @@ class ReactionPickerBody extends HookWidget {
               desiredInitialSize < minSheetSize ? minSheetSize : desiredInitialSize;
           const minExtentEpsilon = 0.005;
           final rawSnapSizes = <double>[
-            0,
             minSheetSize,
             initialSheetSize,
             1.0,
@@ -114,9 +107,6 @@ class ReactionPickerBody extends HookWidget {
           bool isAtMinExtent(double extent) =>
               (extent - minSheetSize).abs() <= minExtentEpsilon;
 
-          bool isAwayFromMinExtent(double extent) =>
-              extent > (minSheetSize + minExtentEpsilon * 4);
-
           return NotificationListener<DraggableScrollableNotification>(
             onNotification: (notification) {
               if (notification.depth != 0) return false;
@@ -130,15 +120,6 @@ class ReactionPickerBody extends HookWidget {
                 searchFocusNode.unfocus();
               }
 
-              // 表示切り替えは安定した遷移時だけ更新して、ドラッグ中の再ビルドを抑える
-              if (atMinExtent && !hideBodySlivers.value) {
-                hideBodySlivers.value = true;
-              } else if (!atMinExtent &&
-                  hideBodySlivers.value &&
-                  isAwayFromMinExtent(extent)) {
-                hideBodySlivers.value = false;
-              }
-
               wasAtMinExtent.value = atMinExtent;
 
               return false;
@@ -148,7 +129,7 @@ class ReactionPickerBody extends HookWidget {
               initialChildSize: initialSheetSize,
               minChildSize: 0,
               maxChildSize: 1.0,
-              shouldCloseOnMinExtent: true,
+              shouldCloseOnMinExtent: false,
               snap: true,
               snapSizes: snapSizes,
               expand: false,
@@ -272,23 +253,7 @@ class ReactionPickerBody extends HookWidget {
                   SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
                 );
 
-                // Bodyの表示切替だけをlistenし、シート本体の再ビルドを避ける。
-                slivers.addAll(
-                  bodySlivers.map(
-                    (sliver) => ValueListenableBuilder<bool>(
-                      valueListenable: hideBodySlivers,
-                      builder: (context, hideBody, _) {
-                        return SliverOpacity(
-                          opacity: hideBody ? 0 : 1,
-                          sliver: SliverIgnorePointer(
-                            ignoring: hideBody,
-                            sliver: sliver,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                );
+                slivers.addAll(bodySlivers);
 
                 return CustomScrollView(
                   controller: scrollController,
