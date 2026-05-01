@@ -17,28 +17,27 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<ProfileProvider>().state;
+    final status = context.select<ProfileProvider, ProfileStatus>(
+      (p) => p.state.status,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('プロフィール')),
-      body: switch (state.status) {
+      body: switch (status) {
         ProfileStatus.idle || ProfileStatus.loading => const Center(
           child: CircularProgressIndicator(),
         ),
         ProfileStatus.error => _ProfileError(
-          message: state.message,
+          message: context.select<ProfileProvider, String?>(
+            (p) => p.state.message,
+          ),
           onRetry: () => context.read<ProfileProvider>().load(userId),
         ),
         ProfileStatus.loaded => RefreshIndicator(
           onRefresh: () => context.read<ProfileProvider>().load(userId),
           // 画面全体（NestedScrollView本体）だけでリフレッシュ判定する。
           notificationPredicate: (notification) => notification.depth == 0,
-          child: _ProfileContent(
-            profile: state.profile,
-            allNotes: state.allNotes,
-            noteOnlyNotes: state.noteOnlyNotes,
-            mediaNotes: state.mediaNotes,
-          ),
+          child: _ProfileContentConsumer(userId: userId),
         ),
       },
     );
@@ -65,6 +64,26 @@ class _ProfileError extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// loaded 状態のみ購読し、profile/notes が変わったときだけ rebuild する。
+class _ProfileContentConsumer extends StatelessWidget {
+  const _ProfileContentConsumer({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.select<ProfileProvider, (UserProfile?, List<Note>, List<Note>, List<Note>)>(
+      (p) => (p.state.profile, p.state.allNotes, p.state.noteOnlyNotes, p.state.mediaNotes),
+    );
+    return _ProfileContent(
+      profile: state.$1,
+      allNotes: state.$2,
+      noteOnlyNotes: state.$3,
+      mediaNotes: state.$4,
     );
   }
 }
@@ -281,9 +300,7 @@ class _ProfileTabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(_ProfileTabBarHeaderDelegate oldDelegate) {
-    return child != oldDelegate.child;
-  }
+  bool shouldRebuild(_ProfileTabBarHeaderDelegate oldDelegate) => false;
 }
 
 class _ProfileHeader extends StatelessWidget {
