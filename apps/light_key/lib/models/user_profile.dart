@@ -1,3 +1,5 @@
+import 'note.dart';
+
 class UserProfileRole {
   const UserProfileRole({
     required this.name,
@@ -25,6 +27,7 @@ class UserProfile {
     this.notesCount = 0,
     this.followingCount = 0,
     this.followersCount = 0,
+    this.pinnedNotes = const <Note>[],
   });
 
   final String id;
@@ -40,6 +43,7 @@ class UserProfile {
   final int notesCount;
   final int followingCount;
   final int followersCount;
+  final List<Note> pinnedNotes;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final username = json['username'] as String? ?? '';
@@ -58,6 +62,7 @@ class UserProfile {
       notesCount: _parseInt(json['notesCount']),
       followingCount: _parseInt(json['followingCount']),
       followersCount: _parseInt(json['followersCount']),
+      pinnedNotes: _parsePinnedNotes(json['pinnedNotes']),
     );
   }
 
@@ -73,6 +78,21 @@ class UserProfile {
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
+  }
+
+  static List<Note> _parsePinnedNotes(Object? value) {
+    if (value is! List) return const <Note>[];
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map((item) {
+          try {
+            return Note.fromJson(item);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<Note>()
+        .toList(growable: false);
   }
 
   static List<UserProfileRole> _parseRoles(Object? value) {

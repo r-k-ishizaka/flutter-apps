@@ -9,10 +9,10 @@ abstract interface class UserProfileDataSource {
     AuthSession session,
     String userId, {
     int limit = 50,
-    bool includeReplies = true,
-    bool includeRenotes = true,
+    bool withReplies = true,
+    bool withRenotes = true,
     bool withFiles = false,
+    bool withChannelNotes = true,
+    bool allowPartial = false,
   });
-
-  Future<List<Note>> fetchUserPinnedNotes(AuthSession session, String userId);
 }

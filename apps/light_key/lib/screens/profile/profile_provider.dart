@@ -63,36 +63,37 @@ class ProfileProvider extends ChangeNotifier {
             final allNotesResult = await _profileRepository.fetchUserNotes(
               session,
               userId,
-              includeReplies: true,
-              includeRenotes: true,
+              limit: 10,
+              withReplies: true,
+              withRenotes: true,
+              withFiles: false,
+              withChannelNotes: true,
+              allowPartial: true,
             );
             final noteOnlyResult = await _profileRepository.fetchUserNotes(
               session,
               userId,
-              includeReplies: false,
-              includeRenotes: false,
+              limit: 10,
+              withReplies: false,
+              withRenotes: false,
+              withFiles: false,
+              withChannelNotes: true,
+              allowPartial: true,
             );
             final mediaResult = await _profileRepository.fetchUserNotes(
               session,
               userId,
-              includeReplies: false,
-              includeRenotes: false,
+              limit: 10,
+              withReplies: false,
+              withRenotes: false,
               withFiles: true,
+              withChannelNotes: true,
+              allowPartial: true,
             );
 
             await allNotesResult.when(
               success: (allNotes) async {
-                final pinnedResult = await _profileRepository.fetchUserPinnedNotes(
-                  session,
-                  userId,
-                );
-                final mergedAll = pinnedResult.when(
-                  success: (pinnedNotes) => _mergePinnedNotes(
-                    pinnedNotes,
-                    allNotes,
-                  ),
-                  failure: (_, _) => allNotes,
-                );
+                final mergedAll = _mergePinnedNotes(profile.pinnedNotes, allNotes);
 
                 noteOnlyResult.when(
                   success: (noteOnlyNotes) {

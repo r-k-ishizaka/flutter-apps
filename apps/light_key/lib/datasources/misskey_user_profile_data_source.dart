@@ -27,9 +27,11 @@ class MisskeyUserProfileDataSource implements UserProfileDataSource {
     AuthSession session,
     String userId, {
     int limit = 50,
-    bool includeReplies = true,
-    bool includeRenotes = true,
+    bool withReplies = true,
+    bool withRenotes = true,
     bool withFiles = false,
+    bool withChannelNotes = true,
+    bool allowPartial = false,
   }) async {
     final response = await _client.postJsonList(
       baseUrl: session.baseUrl,
@@ -38,26 +40,12 @@ class MisskeyUserProfileDataSource implements UserProfileDataSource {
         'i': session.accessToken,
         'userId': userId,
         'limit': limit,
-        'includeReplies': includeReplies,
-        'includeMyRenotes': includeRenotes,
-        'includeRenotedMyNotes': includeRenotes,
-        'includeLocalRenotes': includeRenotes,
-        'withChannelNotes': true,
+        'withRenotes': withRenotes,
+        'withReplies': withReplies,
         'withFiles': withFiles,
+        'withChannelNotes': withChannelNotes,
+        'allowPartial': allowPartial,
       },
-    );
-    return response.map(Note.fromJson).toList(growable: false);
-  }
-
-  @override
-  Future<List<Note>> fetchUserPinnedNotes(
-    AuthSession session,
-    String userId,
-  ) async {
-    final response = await _client.postJsonList(
-      baseUrl: session.baseUrl,
-      path: '/api/users/featured-notes',
-      body: {'i': session.accessToken, 'userId': userId},
     );
     return response.map(Note.fromJson).toList(growable: false);
   }

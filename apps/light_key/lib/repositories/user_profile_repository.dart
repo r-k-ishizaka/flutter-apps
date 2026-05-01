@@ -26,31 +26,23 @@ class UserProfileRepository {
     AuthSession session,
     String userId, {
     int limit = 50,
-    bool includeReplies = true,
-    bool includeRenotes = true,
+    bool withReplies = true,
+    bool withRenotes = true,
     bool withFiles = false,
+    bool withChannelNotes = true,
+    bool allowPartial = false,
   }) async {
     try {
       final notes = await _dataSource.fetchUserNotes(
         session,
         userId,
         limit: limit,
-        includeReplies: includeReplies,
-        includeRenotes: includeRenotes,
+        withReplies: withReplies,
+        withRenotes: withRenotes,
         withFiles: withFiles,
+        withChannelNotes: withChannelNotes,
+        allowPartial: allowPartial,
       );
-      return Success(notes);
-    } on Exception catch (error, stackTrace) {
-      return Failure(error, stackTrace);
-    }
-  }
-
-  Future<Result<List<Note>>> fetchUserPinnedNotes(
-    AuthSession session,
-    String userId,
-  ) async {
-    try {
-      final notes = await _dataSource.fetchUserPinnedNotes(session, userId);
       return Success(notes);
     } on Exception catch (error, stackTrace) {
       return Failure(error, stackTrace);
