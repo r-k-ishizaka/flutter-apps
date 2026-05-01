@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
+import '../models/user.dart';
 import 'new_notes_banner.dart';
 import 'timeline_note_item.dart';
 
@@ -17,6 +18,7 @@ class TimelineList extends HookWidget {
     this.onNoteRenote,
     this.onNoteReaction,
     this.onNoteReactionChipTap,
+    this.onNoteUserTap,
     super.key,
   });
 
@@ -28,6 +30,7 @@ class TimelineList extends HookWidget {
   final void Function(Note note)? onNoteRenote;
   final void Function(Note note)? onNoteReaction;
   final void Function(Note note, String reaction)? onNoteReactionChipTap;
+  final void Function(Note note, User user)? onNoteUserTap;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +145,9 @@ class TimelineList extends HookWidget {
                     : null,
                 onReactionChipTap: onNoteReactionChipTap != null
                     ? (reaction) => onNoteReactionChipTap!(note, reaction)
+                    : null,
+                onUserTap: onNoteUserTap != null
+                    ? (user) => onNoteUserTap!(note, user)
                     : null,
               );
             },

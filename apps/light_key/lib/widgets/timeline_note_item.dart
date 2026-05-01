@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../models/note.dart';
 import '../models/note_type.dart';
 import '../models/note_visibility.dart';
+import '../models/user.dart';
 import '../utils/datetime_format.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
@@ -19,6 +20,7 @@ class TimelineNoteItem extends HookWidget {
     this.onRenote,
     this.onReaction,
     this.onReactionChipTap,
+    this.onUserTap,
     super.key,
   });
 
@@ -28,6 +30,7 @@ class TimelineNoteItem extends HookWidget {
   final VoidCallback? onRenote;
   final VoidCallback? onReaction;
   final ValueChanged<String>? onReactionChipTap;
+  final ValueChanged<User>? onUserTap;
 
   String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
@@ -55,6 +58,12 @@ class TimelineNoteItem extends HookWidget {
     final renoteUserName = note.user.name.isNotEmpty
         ? note.user.name
         : note.user.username;
+    final onDisplayUserTap = displayNote.user.id.isNotEmpty && onUserTap != null
+        ? () => onUserTap!(displayNote.user)
+        : null;
+    final onRenoteUserTap = note.user.id.isNotEmpty && onUserTap != null
+        ? () => onUserTap!(note.user)
+        : null;
 
     // CW の有無
     final cw = displayNote.cw;
@@ -84,19 +93,26 @@ class TimelineNoteItem extends HookWidget {
                         children: [
                           const Icon(Icons.repeat, size: 14),
                           const SizedBox(width: 4),
-                          UserAvatar(
-                            avatarUrl: note.user.avatarUrl,
-                            avatarBlurHash: note.user.avatarBlurHash,
-                            size: 16,
+                          GestureDetector(
+                            onTap: onRenoteUserTap,
+                            child: UserAvatar(
+                              avatarUrl: note.user.avatarUrl,
+                              avatarBlurHash: note.user.avatarBlurHash,
+                              size: 16,
+                            ),
                           ),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: EmojiText(
-                              '$renoteUserName がリノート',
-                              style: Theme.of(context).textTheme.bodySmall,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              emojiSize: 16,
+                            child: GestureDetector(
+                              onTap: onRenoteUserTap,
+                              behavior: HitTestBehavior.opaque,
+                              child: EmojiText(
+                                '$renoteUserName がリノート',
+                                style: Theme.of(context).textTheme.bodySmall,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                emojiSize: 16,
+                              ),
                             ),
                           ),
                         ],
@@ -105,9 +121,12 @@ class TimelineNoteItem extends HookWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      UserAvatar(
-                        avatarUrl: displayNote.user.avatarUrl,
-                        avatarBlurHash: displayNote.user.avatarBlurHash,
+                      GestureDetector(
+                        onTap: onDisplayUserTap,
+                        child: UserAvatar(
+                          avatarUrl: displayNote.user.avatarUrl,
+                          avatarBlurHash: displayNote.user.avatarBlurHash,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -118,26 +137,30 @@ class TimelineNoteItem extends HookWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      EmojiText(
-                                        displayUserName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        emojiSize: 18,
-                                      ),
-                                      Text(
-                                        '@${displayNote.user.username}',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodySmall,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
+                                  child: GestureDetector(
+                                    onTap: onDisplayUserTap,
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        EmojiText(
+                                          displayUserName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          emojiSize: 18,
+                                        ),
+                                        Text(
+                                          '@${displayNote.user.username}',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -146,7 +169,9 @@ class TimelineNoteItem extends HookWidget {
                                   children: [
                                     _NoteStatusIcons(note: displayNote),
                                     const SizedBox(width: 4),
-                                    Text(_createdAtLabel(displayNote.createdAt)),
+                                    Text(
+                                      _createdAtLabel(displayNote.createdAt),
+                                    ),
                                   ],
                                 ),
                               ],

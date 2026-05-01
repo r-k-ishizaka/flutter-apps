@@ -6,6 +6,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
+import '../../models/user.dart';
+import '../../route/app_routes.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/timeline_list.dart';
@@ -69,6 +71,14 @@ class TimelineScreen extends HookWidget {
     }
   }
 
+  Future<void> _onUserTap(BuildContext context, User user) async {
+    if (user.id.isEmpty) {
+      _showComingSoonSnackBar(context, 'プロフィール表示');
+      return;
+    }
+    await UserProfileRoute(userId: user.id).push<void>(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     useEffect(() {
@@ -111,6 +121,7 @@ class TimelineScreen extends HookWidget {
         onNoteReaction: (note) => _onNoteReaction(context, note),
         onNoteReactionChipTap: (note, reaction) =>
             _sendReaction(context, note, reaction),
+        onNoteUserTap: (_, user) => _onUserTap(context, user),
       );
     }
 

@@ -7,13 +7,16 @@ import '../datasources/misskey_auth_data_source.dart';
 import '../datasources/misskey_emoji_data_source.dart';
 import '../datasources/misskey_post_data_source.dart';
 import '../datasources/misskey_timeline_data_source.dart';
+import '../datasources/misskey_user_profile_data_source.dart';
 import '../datasources/post_data_source.dart';
 import '../datasources/timeline_data_source.dart';
+import '../datasources/user_profile_data_source.dart';
 import '../providers/theme_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/emoji_repository.dart';
 import '../repositories/post_repository.dart';
 import '../repositories/timeline_repository.dart';
+import '../repositories/user_profile_repository.dart';
 import '../services/app_database.dart';
 import '../services/emoji_cache.dart';
 import '../utils/misskey_http_client.dart';
@@ -53,10 +56,16 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<PostDataSource>(
     () => MisskeyPostDataSource(getIt<MisskeyHttpClient>()),
   );
+  getIt.registerLazySingleton<UserProfileDataSource>(
+    () => MisskeyUserProfileDataSource(getIt<MisskeyHttpClient>()),
+  );
 
   getIt.registerLazySingleton(() => AuthRepository(getIt<AuthDataSource>()));
   getIt.registerLazySingleton(
     () => TimelineRepository(getIt<TimelineDataSource>()),
   );
   getIt.registerLazySingleton(() => PostRepository(getIt<PostDataSource>()));
+  getIt.registerLazySingleton(
+    () => UserProfileRepository(getIt<UserProfileDataSource>()),
+  );
 }

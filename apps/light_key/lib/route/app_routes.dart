@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../di/di.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/user_profile_repository.dart';
 import '../screens/auth/auth_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/post/post_screen.dart';
+import '../screens/profile/profile_provider.dart';
+import '../screens/profile/profile_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
 import '../widgets/theme_switch_button.dart';
@@ -63,9 +69,9 @@ class HomeShellRouteData extends ShellRouteData {
       onPostTap: () {
         const PostRoute().push<String>(context).then((message) {
           if (!context.mounted || message == null || message.isEmpty) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
         });
       },
       onDestinationSelected: (index) {
@@ -152,6 +158,25 @@ class PostRoute extends GoRouteData with $PostRoute {
           );
         },
       );
+}
+
+@TypedGoRoute<UserProfileRoute>(path: '/users/:userId')
+@immutable
+class UserProfileRoute extends GoRouteData with $UserProfileRoute {
+  const UserProfileRoute({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return ChangeNotifierProvider(
+      create: (_) => ProfileProvider(
+        authRepository: getIt<AuthRepository>(),
+        profileRepository: getIt<UserProfileRepository>(),
+      )..load(userId),
+      child: ProfileScreen(userId: userId),
+    );
+  }
 }
 
 final GoRouter appRouter = GoRouter(
