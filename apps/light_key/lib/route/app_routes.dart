@@ -129,7 +129,29 @@ class PostRoute extends GoRouteData with $PostRoute {
   const PostRoute();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) => const PostScreen();
+  Page<void> buildPage(BuildContext context, GoRouterState state) =>
+      CustomTransitionPage<void>(
+        key: state.pageKey,
+        fullscreenDialog: true,
+        transitionDuration: const Duration(milliseconds: 240),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        child: const PostScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curvedAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(curvedAnimation),
+            child: child,
+          );
+        },
+      );
 }
 
 final GoRouter appRouter = GoRouter(

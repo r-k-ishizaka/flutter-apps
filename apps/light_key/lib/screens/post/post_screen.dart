@@ -85,6 +85,11 @@ class PostScreen extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          key: const ValueKey('post-close-button'),
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.close),
+        ),
         actions: [
           TextButton(
             key: const ValueKey('post-submit-button'),
