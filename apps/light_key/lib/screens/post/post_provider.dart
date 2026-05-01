@@ -24,6 +24,12 @@ class PostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setFederated(bool isFederated) {
+    if (_state.isFederated == isFederated) return;
+    _state = _state.copyWith(isFederated: isFederated);
+    notifyListeners();
+  }
+
   Future<void> submit(String text) async {
     if (text.trim().isEmpty) {
       _state = _state.copyWith(
@@ -52,6 +58,7 @@ class PostProvider extends ChangeNotifier {
           session,
           text.trim(),
           _state.visibility,
+          _state.isFederated,
         );
         postResult.when(
           success: (_) {

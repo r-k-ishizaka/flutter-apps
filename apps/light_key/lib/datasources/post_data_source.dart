@@ -6,5 +6,6 @@ abstract interface class PostDataSource {
     AuthSession session,
     String text,
     PostVisibility visibility,
+    bool isFederated,
   );
 }

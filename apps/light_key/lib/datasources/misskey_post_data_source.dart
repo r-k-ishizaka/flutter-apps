@@ -21,6 +21,7 @@ class MisskeyPostDataSource implements PostDataSource {
     AuthSession session,
     String text,
     PostVisibility visibility,
+    bool isFederated,
   ) async {
     await client.postJson(
       baseUrl: session.baseUrl,
@@ -29,6 +30,7 @@ class MisskeyPostDataSource implements PostDataSource {
         'i': session.accessToken,
         'text': text,
         'visibility': _toMisskeyVisibility(visibility),
+        'localOnly': !isFederated,
       },
     );
   }

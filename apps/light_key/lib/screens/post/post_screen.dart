@@ -131,6 +131,36 @@ class PostScreen extends HookWidget {
     context.read<PostProvider>().setVisibility(selected);
   }
 
+  void _toggleFederation(BuildContext context, bool current) {
+    context.read<PostProvider>().setFederated(!current);
+  }
+
+  Widget _buildFederationIcon(BuildContext context, bool isFederated) {
+    if (isFederated) {
+      return const Icon(Icons.rocket_launch_outlined);
+    }
+
+    final errorColor = Theme.of(context).colorScheme.error;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(Icons.rocket_launch, color: errorColor),
+        Transform.rotate(
+          angle: 0.7,
+          child: Container(
+            key: const ValueKey('post-federation-off-slash'),
+            width: 20,
+            height: 2.2,
+            decoration: BoxDecoration(
+              color: errorColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textController = useTextEditingController();
@@ -142,6 +172,7 @@ class PostScreen extends HookWidget {
     // 初期化時に公開範囲をリセット
     useEffect(() {
       context.read<PostProvider>().setVisibility(PostVisibility.public);
+      context.read<PostProvider>().setFederated(true);
       return null;
     }, []);
 
@@ -167,6 +198,14 @@ class PostScreen extends HookWidget {
                 ? null
                 : () => _showVisibilityPicker(context),
             icon: Icon(state.visibility.icon),
+          ),
+          IconButton(
+            key: const ValueKey('post-federation-toggle-button'),
+            tooltip: '連合: ${state.isFederated ? 'あり' : 'なし'}',
+            onPressed: state.status == PostStatus.submitting
+                ? null
+                : () => _toggleFederation(context, state.isFederated),
+            icon: _buildFederationIcon(context, state.isFederated),
           ),
           TextButton(
             key: const ValueKey('post-submit-button'),

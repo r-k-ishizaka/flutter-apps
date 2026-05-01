@@ -13,9 +13,10 @@ class PostRepository {
     AuthSession session,
     String text,
     PostVisibility visibility,
+    bool isFederated,
   ) async {
     try {
-      await _dataSource.createPost(session, text, visibility);
+      await _dataSource.createPost(session, text, visibility, isFederated);
       return const Success(null);
     } on Exception catch (e, st) {
       return Failure(e, st);

@@ -81,6 +81,10 @@ void main() {
       find.byKey(const ValueKey('post-visibility-button')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('post-federation-toggle-button')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('post-submit-button')), findsOneWidget);
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
@@ -151,11 +155,50 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('post-visibility-option-home')));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const ValueKey('post-federation-toggle-button')));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const ValueKey('post-submit-button')));
     await tester.pumpAndSettle();
 
     expect(postDataSource.lastText, '投稿テスト');
     expect(postDataSource.lastVisibility, PostVisibility.home);
+    expect(postDataSource.lastIsFederated, isFalse);
+  });
+
+  testWidgets('連合トグルを押すとロケットアイコンが切り替わる', (tester) async {
+    await tester.pumpWidget(buildTestApp(pickReaction: (_) async => null));
+
+    final context = tester.element(find.byType(PostScreen));
+    final errorColor = Theme.of(context).colorScheme.error;
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('post-federation-toggle-button')),
+        matching: find.byIcon(Icons.rocket_launch_outlined),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('post-federation-toggle-button')));
+    await tester.pump();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('post-federation-toggle-button')),
+        matching: find.byIcon(Icons.rocket_launch),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('post-federation-off-slash')), findsOneWidget);
+
+    final offRocket = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const ValueKey('post-federation-toggle-button')),
+        matching: find.byIcon(Icons.rocket_launch),
+      ),
+    );
+    expect(offRocket.color, errorColor);
   });
 
   testWidgets('フォームと絵文字ボタンの下にタイムライン形式のプレビューを表示する', (tester) async {
@@ -210,20 +253,24 @@ class _FakePostDataSource implements PostDataSource {
     AuthSession session,
     String text,
     PostVisibility visibility,
+    bool isFederated,
   ) async {}
 }
 
 class _RecordingPostDataSource implements PostDataSource {
   String? lastText;
   PostVisibility? lastVisibility;
+  bool? lastIsFederated;
 
   @override
   Future<void> createPost(
     AuthSession session,
     String text,
     PostVisibility visibility,
+    bool isFederated,
   ) async {
     lastText = text;
     lastVisibility = visibility;
+    lastIsFederated = isFederated;
   }
 }
