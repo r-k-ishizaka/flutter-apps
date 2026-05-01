@@ -117,8 +117,9 @@ class PostScreen extends HookWidget {
                   key: ValueKey('post-visibility-option-${option.optionKey}'),
                   leading: Icon(option.icon),
                   title: Text(option.label),
-                  trailing:
-                      option == PostVisibility.public ? const Icon(Icons.check) : null,
+                  trailing: option == PostVisibility.public
+                      ? const Icon(Icons.check)
+                      : null,
                   onTap: () => Navigator.of(sheetContext).pop(option),
                 ),
             ],
@@ -186,10 +187,9 @@ class PostScreen extends HookWidget {
     final state = context.watch<PostProvider>().state;
     final previewCreatedAt = useMemoized(DateTime.now);
 
-    // 初期化時に公開範囲をリセット
+    // 初期化時に状態をリセット
     useEffect(() {
-      context.read<PostProvider>().setVisibility(PostVisibility.public);
-      context.read<PostProvider>().setFederated(true);
+      context.read<PostProvider>().reset();
       return null;
     }, []);
 

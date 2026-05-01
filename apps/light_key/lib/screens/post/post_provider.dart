@@ -30,6 +30,11 @@ class PostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void reset() {
+    _state = const PostScreenState.idle();
+    notifyListeners();
+  }
+
   Future<void> submit(String text) async {
     if (text.trim().isEmpty) {
       _state = _state.copyWith(
