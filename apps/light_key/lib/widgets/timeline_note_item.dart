@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
 import '../models/note_type.dart';
+import '../models/note_visibility.dart';
 import '../utils/datetime_format.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
@@ -137,7 +138,14 @@ class TimelineNoteItem extends HookWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(_createdAtLabel(displayNote.createdAt)),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _NoteStatusIcons(note: displayNote),
+                                    const SizedBox(width: 4),
+                                    Text(_createdAtLabel(displayNote.createdAt)),
+                                  ],
+                                ),
                               ],
                             ),
                             const SizedBox(height: 4),
@@ -214,6 +222,36 @@ class TimelineNoteItem extends HookWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 公開範囲・連合有無アイコン行
+class _NoteStatusIcons extends StatelessWidget {
+  const _NoteStatusIcons({required this.note});
+
+  final Note note;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    final iconSize = 14.0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 2,
+      children: [
+        // public は広く知られているデフォルトなので非表示
+        if (note.visibility != NoteVisibility.public)
+          Tooltip(
+            message: note.visibility.label,
+            child: Icon(note.visibility.icon, size: iconSize, color: color),
+          ),
+        if (note.localOnly)
+          Tooltip(
+            message: 'ローカルのみ（連合なし）',
+            child: Icon(Icons.wifi_off, size: iconSize, color: color),
+          ),
+      ],
     );
   }
 }

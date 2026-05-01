@@ -24,6 +24,10 @@ _Note _$NoteFromJson(Map<String, dynamic> json) => _Note(
   renote: json['renote'] == null
       ? null
       : Note.fromJson(json['renote'] as Map<String, dynamic>),
+  visibility: json['visibility'] == null
+      ? NoteVisibility.public
+      : _visibilityFromJson(json['visibility']),
+  localOnly: json['localOnly'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$NoteToJson(_Note instance) => <String, dynamic>{
@@ -36,4 +40,13 @@ Map<String, dynamic> _$NoteToJson(_Note instance) => <String, dynamic>{
   'reactions': instance.reactions,
   'myReaction': instance.myReaction,
   'renote': instance.renote,
+  'visibility': _$NoteVisibilityEnumMap[instance.visibility]!,
+  'localOnly': instance.localOnly,
+};
+
+const _$NoteVisibilityEnumMap = {
+  NoteVisibility.public: 'public',
+  NoteVisibility.home: 'home',
+  NoteVisibility.followers: 'followers',
+  NoteVisibility.specified: 'specified',
 };

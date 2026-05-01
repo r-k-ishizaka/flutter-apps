@@ -15,68 +15,46 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
-  String get id;
-
-  String get username;
-
-  String get name;
-
-  String? get avatarUrl;
-
-  @JsonKey(name: 'avatarBlurhash') String? get avatarBlurHash;
-
-  /// Create a copy of User
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @pragma('vm:prefer-inline')
-  $UserCopyWith<User> get copyWith =>
-      _$UserCopyWithImpl<User>(this as User, _$identity);
+ String get id; String get username; String get name; String? get avatarUrl;@JsonKey(name: 'avatarBlurhash') String? get avatarBlurHash;
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$identity);
 
   /// Serializes this User to a JSON map.
   Map<String, dynamic> toJson();
 
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is User &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.username, username) ||
-                other.username == username) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.avatarUrl, avatarUrl) ||
-                other.avatarUrl == avatarUrl) &&
-            (identical(other.avatarBlurHash, avatarBlurHash) ||
-                other.avatarBlurHash == avatarBlurHash));
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.name, name) || other.name == name)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.avatarBlurHash, avatarBlurHash) || other.avatarBlurHash == avatarBlurHash));
+}
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, username, name, avatarUrl, avatarBlurHash);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,username,name,avatarUrl,avatarBlurHash);
 
-  @override
-  String toString() {
-    return 'User(id: $id, username: $username, name: $name, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
-  }
+@override
+String toString() {
+  return 'User(id: $id, username: $username, name: $name, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
+}
 
 
 }
 
 /// @nodoc
-abstract mixin class $UserCopyWith<$Res> {
-  factory $UserCopyWith(User value,
-      $Res Function(User) _then) = _$UserCopyWithImpl;
+abstract mixin class $UserCopyWith<$Res>  {
+  factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
+@useResult
+$Res call({
+ String id, String username, String name, String? avatarUrl,@JsonKey(name: 'avatarBlurhash') String? avatarBlurHash
+});
 
-  @useResult
-  $Res call({
-    String id, String username, String name, String? avatarUrl, @JsonKey(
-        name: 'avatarBlurhash') String? avatarBlurHash
-  });
+
 
 
 }
-
 /// @nodoc
 class _$UserCopyWithImpl<$Res>
     implements $UserCopyWith<$Res> {
@@ -85,253 +63,199 @@ class _$UserCopyWithImpl<$Res>
   final User _self;
   final $Res Function(User) _then;
 
-  /// Create a copy of User
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call(
-      {Object? id = null, Object? username = null, Object? name = null, Object? avatarUrl = freezed, Object? avatarBlurHash = freezed,}) {
-    return _then(_self.copyWith(
-      id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-      as String,
-      username: null == username
-          ? _self.username
-          : username // ignore: cast_nullable_to_non_nullable
-      as String,
-      name: null == name
-          ? _self.name
-          : name // ignore: cast_nullable_to_non_nullable
-      as String,
-      avatarUrl: freezed == avatarUrl
-          ? _self.avatarUrl
-          : avatarUrl // ignore: cast_nullable_to_non_nullable
-      as String?,
-      avatarBlurHash: freezed == avatarBlurHash
-          ? _self.avatarBlurHash
-          : avatarBlurHash // ignore: cast_nullable_to_non_nullable
-      as String?,
-    ));
-  }
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? name = null,Object? avatarUrl = freezed,Object? avatarBlurHash = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,avatarBlurHash: freezed == avatarBlurHash ? _self.avatarBlurHash : avatarBlurHash // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
 
 }
 
 
 /// Adds pattern-matching-related methods to [User].
 extension UserPatterns on User {
-  /// A variant of `map` that fallback to returning `orElse`.
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case final Subclass value:
-  ///     return ...;
-  ///   case _:
-  ///     return orElse();
-  /// }
-  /// ```
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-  @optionalTypeArgs TResult maybeMap
-
-  <
-
-  TResult
-
-  extends
-
-  Object?
-
-  >
-
-  (
-
-  TResult Function( _User value)? $default,{required TResult orElse(),}){
-  final _that = this;
-  switch (_that) {
-  case _User() when $default != null:
-  return $default(_that);case _:
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _User value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _User() when $default != null:
+return $default(_that);case _:
   return orElse();
 
-  }
-  }
-  /// A `switch`-like method, using callbacks.
-  ///
-  /// Callbacks receives the raw object, upcasted.
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case final Subclass value:
-  ///     return ...;
-  ///   case final Subclass2 value:
-  ///     return ...;
-  /// }
-  /// ```
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
 
-  @optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _User value) $default,){
-  final _that = this;
-  switch (_that) {
-  case _User():
-  return $default(_that);}
-  }
-  /// A variant of `map` that fallback to returning `null`.
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case final Subclass value:
-  ///     return ...;
-  ///   case _:
-  ///     return null;
-  /// }
-  /// ```
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _User value)  $default,){
+final _that = this;
+switch (_that) {
+case _User():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
 
-  @optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _User value)? $default,){
-  final _that = this;
-  switch (_that) {
-  case _User() when $default != null:
-  return $default(_that);case _:
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _User value)?  $default,){
+final _that = this;
+switch (_that) {
+case _User() when $default != null:
+return $default(_that);case _:
   return null;
 
-  }
-  }
-  /// A variant of `when` that fallback to an `orElse` callback.
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case Subclass(:final field):
-  ///     return ...;
-  ///   case _:
-  ///     return orElse();
-  /// }
-  /// ```
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-  @optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, String username, String name, String? avatarUrl, @JsonKey(name: 'avatarBlurhash') String? avatarBlurHash)? $default,{required TResult orElse(),}) {final _that = this;
-  switch (_that) {
-  case _User() when $default != null:
-  return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);case _:
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String name,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _User() when $default != null:
+return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);case _:
   return orElse();
 
-  }
-  }
-  /// A `switch`-like method, using callbacks.
-  ///
-  /// As opposed to `map`, this offers destructuring.
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case Subclass(:final field):
-  ///     return ...;
-  ///   case Subclass2(:final field2):
-  ///     return ...;
-  /// }
-  /// ```
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
 
-  @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, String username, String name, String? avatarUrl, @JsonKey(name: 'avatarBlurhash') String? avatarBlurHash) $default,) {final _that = this;
-  switch (_that) {
-  case _User():
-  return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);}
-  }
-  /// A variant of `when` that fallback to returning `null`
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case Subclass(:final field):
-  ///     return ...;
-  ///   case _:
-  ///     return null;
-  /// }
-  /// ```
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String name,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)  $default,) {final _that = this;
+switch (_that) {
+case _User():
+return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
 
-  @optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, String username, String name, String? avatarUrl, @JsonKey(name: 'avatarBlurhash') String? avatarBlurHash)? $default,) {final _that = this;
-  switch (_that) {
-  case _User() when $default != null:
-  return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);case _:
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String name,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)?  $default,) {final _that = this;
+switch (_that) {
+case _User() when $default != null:
+return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);case _:
   return null;
 
-  }
-  }
+}
+}
 
 }
 
 /// @nodoc
 @JsonSerializable()
-class _User extends User {
-  const _User(
-      {this.id = '', this.username = '', this.name = '', this.avatarUrl, @JsonKey(
-          name: 'avatarBlurhash') this.avatarBlurHash}) : super._();
 
+class _User extends User {
+  const _User({this.id = '', this.username = '', this.name = '', this.avatarUrl, @JsonKey(name: 'avatarBlurhash') this.avatarBlurHash}): super._();
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
-  @override
-  @JsonKey()
-  final String id;
-  @override
-  @JsonKey()
-  final String username;
-  @override
-  @JsonKey()
-  final String name;
-  @override final String? avatarUrl;
-  @override
-  @JsonKey(name: 'avatarBlurhash')
-  final String? avatarBlurHash;
+@override@JsonKey() final  String id;
+@override@JsonKey() final  String username;
+@override@JsonKey() final  String name;
+@override final  String? avatarUrl;
+@override@JsonKey(name: 'avatarBlurhash') final  String? avatarBlurHash;
 
-  /// Create a copy of User
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @pragma('vm:prefer-inline')
-  _$UserCopyWith<_User> get copyWith =>
-      __$UserCopyWithImpl<_User>(this, _$identity);
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$UserCopyWith<_User> get copyWith => __$UserCopyWithImpl<_User>(this, _$identity);
 
-  @override
-  Map<String, dynamic> toJson() {
-    return _$UserToJson(this,);
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$UserToJson(this, );
+}
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _User &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.username, username) ||
-                other.username == username) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.avatarUrl, avatarUrl) ||
-                other.avatarUrl == avatarUrl) &&
-            (identical(other.avatarBlurHash, avatarBlurHash) ||
-                other.avatarBlurHash == avatarBlurHash));
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.name, name) || other.name == name)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.avatarBlurHash, avatarBlurHash) || other.avatarBlurHash == avatarBlurHash));
+}
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, username, name, avatarUrl, avatarBlurHash);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,username,name,avatarUrl,avatarBlurHash);
 
-  @override
-  String toString() {
-    return 'User(id: $id, username: $username, name: $name, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
-  }
+@override
+String toString() {
+  return 'User(id: $id, username: $username, name: $name, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
+}
 
 
 }
 
 /// @nodoc
 abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
-  factory _$UserCopyWith(_User value,
-      $Res Function(_User) _then) = __$UserCopyWithImpl;
+  factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String username, String name, String? avatarUrl,@JsonKey(name: 'avatarBlurhash') String? avatarBlurHash
+});
 
-  @override
-  @useResult
-  $Res call({
-    String id, String username, String name, String? avatarUrl, @JsonKey(
-        name: 'avatarBlurhash') String? avatarBlurHash
-  });
+
 
 
 }
-
 /// @nodoc
 class __$UserCopyWithImpl<$Res>
     implements _$UserCopyWith<$Res> {
@@ -340,33 +264,18 @@ class __$UserCopyWithImpl<$Res>
   final _User _self;
   final $Res Function(_User) _then;
 
-  /// Create a copy of User
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $Res call(
-      {Object? id = null, Object? username = null, Object? name = null, Object? avatarUrl = freezed, Object? avatarBlurHash = freezed,}) {
-    return _then(_User(
-      id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-      as String,
-      username: null == username
-          ? _self.username
-          : username // ignore: cast_nullable_to_non_nullable
-      as String,
-      name: null == name
-          ? _self.name
-          : name // ignore: cast_nullable_to_non_nullable
-      as String,
-      avatarUrl: freezed == avatarUrl
-          ? _self.avatarUrl
-          : avatarUrl // ignore: cast_nullable_to_non_nullable
-      as String?,
-      avatarBlurHash: freezed == avatarBlurHash
-          ? _self.avatarBlurHash
-          : avatarBlurHash // ignore: cast_nullable_to_non_nullable
-      as String?,
-    ));
-  }
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? name = null,Object? avatarUrl = freezed,Object? avatarBlurHash = freezed,}) {
+  return _then(_User(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,avatarBlurHash: freezed == avatarBlurHash ? _self.avatarBlurHash : avatarBlurHash // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
 
 
 }

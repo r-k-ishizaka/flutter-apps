@@ -11,150 +11,51 @@ part of 'timeline_screen_state.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$TimelineScreenState {
 
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is TimelineScreenState);
-  }
 
 
-  @override
-  int get hashCode => runtimeType.hashCode;
 
-  @override
-  String toString() {
-    return 'TimelineScreenState()';
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenState);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'TimelineScreenState()';
+}
 
 
 }
 
 /// @nodoc
-class $TimelineScreenStateCopyWith<$Res> {
-  $TimelineScreenStateCopyWith(TimelineScreenState _,
-      $Res Function(TimelineScreenState) __);
+class $TimelineScreenStateCopyWith<$Res>  {
+$TimelineScreenStateCopyWith(TimelineScreenState _, $Res Function(TimelineScreenState) __);
 }
 
 
 /// Adds pattern-matching-related methods to [TimelineScreenState].
 extension TimelineScreenStatePatterns on TimelineScreenState {
-  /// A variant of `map` that fallback to returning `orElse`.
-  ///
-  /// It is equivalent to doing:
-  /// ```dart
-  /// switch (sealedClass) {
-  ///   case final Subclass value:
-  ///     return ...;
-  ///   case _:
-  ///     return orElse();
-  /// }
-  /// ```
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-  @optionalTypeArgs TResult maybeMap
-
-  <
-
-  TResult
-
-  extends
-
-  Object?
-
-  >
-
-  (
-
-  {
-
-  TResult
-
-  Function
-
-  (
-
-  TimelineScreenStateIdle
-
-  value
-
-  )
-
-  ?
-
-  idle
-
-  ,
-
-  TResult
-
-  Function
-
-  (
-
-  TimelineScreenStateLoading
-
-  value
-
-  )
-
-  ?
-
-  loading
-
-  ,
-
-  TResult
-
-  Function
-
-  (
-
-  TimelineScreenStateLoaded
-
-  value
-
-  )
-
-  ?
-
-  loaded
-
-  ,
-
-  TResult
-
-  Function
-
-  (
-
-  TimelineScreenStateError
-
-  value
-
-  )
-
-  ?
-
-  error
-
-  ,
-
-  required
-
-  TResult
-
-  orElse
-
-  (
-
-  )
-
-  ,
-}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TimelineScreenStateIdle value)?  idle,TResult Function( TimelineScreenStateLoading value)?  loading,TResult Function( TimelineScreenStateLoaded value)?  loaded,TResult Function( TimelineScreenStateError value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case TimelineScreenStateIdle() when idle != null:
@@ -162,7 +63,7 @@ return idle(_that);case TimelineScreenStateLoading() when loading != null:
 return loading(_that);case TimelineScreenStateLoaded() when loaded != null:
 return loaded(_that);case TimelineScreenStateError() when error != null:
 return error(_that);case _:
-return orElse();
+  return orElse();
 
 }
 }
@@ -179,22 +80,15 @@ return orElse();
 /// }
 /// ```
 
-@optionalTypeArgs
-TResult map<TResult extends Object?>(
-    {required TResult Function( TimelineScreenStateIdle value) idle, required TResult Function( TimelineScreenStateLoading value) loading, required TResult Function( TimelineScreenStateLoaded value) loaded, required TResult Function( TimelineScreenStateError value) error,}) {
-  final _that = this;
-  switch (_that) {
-    case TimelineScreenStateIdle():
-      return idle(_that);
-    case TimelineScreenStateLoading():
-      return loading(_that);
-    case TimelineScreenStateLoaded():
-      return loaded(_that);
-    case TimelineScreenStateError():
-      return error(_that);
-  }
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TimelineScreenStateIdle value)  idle,required TResult Function( TimelineScreenStateLoading value)  loading,required TResult Function( TimelineScreenStateLoaded value)  loaded,required TResult Function( TimelineScreenStateError value)  error,}){
+final _that = this;
+switch (_that) {
+case TimelineScreenStateIdle():
+return idle(_that);case TimelineScreenStateLoading():
+return loading(_that);case TimelineScreenStateLoaded():
+return loaded(_that);case TimelineScreenStateError():
+return error(_that);}
 }
-
 /// A variant of `map` that fallback to returning `null`.
 ///
 /// It is equivalent to doing:
@@ -207,24 +101,18 @@ TResult map<TResult extends Object?>(
 /// }
 /// ```
 
-@optionalTypeArgs
-TResult? mapOrNull<TResult extends Object?>(
-    {TResult? Function( TimelineScreenStateIdle value)? idle, TResult? Function( TimelineScreenStateLoading value)? loading, TResult? Function( TimelineScreenStateLoaded value)? loaded, TResult? Function( TimelineScreenStateError value)? error,}) {
-  final _that = this;
-  switch (_that) {
-    case TimelineScreenStateIdle() when idle != null:
-      return idle(_that);
-    case TimelineScreenStateLoading() when loading != null:
-      return loading(_that);
-    case TimelineScreenStateLoaded() when loaded != null:
-      return loaded(_that);
-    case TimelineScreenStateError() when error != null:
-      return error(_that);
-    case _:
-      return null;
-  }
-}
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TimelineScreenStateIdle value)?  idle,TResult? Function( TimelineScreenStateLoading value)?  loading,TResult? Function( TimelineScreenStateLoaded value)?  loaded,TResult? Function( TimelineScreenStateError value)?  error,}){
+final _that = this;
+switch (_that) {
+case TimelineScreenStateIdle() when idle != null:
+return idle(_that);case TimelineScreenStateLoading() when loading != null:
+return loading(_that);case TimelineScreenStateLoaded() when loaded != null:
+return loaded(_that);case TimelineScreenStateError() when error != null:
+return error(_that);case _:
+  return null;
 
+}
+}
 /// A variant of `when` that fallback to an `orElse` callback.
 ///
 /// It is equivalent to doing:
@@ -237,63 +125,14 @@ TResult? mapOrNull<TResult extends Object?>(
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen
-<
-TResult extends Object?>(
-{
-TResult
-Function
-(
-)
-?
-idle
-,
-TResult
-Function
-(
-)
-?
-loading
-,
-TResult
-Function
-(
-List
-<
-Note
->
-notes
-,
-bool
-isRefreshing
-,
-String
-?
-message
-)
-?
-loaded
-,
-TResult
-Function
-(
-String
-?
-message
-)
-?
-error
-,
-required
-TResult
-orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  idle,TResult Function()?  loading,TResult Function( List<Note> notes,  bool isRefreshing,  String? message)?  loaded,TResult Function( String? message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case TimelineScreenStateIdle() when idle != null:
 return idle();case TimelineScreenStateLoading() when loading != null:
 return loading();case TimelineScreenStateLoaded() when loaded != null:
 return loaded(_that.notes,_that.isRefreshing,_that.message);case TimelineScreenStateError() when error != null:
 return error(_that.message);case _:
-return orElse();
+  return orElse();
 
 }
 }
@@ -310,7 +149,7 @@ return orElse();
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function() idle,required TResult Function() loading,required TResult Function( List<Note> notes, bool isRefreshing, String? message) loaded,required TResult Function( String? message) error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  idle,required TResult Function()  loading,required TResult Function( List<Note> notes,  bool isRefreshing,  String? message)  loaded,required TResult Function( String? message)  error,}) {final _that = this;
 switch (_that) {
 case TimelineScreenStateIdle():
 return idle();case TimelineScreenStateLoading():
@@ -330,14 +169,14 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()? idle,TResult? Function()? loading,TResult? Function( List<Note> notes, bool isRefreshing, String? message)? loaded,TResult? Function( String? message)? error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  idle,TResult? Function()?  loading,TResult? Function( List<Note> notes,  bool isRefreshing,  String? message)?  loaded,TResult? Function( String? message)?  error,}) {final _that = this;
 switch (_that) {
 case TimelineScreenStateIdle() when idle != null:
 return idle();case TimelineScreenStateLoading() when loading != null:
 return loading();case TimelineScreenStateLoaded() when loaded != null:
 return loaded(_that.notes,_that.isRefreshing,_that.message);case TimelineScreenStateError() when error != null:
 return error(_that.message);case _:
-return null;
+  return null;
 
 }
 }
@@ -348,12 +187,17 @@ return null;
 
 
 class TimelineScreenStateIdle implements TimelineScreenState {
-const TimelineScreenStateIdle();
+  const TimelineScreenStateIdle();
+  
+
+
+
+
 
 
 @override
 bool operator ==(Object other) {
-return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateIdle);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateIdle);
 }
 
 
@@ -362,23 +206,30 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-return 'TimelineScreenState.idle()';
+  return 'TimelineScreenState.idle()';
 }
 
 
 }
+
+
 
 
 /// @nodoc
 
 
 class TimelineScreenStateLoading implements TimelineScreenState {
-const TimelineScreenStateLoading();
+  const TimelineScreenStateLoading();
+  
+
+
+
+
 
 
 @override
 bool operator ==(Object other) {
-return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateLoading);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateLoading);
 }
 
 
@@ -387,29 +238,31 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-return 'TimelineScreenState.loading()';
+  return 'TimelineScreenState.loading()';
 }
 
 
 }
+
+
 
 
 /// @nodoc
 
 
 class TimelineScreenStateLoaded implements TimelineScreenState {
-const TimelineScreenStateLoaded({final List<Note> notes = const <Note>[], this.isRefreshing = false, this.message}): _notes = notes;
+  const TimelineScreenStateLoaded({final  List<Note> notes = const <Note>[], this.isRefreshing = false, this.message}): _notes = notes;
+  
 
-
-final List<Note> _notes;
+ final  List<Note> _notes;
 @JsonKey() List<Note> get notes {
-if (_notes is EqualUnmodifiableListView) return _notes;
-// ignore: implicit_dynamic_type
-return EqualUnmodifiableListView(_notes);
+  if (_notes is EqualUnmodifiableListView) return _notes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_notes);
 }
 
-@JsonKey() final bool isRefreshing;
-final String? message;
+@JsonKey() final  bool isRefreshing;
+ final  String? message;
 
 /// Create a copy of TimelineScreenState
 /// with the given fields replaced by the non-null parameter values.
@@ -418,9 +271,10 @@ final String? message;
 $TimelineScreenStateLoadedCopyWith<TimelineScreenStateLoaded> get copyWith => _$TimelineScreenStateLoadedCopyWithImpl<TimelineScreenStateLoaded>(this, _$identity);
 
 
+
 @override
 bool operator ==(Object other) {
-return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateLoaded&&const DeepCollectionEquality().equals(other._notes, _notes)&&(identical(other.isRefreshing, isRefreshing) || other.isRefreshing == isRefreshing)&&(identical(other.message, message) || other.message == message));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateLoaded&&const DeepCollectionEquality().equals(other._notes, _notes)&&(identical(other.isRefreshing, isRefreshing) || other.isRefreshing == isRefreshing)&&(identical(other.message, message) || other.message == message));
 }
 
 
@@ -429,7 +283,7 @@ int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(
 
 @override
 String toString() {
-return 'TimelineScreenState.loaded(notes: $notes, isRefreshing: $isRefreshing, message: $message)';
+  return 'TimelineScreenState.loaded(notes: $notes, isRefreshing: $isRefreshing, message: $message)';
 }
 
 
@@ -437,31 +291,33 @@ return 'TimelineScreenState.loaded(notes: $notes, isRefreshing: $isRefreshing, m
 
 /// @nodoc
 abstract mixin class $TimelineScreenStateLoadedCopyWith<$Res> implements $TimelineScreenStateCopyWith<$Res> {
-factory $TimelineScreenStateLoadedCopyWith(TimelineScreenStateLoaded value, $Res Function(TimelineScreenStateLoaded) _then) = _$TimelineScreenStateLoadedCopyWithImpl;
+  factory $TimelineScreenStateLoadedCopyWith(TimelineScreenStateLoaded value, $Res Function(TimelineScreenStateLoaded) _then) = _$TimelineScreenStateLoadedCopyWithImpl;
 @useResult
 $Res call({
-List<Note> notes, bool isRefreshing, String? message
+ List<Note> notes, bool isRefreshing, String? message
 });
+
+
 
 
 }
 /// @nodoc
 class _$TimelineScreenStateLoadedCopyWithImpl<$Res>
-implements $TimelineScreenStateLoadedCopyWith<$Res> {
-_$TimelineScreenStateLoadedCopyWithImpl(this._self, this._then);
+    implements $TimelineScreenStateLoadedCopyWith<$Res> {
+  _$TimelineScreenStateLoadedCopyWithImpl(this._self, this._then);
 
-final TimelineScreenStateLoaded _self;
-final $Res Function(TimelineScreenStateLoaded) _then;
+  final TimelineScreenStateLoaded _self;
+  final $Res Function(TimelineScreenStateLoaded) _then;
 
 /// Create a copy of TimelineScreenState
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? notes = null,Object? isRefreshing = null,Object? message = freezed,}) {
-return _then(TimelineScreenStateLoaded(
+  return _then(TimelineScreenStateLoaded(
 notes: null == notes ? _self._notes : notes // ignore: cast_nullable_to_non_nullable
 as List<Note>,isRefreshing: null == isRefreshing ? _self.isRefreshing : isRefreshing // ignore: cast_nullable_to_non_nullable
 as bool,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,
-));
+  ));
 }
 
 
@@ -471,10 +327,10 @@ as String?,
 
 
 class TimelineScreenStateError implements TimelineScreenState {
-const TimelineScreenStateError({this.message});
+  const TimelineScreenStateError({this.message});
+  
 
-
-final String? message;
+ final  String? message;
 
 /// Create a copy of TimelineScreenState
 /// with the given fields replaced by the non-null parameter values.
@@ -483,9 +339,10 @@ final String? message;
 $TimelineScreenStateErrorCopyWith<TimelineScreenStateError> get copyWith => _$TimelineScreenStateErrorCopyWithImpl<TimelineScreenStateError>(this, _$identity);
 
 
+
 @override
 bool operator ==(Object other) {
-return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateError&&(identical(other.message, message) || other.message == message));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineScreenStateError&&(identical(other.message, message) || other.message == message));
 }
 
 
@@ -494,7 +351,7 @@ int get hashCode => Object.hash(runtimeType,message);
 
 @override
 String toString() {
-return 'TimelineScreenState.error(message: $message)';
+  return 'TimelineScreenState.error(message: $message)';
 }
 
 
@@ -502,29 +359,31 @@ return 'TimelineScreenState.error(message: $message)';
 
 /// @nodoc
 abstract mixin class $TimelineScreenStateErrorCopyWith<$Res> implements $TimelineScreenStateCopyWith<$Res> {
-factory $TimelineScreenStateErrorCopyWith(TimelineScreenStateError value, $Res Function(TimelineScreenStateError) _then) = _$TimelineScreenStateErrorCopyWithImpl;
+  factory $TimelineScreenStateErrorCopyWith(TimelineScreenStateError value, $Res Function(TimelineScreenStateError) _then) = _$TimelineScreenStateErrorCopyWithImpl;
 @useResult
 $Res call({
-String? message
+ String? message
 });
+
+
 
 
 }
 /// @nodoc
 class _$TimelineScreenStateErrorCopyWithImpl<$Res>
-implements $TimelineScreenStateErrorCopyWith<$Res> {
-_$TimelineScreenStateErrorCopyWithImpl(this._self, this._then);
+    implements $TimelineScreenStateErrorCopyWith<$Res> {
+  _$TimelineScreenStateErrorCopyWithImpl(this._self, this._then);
 
-final TimelineScreenStateError _self;
-final $Res Function(TimelineScreenStateError) _then;
+  final TimelineScreenStateError _self;
+  final $Res Function(TimelineScreenStateError) _then;
 
 /// Create a copy of TimelineScreenState
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? message = freezed,}) {
-return _then(TimelineScreenStateError(
+  return _then(TimelineScreenStateError(
 message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,
-));
+  ));
 }
 
 

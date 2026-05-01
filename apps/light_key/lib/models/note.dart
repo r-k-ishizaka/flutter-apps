@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'note_file.dart';
 import 'note_type.dart';
+import 'note_visibility.dart';
 import 'user.dart';
 
 part 'note.freezed.dart';
@@ -30,6 +31,13 @@ sealed class Note with _$Note {
 
     /// リノート元のノート。純粋リノート・引用リノートの場合に設定される。
     Note? renote,
+
+    /// 公開範囲
+    @JsonKey(fromJson: _visibilityFromJson)
+    @Default(NoteVisibility.public) NoteVisibility visibility,
+
+    /// ローカルのみ（連合なし）
+    @Default(false) bool localOnly,
   }) = _Note;
 
   factory Note.fromJson(Map<String, dynamic> json) =>
@@ -81,3 +89,6 @@ Map<String, int> _reactionsFromJson(Object? value) {
         MapEntry(key, (reactionValue as num?)?.toInt() ?? 0),
   );
 }
+
+NoteVisibility _visibilityFromJson(Object? value) =>
+    NoteVisibility.fromJson(value as String?);

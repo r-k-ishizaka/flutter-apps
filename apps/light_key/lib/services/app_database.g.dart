@@ -8,9 +8,7 @@ class $EmojiTableTable extends EmojiTable
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-
   $EmojiTableTable(this.attachedDatabase, [this._alias]);
-
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -62,7 +60,6 @@ class $EmojiTableTable extends EmojiTable
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-
   @override
   List<GeneratedColumn> get $columns => [
     name,
@@ -71,14 +68,11 @@ class $EmojiTableTable extends EmojiTable
     imageBytes,
     aliases,
   ];
-
   @override
   String get aliasedName => _alias ?? actualTableName;
-
   @override
   String get actualTableName => $name;
   static const String $name = 'emojis';
-
   @override
   VerificationContext validateIntegrity(
     Insertable<EmojiTableData> instance, {
@@ -125,7 +119,6 @@ class $EmojiTableTable extends EmojiTable
 
   @override
   Set<GeneratedColumn> get $primaryKey => {name};
-
   @override
   EmojiTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
@@ -174,7 +167,6 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
 
   /// エイリアスを JSON 文字列として保存。例: '["ai","acid"]'
   final String? aliases;
-
   const EmojiTableData({
     required this.name,
     this.category,
@@ -182,7 +174,6 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
     this.imageBytes,
     this.aliases,
   });
-
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -229,7 +220,6 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
       aliases: serializer.fromJson<String?>(json['aliases']),
     );
   }
-
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
@@ -255,7 +245,6 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
     imageBytes: imageBytes.present ? imageBytes.value : this.imageBytes,
     aliases: aliases.present ? aliases.value : this.aliases,
   );
-
   EmojiTableData copyWithCompanion(EmojiTableCompanion data) {
     return EmojiTableData(
       name: data.name.present ? data.name.value : this.name,
@@ -288,7 +277,6 @@ class EmojiTableData extends DataClass implements Insertable<EmojiTableData> {
     $driftBlobEquality.hash(imageBytes),
     aliases,
   );
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -307,7 +295,6 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
   final Value<Uint8List?> imageBytes;
   final Value<String?> aliases;
   final Value<int> rowid;
-
   const EmojiTableCompanion({
     this.name = const Value.absent(),
     this.category = const Value.absent(),
@@ -316,7 +303,6 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
     this.aliases = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-
   EmojiTableCompanion.insert({
     required String name,
     this.category = const Value.absent(),
@@ -326,7 +312,6 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
     this.rowid = const Value.absent(),
   }) : name = Value(name),
        url = Value(url);
-
   static Insertable<EmojiTableData> custom({
     Expression<String>? name,
     Expression<String>? category,
@@ -403,14 +388,11 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
 
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
-
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $EmojiTableTable emojiTable = $EmojiTableTable(this);
-
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
-
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [emojiTable];
 }
@@ -443,7 +425,6 @@ class $$EmojiTableTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnFilters(column),
@@ -479,7 +460,6 @@ class $$EmojiTableTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -515,7 +495,6 @@ class $$EmojiTableTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
@@ -623,9 +602,7 @@ typedef $$EmojiTableTableProcessedTableManager =
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
-
   $AppDatabaseManager(this._db);
-
   $$EmojiTableTableTableManager get emojiTable =>
       $$EmojiTableTableTableManager(_db, _db.emojiTable);
 }
