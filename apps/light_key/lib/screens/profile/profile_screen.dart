@@ -36,8 +36,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         ProfileStatus.loaded => RefreshIndicator(
           onRefresh: () => context.read<ProfileProvider>().load(userId),
-          // 画面全体（NestedScrollView本体）だけでリフレッシュ判定する。
-          notificationPredicate: (notification) => notification.depth == 0,
+          displacement: 64, // TabBar下に表示
           child: _ProfileContentConsumer(userId: userId),
         ),
       },
@@ -109,63 +108,81 @@ class _ProfileContent extends StatelessWidget {
       return const Center(child: Text('プロフィール情報がありません。'));
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return DefaultTabController(
       length: 3,
       initialIndex: 0,
-      child: NestedScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          final colorScheme = Theme.of(context).colorScheme;
-          return [
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  _ProfileHeader(profile: user),
-                  _ProfileSummary(profile: user),
-                ],
-              ),
-            ),
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _ProfileTabBarHeaderDelegate(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface,
-                    border: Border(
-                      bottom: BorderSide(color: colorScheme.outlineVariant),
+      child: Builder(
+        builder: (context) {
+          final profileEndKey = GlobalKey();
+          final tabController = DefaultTabController.of(context);
+          return AnimatedBuilder(
+            animation: tabController,
+            builder: (context, _) {
+              final selectedIndex = tabController.index;
+              final notes = switch (selectedIndex) {
+                0 => allNotes,
+                1 => noteOnlyNotes,
+                _ => mediaNotes,
+              };
+              final emptyMessage = switch (selectedIndex) {
+                0 => 'ノートがありません。',
+                1 => '投稿ノートがありません。',
+                _ => 'メディア付きノートがありません。',
+              };
+
+              return CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        _ProfileHeader(profile: user),
+                        _ProfileSummary(profile: user),
+                        SizedBox(key: profileEndKey),
+                      ],
                     ),
                   ),
-                  child: const TabBar(
-                    tabs: [
-                      Tab(text: '全て'),
-                      Tab(text: 'ノート'),
-                      Tab(text: 'メディア'),
-                    ],
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _ProfileTabBarHeaderDelegate(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(color: colorScheme.outlineVariant),
+                          ),
+                        ),
+                        child: TabBar(
+                          onTap: (_) {
+                            final targetContext = profileEndKey.currentContext;
+                            if (targetContext == null) return;
+                            Scrollable.ensureVisible(
+                              targetContext,
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOut,
+                              alignment: 0,
+                            );
+                          },
+                          tabs: [
+                            Tab(text: '全て'),
+                            Tab(text: 'ノート'),
+                            Tab(text: 'メディア'),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ];
+                  _ProfileNotesSliver(
+                    notes: notes,
+                    emptyMessage: emptyMessage,
+                  ),
+                ],
+              );
+            },
+          );
         },
-        body: TabBarView(
-          children: [
-            _ProfileNotesTab(
-              notes: allNotes,
-              emptyMessage: 'ノートがありません。',
-              storageKey: 'profile_notes_all',
-            ),
-            _ProfileNotesTab(
-              notes: noteOnlyNotes,
-              emptyMessage: '投稿ノートがありません。',
-              storageKey: 'profile_notes_only',
-            ),
-            _ProfileNotesTab(
-              notes: mediaNotes,
-              emptyMessage: 'メディア付きノートがありません。',
-              storageKey: 'profile_notes_media',
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -242,16 +259,14 @@ class _ProfileSummary extends StatelessWidget {
   }
 }
 
-class _ProfileNotesTab extends StatelessWidget {
-  const _ProfileNotesTab({
+class _ProfileNotesSliver extends StatelessWidget {
+  const _ProfileNotesSliver({
     required this.notes,
     required this.emptyMessage,
-    required this.storageKey,
   });
 
   final List<Note> notes;
   final String emptyMessage;
-  final String storageKey;
 
   static Future<void> _onNoteReaction(BuildContext context, Note note) async {
     final emoji = await showReactionPickerSheet(context);
@@ -284,32 +299,26 @@ class _ProfileNotesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (notes.isEmpty) {
-      return CustomScrollView(
-        key: PageStorageKey<String>(storageKey),
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: Text(emptyMessage)),
-          ),
-        ],
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: Text(emptyMessage)),
       );
     }
 
-    return ListView.builder(
-      key: PageStorageKey<String>(storageKey),
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: notes.length,
-      itemBuilder: (context, index) {
-        final note = notes[index];
-        return TimelineNoteItem(
-          note: note,
-          animation: kAlwaysCompleteAnimation,
-          onReaction: () => _onNoteReaction(context, note),
-          onReactionChipTap: (reaction) =>
-              _onReactionChipTap(context, note, reaction),
-        );
-      },
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final note = notes[index];
+          return TimelineNoteItem(
+            note: note,
+            animation: kAlwaysCompleteAnimation,
+            onReaction: () => _onNoteReaction(context, note),
+            onReactionChipTap: (reaction) =>
+                _onReactionChipTap(context, note, reaction),
+          );
+        },
+        childCount: notes.length,
+      ),
     );
   }
 }
