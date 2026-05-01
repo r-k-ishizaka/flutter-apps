@@ -141,20 +141,37 @@ class PostScreen extends HookWidget {
     }
 
     final errorColor = Theme.of(context).colorScheme.error;
+    final appBarBackground =
+        Theme.of(context).appBarTheme.backgroundColor ??
+        Theme.of(context).colorScheme.surface;
     return Stack(
       alignment: Alignment.center,
       children: [
         Icon(Icons.rocket_launch, color: errorColor),
         Transform.rotate(
           angle: 0.7,
-          child: Container(
-            key: const ValueKey('post-federation-off-slash'),
-            width: 20,
-            height: 2.2,
-            decoration: BoxDecoration(
-              color: errorColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                key: const ValueKey('post-federation-off-slash-outline'),
+                width: 20,
+                height: 4.6,
+                decoration: BoxDecoration(
+                  color: appBarBackground,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              Container(
+                key: const ValueKey('post-federation-off-slash'),
+                width: 18,
+                height: 2.2,
+                decoration: BoxDecoration(
+                  color: errorColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
           ),
         ),
       ],
