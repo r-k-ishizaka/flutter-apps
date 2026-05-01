@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../di/di.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/timeline_repository.dart';
 import '../repositories/user_profile_repository.dart';
 import '../screens/auth/auth_screen.dart';
 import '../screens/home/home_screen.dart';
@@ -173,6 +174,7 @@ class UserProfileRoute extends GoRouteData with $UserProfileRoute {
       create: (_) => ProfileProvider(
         authRepository: getIt<AuthRepository>(),
         profileRepository: getIt<UserProfileRepository>(),
+        timelineRepository: getIt<TimelineRepository>(),
       )..load(userId),
       child: ProfileScreen(userId: userId),
     );

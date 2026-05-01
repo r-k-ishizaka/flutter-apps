@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 
 import '../../models/note.dart';
+import '../../models/note_type.dart';
 import '../../repositories/auth_repository.dart';
+import '../../repositories/timeline_repository.dart';
 import '../../repositories/user_profile_repository.dart';
 import 'profile_screen_state.dart';
 
@@ -9,11 +11,14 @@ class ProfileProvider extends ChangeNotifier {
   ProfileProvider({
     required AuthRepository authRepository,
     required UserProfileRepository profileRepository,
+    required TimelineRepository timelineRepository,
   }) : _authRepository = authRepository,
-       _profileRepository = profileRepository;
+       _profileRepository = profileRepository,
+       _timelineRepository = timelineRepository;
 
   final AuthRepository _authRepository;
   final UserProfileRepository _profileRepository;
+  final TimelineRepository _timelineRepository;
 
   ProfileScreenState _state = const ProfileScreenState.idle();
 
@@ -163,5 +168,78 @@ class ProfileProvider extends ChangeNotifier {
       }
     }
     return merged;
+  }
+
+  Future<String?> createReaction(Note note, String reaction) async {
+    final normalizedReaction = reaction.trim();
+    if (normalizedReaction.isEmpty) {
+      return 'リアクションが選択されていません。';
+    }
+
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'リアクション対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final reactionResult = await _timelineRepository.createReaction(
+          session,
+          noteId: targetNote.id,
+          reaction: normalizedReaction,
+        );
+        return reactionResult.when(
+          success: (_) {
+            _applyMyReaction(targetNote.id, normalizedReaction);
+            return null;
+          },
+          failure: (error, _) => 'リアクション送信に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  void _applyMyReaction(String targetNoteId, String reaction) {
+    List<Note> updateList(List<Note> notes) => notes
+        .map((item) {
+          if (item.id == targetNoteId) {
+            return _updateNoteReaction(item, reaction);
+          }
+          final renote = item.renote;
+          if (renote != null && renote.id == targetNoteId) {
+            return item.copyWith(renote: _updateNoteReaction(renote, reaction));
+          }
+          return item;
+        })
+        .toList(growable: false);
+
+    _state = _state.copyWith(
+      allNotes: List<Note>.unmodifiable(updateList(_state.allNotes)),
+      noteOnlyNotes: List<Note>.unmodifiable(updateList(_state.noteOnlyNotes)),
+      mediaNotes: List<Note>.unmodifiable(updateList(_state.mediaNotes)),
+    );
+    notifyListeners();
+  }
+
+  Note _updateNoteReaction(Note note, String reaction) {
+    final previousReaction = note.myReaction;
+    if (previousReaction == reaction) {
+      return note.copyWith(myReaction: reaction);
+    }
+
+    var updated = note;
+    if (previousReaction != null && previousReaction.isNotEmpty) {
+      updated = updated.applyReactionDelta(previousReaction, -1);
+    }
+    updated = updated.applyReactionDelta(reaction, 1);
+    return updated.copyWith(myReaction: reaction);
   }
 }

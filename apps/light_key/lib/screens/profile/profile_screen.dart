@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../models/user_profile.dart';
+import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../widgets/emoji_text.dart';
 import '../../widgets/timeline_note_item.dart';
 import '../../widgets/user_avatar.dart';
@@ -252,6 +253,34 @@ class _ProfileNotesTab extends StatelessWidget {
   final String emptyMessage;
   final String storageKey;
 
+  static Future<void> _onNoteReaction(BuildContext context, Note note) async {
+    final emoji = await showReactionPickerSheet(context);
+    if (emoji == null || !context.mounted) return;
+    final message = await context.read<ProfileProvider>().createReaction(
+      note,
+      emoji,
+    );
+    if (!context.mounted || message == null) return;
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  static Future<void> _onReactionChipTap(
+    BuildContext context,
+    Note note,
+    String reaction,
+  ) async {
+    final message = await context.read<ProfileProvider>().createReaction(
+      note,
+      reaction,
+    );
+    if (!context.mounted || message == null) return;
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     if (notes.isEmpty) {
@@ -273,7 +302,13 @@ class _ProfileNotesTab extends StatelessWidget {
       itemCount: notes.length,
       itemBuilder: (context, index) {
         final note = notes[index];
-        return TimelineNoteItem(note: note, animation: kAlwaysCompleteAnimation);
+        return TimelineNoteItem(
+          note: note,
+          animation: kAlwaysCompleteAnimation,
+          onReaction: () => _onNoteReaction(context, note),
+          onReactionChipTap: (reaction) =>
+              _onReactionChipTap(context, note, reaction),
+        );
       },
     );
   }
