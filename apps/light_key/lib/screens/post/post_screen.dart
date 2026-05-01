@@ -13,6 +13,32 @@ typedef ReactionPickerLauncher = Future<String?> Function(BuildContext context);
 
 const String postSuccessMessage = '投稿に成功しました';
 
+extension on PostVisibility {
+  IconData get icon {
+    return switch (this) {
+      PostVisibility.public => Icons.public,
+      PostVisibility.home => Icons.home,
+      PostVisibility.follower => Icons.lock,
+    };
+  }
+
+  String get label {
+    return switch (this) {
+      PostVisibility.public => '公開',
+      PostVisibility.home => 'ホーム',
+      PostVisibility.follower => 'フォロワー',
+    };
+  }
+
+  String get optionKey {
+    return switch (this) {
+      PostVisibility.public => 'public',
+      PostVisibility.home => 'home',
+      PostVisibility.follower => 'follower',
+    };
+  }
+}
+
 class PostScreen extends HookWidget {
   const PostScreen({super.key, this.pickReaction = showReactionPickerSheet});
 
@@ -68,6 +94,43 @@ class PostScreen extends HookWidget {
     }
   }
 
+  Future<void> _showVisibilityPicker(BuildContext context) async {
+    // モーダル表示前に公開にリセット
+    context.read<PostProvider>().setVisibility(PostVisibility.public);
+
+    final selected = await showModalBottomSheet<PostVisibility>(
+      context: context,
+      builder: (sheetContext) {
+        final options = [
+          PostVisibility.public,
+          PostVisibility.home,
+          PostVisibility.follower,
+        ];
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(title: Text('公開範囲')),
+              for (final option in options)
+                ListTile(
+                  key: ValueKey('post-visibility-option-${option.optionKey}'),
+                  leading: Icon(option.icon),
+                  title: Text(option.label),
+                  trailing:
+                      option == PostVisibility.public ? const Icon(Icons.check) : null,
+                  onTap: () => Navigator.of(sheetContext).pop(option),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!context.mounted || selected == null) return;
+    context.read<PostProvider>().setVisibility(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final textController = useTextEditingController();
@@ -75,6 +138,12 @@ class PostScreen extends HookWidget {
     final focusNode = useFocusNode();
     final state = context.watch<PostProvider>().state;
     final previewCreatedAt = useMemoized(DateTime.now);
+
+    // 初期化時に公開範囲をリセット
+    useEffect(() {
+      context.read<PostProvider>().setVisibility(PostVisibility.public);
+      return null;
+    }, []);
 
     final previewNote = Note(
       id: 'post-preview',
@@ -91,6 +160,14 @@ class PostScreen extends HookWidget {
           icon: const Icon(Icons.close),
         ),
         actions: [
+          IconButton(
+            key: const ValueKey('post-visibility-button'),
+            tooltip: '公開範囲: ${state.visibility.label}',
+            onPressed: state.status == PostStatus.submitting
+                ? null
+                : () => _showVisibilityPicker(context),
+            icon: Icon(state.visibility.icon),
+          ),
           TextButton(
             key: const ValueKey('post-submit-button'),
             onPressed: state.status == PostStatus.submitting

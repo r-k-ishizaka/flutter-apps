@@ -18,6 +18,12 @@ class PostProvider extends ChangeNotifier {
 
   PostScreenState get state => _state;
 
+  void setVisibility(PostVisibility visibility) {
+    if (_state.visibility == visibility) return;
+    _state = _state.copyWith(visibility: visibility);
+    notifyListeners();
+  }
+
   Future<void> submit(String text) async {
     if (text.trim().isEmpty) {
       _state = _state.copyWith(
@@ -45,13 +51,11 @@ class PostProvider extends ChangeNotifier {
         final postResult = await _postRepository.createPost(
           session,
           text.trim(),
+          _state.visibility,
         );
         postResult.when(
           success: (_) {
-            _state = _state.copyWith(
-              status: PostStatus.success,
-              message: '投稿に成功しました。',
-            );
+            _state = const PostScreenState.idle();
           },
           failure: (error, _) {
             _state = _state.copyWith(
