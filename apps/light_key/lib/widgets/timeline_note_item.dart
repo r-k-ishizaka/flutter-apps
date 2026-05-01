@@ -59,6 +59,9 @@ class TimelineNoteItem extends HookWidget {
     // CW の有無
     final cw = displayNote.cw;
     final hasCw = cw != null && cw.isNotEmpty;
+    final renoteAction = displayNote.visibility == NoteVisibility.followers
+        ? null
+        : onRenote;
 
     return SizeTransition(
       sizeFactor: curved,
@@ -199,7 +202,7 @@ class TimelineNoteItem extends HookWidget {
                             const SizedBox(height: 8),
                             _TimelineNoteActionRow(
                               onReply: onReply,
-                              onRenote: onRenote,
+                              onRenote: renoteAction,
                               onReaction: onReaction,
                             ),
                             if (displayReactions.isNotEmpty) ...[
