@@ -2,8 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/note.dart';
 import '../../models/user_profile.dart';
 import '../../widgets/emoji_text.dart';
+import '../../widgets/timeline_note_item.dart';
 import '../../widgets/user_avatar.dart';
 import 'profile_provider.dart';
 import 'profile_screen_state.dart';
@@ -27,7 +29,17 @@ class ProfileScreen extends StatelessWidget {
           message: state.message,
           onRetry: () => context.read<ProfileProvider>().load(userId),
         ),
-        ProfileStatus.loaded => _ProfileContent(profile: state.profile),
+        ProfileStatus.loaded => RefreshIndicator(
+          onRefresh: () => context.read<ProfileProvider>().load(userId),
+          // 画面全体（NestedScrollView本体）だけでリフレッシュ判定する。
+          notificationPredicate: (notification) => notification.depth == 0,
+          child: _ProfileContent(
+            profile: state.profile,
+            allNotes: state.allNotes,
+            noteOnlyNotes: state.noteOnlyNotes,
+            mediaNotes: state.mediaNotes,
+          ),
+        ),
       },
     );
   }
@@ -58,9 +70,17 @@ class _ProfileError extends StatelessWidget {
 }
 
 class _ProfileContent extends StatelessWidget {
-  const _ProfileContent({required this.profile});
+  const _ProfileContent({
+    required this.profile,
+    required this.allNotes,
+    required this.noteOnlyNotes,
+    required this.mediaNotes,
+  });
 
   final UserProfile? profile;
+  final List<Note> allNotes;
+  final List<Note> noteOnlyNotes;
+  final List<Note> mediaNotes;
 
   @override
   Widget build(BuildContext context) {
@@ -69,54 +89,118 @@ class _ProfileContent extends StatelessWidget {
       return const Center(child: Text('プロフィール情報がありません。'));
     }
 
-    return ListView(
-      children: [
-        _ProfileHeader(profile: user),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 32),
-                EmojiText(
-                  user.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                Text(
-                  '@${user.username}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return DefaultTabController(
+      length: 3,
+      initialIndex: 0,
+      child: NestedScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          final colorScheme = Theme.of(context).colorScheme;
+          return [
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  _ProfileHeader(profile: user),
+                  _ProfileSummary(profile: user),
+                ],
+              ),
+            ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _ProfileTabBarHeaderDelegate(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    border: Border(
+                      bottom: BorderSide(color: colorScheme.outlineVariant),
+                    ),
+                  ),
+                  child: const TabBar(
+                    tabs: [
+                      Tab(text: '全て'),
+                      Tab(text: 'ノート'),
+                      Tab(text: 'メディア'),
+                    ],
                   ),
                 ),
-              const SizedBox(height: 12),
-              if (user.roles.isNotEmpty) ...[
-                _ProfileRolesChips(roles: user.roles),
-                const SizedBox(height: 12),
-              ],
-              EmojiText(
-                _orFallback(user.description, '未設定'),
-                style: Theme.of(context).textTheme.bodyMedium,
               ),
-              const SizedBox(height: 12),
-              _InfoItem(
-                label: '誕生日',
-                value: _formatDate(user.birthday, fallback: '未設定'),
-              ),
-              const SizedBox(height: 12),
-              _InfoItem(
-                label: '登録日',
-                value: _formatDate(user.createdAt, fallback: '不明'),
-              ),
-              const SizedBox(height: 12),
-              _CountRow(profile: user),
-            ],
-          ),
+            ),
+          ];
+        },
+        body: TabBarView(
+          children: [
+            _ProfileNotesTab(
+              notes: allNotes,
+              emptyMessage: 'ノートがありません。',
+              storageKey: 'profile_notes_all',
+            ),
+            _ProfileNotesTab(
+              notes: noteOnlyNotes,
+              emptyMessage: '投稿ノートがありません。',
+              storageKey: 'profile_notes_only',
+            ),
+            _ProfileNotesTab(
+              notes: mediaNotes,
+              emptyMessage: 'メディア付きノートがありません。',
+              storageKey: 'profile_notes_media',
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _ProfileSummary extends StatelessWidget {
+  const _ProfileSummary({required this.profile});
+
+  final UserProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 32),
+          EmojiText(
+            profile.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          Text(
+            '@${profile.username}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (profile.roles.isNotEmpty) ...[
+            _ProfileRolesChips(roles: profile.roles),
+            const SizedBox(height: 12),
+          ],
+          EmojiText(
+            _orFallback(profile.description, '未設定'),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          _InfoItem(
+            label: '誕生日',
+            value: _formatDate(profile.birthday, fallback: '未設定'),
+          ),
+          const SizedBox(height: 12),
+          _InfoItem(
+            label: '登録日',
+            value: _formatDate(profile.createdAt, fallback: '不明'),
+          ),
+          const SizedBox(height: 12),
+          _CountRow(profile: profile),
+        ],
+      ),
     );
   }
 
@@ -135,6 +219,70 @@ class _ProfileContent extends StatelessWidget {
     final month = local.month.toString().padLeft(2, '0');
     final day = local.day.toString().padLeft(2, '0');
     return '${local.year}/$month/$day';
+  }
+}
+
+class _ProfileNotesTab extends StatelessWidget {
+  const _ProfileNotesTab({
+    required this.notes,
+    required this.emptyMessage,
+    required this.storageKey,
+  });
+
+  final List<Note> notes;
+  final String emptyMessage;
+  final String storageKey;
+
+  @override
+  Widget build(BuildContext context) {
+    if (notes.isEmpty) {
+      return CustomScrollView(
+        key: PageStorageKey<String>(storageKey),
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: Text(emptyMessage)),
+          ),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      key: PageStorageKey<String>(storageKey),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: notes.length,
+      itemBuilder: (context, index) {
+        final note = notes[index];
+        return TimelineNoteItem(note: note, animation: kAlwaysCompleteAnimation);
+      },
+    );
+  }
+}
+
+class _ProfileTabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _ProfileTabBarHeaderDelegate({required this.child});
+
+  final Widget child;
+
+  @override
+  double get minExtent => kTextTabBarHeight;
+
+  @override
+  double get maxExtent => kTextTabBarHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(_ProfileTabBarHeaderDelegate oldDelegate) {
+    return child != oldDelegate.child;
   }
 }
 

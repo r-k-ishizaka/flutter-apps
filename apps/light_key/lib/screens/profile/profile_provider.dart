@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../models/note.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/user_profile_repository.dart';
 import 'profile_screen_state.dart';
@@ -33,6 +34,7 @@ class ProfileProvider extends ChangeNotifier {
       status: ProfileStatus.loading,
       clearMessage: true,
       clearProfile: true,
+      clearNotes: true,
     );
     notifyListeners();
 
@@ -51,14 +53,79 @@ class ProfileProvider extends ChangeNotifier {
           session,
           userId,
         );
-        profileResult.when(
-          success: (profile) {
-            _state = _state.copyWith(
-              status: ProfileStatus.loaded,
-              profile: profile,
+        await profileResult.when(
+          success: (profile) async {
+            final allNotesResult = await _profileRepository.fetchUserNotes(
+              session,
+              userId,
+              includeReplies: true,
+              includeRenotes: true,
+            );
+            final noteOnlyResult = await _profileRepository.fetchUserNotes(
+              session,
+              userId,
+              includeReplies: false,
+              includeRenotes: false,
+            );
+            final mediaResult = await _profileRepository.fetchUserNotes(
+              session,
+              userId,
+              includeReplies: false,
+              includeRenotes: false,
+              withFiles: true,
+            );
+
+            await allNotesResult.when(
+              success: (allNotes) async {
+                final pinnedResult = await _profileRepository.fetchUserPinnedNotes(
+                  session,
+                  userId,
+                );
+                final mergedAll = pinnedResult.when(
+                  success: (pinnedNotes) => _mergePinnedNotes(
+                    pinnedNotes,
+                    allNotes,
+                  ),
+                  failure: (_, _) => allNotes,
+                );
+
+                noteOnlyResult.when(
+                  success: (noteOnlyNotes) {
+                    mediaResult.when(
+                      success: (mediaNotes) {
+                        _state = _state.copyWith(
+                          status: ProfileStatus.loaded,
+                          profile: profile,
+                          allNotes: List<Note>.unmodifiable(mergedAll),
+                          noteOnlyNotes: List<Note>.unmodifiable(noteOnlyNotes),
+                          mediaNotes: List<Note>.unmodifiable(mediaNotes),
+                        );
+                      },
+                      failure: (error, _) {
+                        _state = _state.copyWith(
+                          status: ProfileStatus.error,
+                          message: 'メディアノートの取得に失敗しました: $error',
+                        );
+                      },
+                    );
+                  },
+                  failure: (error, _) {
+                    _state = _state.copyWith(
+                      status: ProfileStatus.error,
+                      message: 'ノートの取得に失敗しました: $error',
+                    );
+                  },
+                );
+              },
+              failure: (error, _) {
+                _state = _state.copyWith(
+                  status: ProfileStatus.error,
+                  message: 'ノートの取得に失敗しました: $error',
+                );
+              },
             );
           },
-          failure: (error, _) {
+          failure: (error, _) async {
             _state = _state.copyWith(
               status: ProfileStatus.error,
               message: 'プロフィールの取得に失敗しました: $error',
@@ -75,5 +142,26 @@ class ProfileProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+  }
+
+  List<Note> _mergePinnedNotes(List<Note> pinned, List<Note> notes) {
+    if (pinned.isEmpty) {
+      return notes;
+    }
+
+    final merged = <Note>[];
+    final seenIds = <String>{};
+
+    for (final note in pinned) {
+      if (note.id.isEmpty || seenIds.add(note.id)) {
+        merged.add(note);
+      }
+    }
+    for (final note in notes) {
+      if (note.id.isEmpty || seenIds.add(note.id)) {
+        merged.add(note);
+      }
+    }
+    return merged;
   }
 }
