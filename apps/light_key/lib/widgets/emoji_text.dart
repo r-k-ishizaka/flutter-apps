@@ -81,14 +81,17 @@ class EmojiText extends StatelessWidget {
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
-            child: CachedNetworkImage(
-              imageUrl: entry.url,
-              width: displayWidth,
-              height: emojiSize,
-              fit: BoxFit.fill,
-              placeholder: (_, _) =>
-                  SizedBox(width: displayWidth, height: emojiSize),
-              errorWidget: (_, _, _) => Text(':$name:'),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: CachedNetworkImage(
+                imageUrl: entry.url,
+                width: displayWidth,
+                height: emojiSize,
+                fit: BoxFit.fill,
+                placeholder: (_, _) =>
+                    SizedBox(width: displayWidth, height: emojiSize),
+                errorWidget: (_, _, _) => Text(':$name:'),
+              ),
             ),
           ),
         );
