@@ -7,6 +7,7 @@ import 'package:light_key/datasources/timeline_data_source.dart';
 import 'package:light_key/datasources/timeline_stream_event.dart';
 import 'package:light_key/models/auth_session.dart';
 import 'package:light_key/models/note.dart';
+import 'package:light_key/models/response_with_cache_hints.dart';
 import 'package:light_key/models/user.dart';
 import 'package:light_key/repositories/timeline_repository.dart';
 
@@ -22,12 +23,14 @@ void main() {
         onFetchNote: (s, noteId) async {
           expect(s.baseUrl, session.baseUrl);
           expect(noteId, 'alkt4q1jnrp406d5');
-          return Note(
-            id: 'alkt4q1jnrp406d5',
-            text: 'hello stream',
-            createdAt: DateTime(2026, 4, 27),
-            user: const User(id: 'user-1', username: 'alice', name: 'Alice'),
-            reactions: const {':iinaa2@.:': 1},
+          return ResponseWithCacheHints(
+            data: Note(
+              id: 'alkt4q1jnrp406d5',
+              text: 'hello stream',
+              createdAt: DateTime(2026, 4, 27),
+              user: const User(id: 'user-1', username: 'alice', name: 'Alice'),
+              reactions: const {':iinaa2@.:': 1},
+            ),
           );
         },
       );
@@ -94,7 +97,7 @@ void main() {
               'reaction': ':iinaa2@.:',
               'emoji': {
                 'name': 'iinaa2@.',
-                'url': 'https://media.misskeyusercontent.jp/example.png',
+                'url': 'https://cdn.example.test/example.png',
               },
               'userId': '9go45mlq5n',
             },
@@ -117,20 +120,22 @@ void main() {
       final controller = StreamController<dynamic>();
       final connection = _FakeTimelineConnection(controller.stream);
       final dataSource = _FakeTimelineDataSource(
-        onFetchTimeline: (_, {limit = 20}) async => [
-          Note(
-            id: 'note-2',
-            text: 'older-2',
-            createdAt: DateTime(2026, 4, 27, 0, 1),
-            user: const User(id: 'user-1', username: 'alice', name: 'Alice'),
-          ),
-          Note(
-            id: 'note-1',
-            text: 'older-1',
-            createdAt: DateTime(2026, 4, 27),
-            user: const User(id: 'user-1', username: 'alice', name: 'Alice'),
-          ),
-        ],
+        onFetchTimeline: (_, {limit = 20}) async => ResponseWithCacheHints(
+          data: [
+            Note(
+              id: 'note-2',
+              text: 'older-2',
+              createdAt: DateTime(2026, 4, 27, 0, 1),
+              user: const User(id: 'user-1', username: 'alice', name: 'Alice'),
+            ),
+            Note(
+              id: 'note-1',
+              text: 'older-1',
+              createdAt: DateTime(2026, 4, 27),
+              user: const User(id: 'user-1', username: 'alice', name: 'Alice'),
+            ),
+          ],
+        ),
         connection: connection,
       );
       final repository = TimelineRepository(dataSource);
@@ -197,8 +202,11 @@ void main() {
   });
 }
 
-typedef _FetchNoteHandler = Future<Note> Function(AuthSession, String);
-typedef _FetchTimelineHandler = Future<List<Note>> Function(
+typedef _FetchNoteHandler = Future<ResponseWithCacheHints<Note>> Function(
+  AuthSession,
+  String,
+);
+typedef _FetchTimelineHandler = Future<ResponseWithCacheHints<List<Note>>> Function(
   AuthSession session, {
   int limit,
 });
@@ -229,16 +237,22 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }) async {}
 
   @override
-  Future<List<Note>> fetchTimeline(AuthSession session, {int limit = 20}) async {
+  Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
+    AuthSession session, {
+    int limit = 20,
+  }) async {
     final handler = onFetchTimeline;
     if (handler == null) {
-      throw UnimplementedError('fetchTimeline was not expected in this test.');
+      return const ResponseWithCacheHints(data: <Note>[]);
     }
     return handler(session, limit: limit);
   }
 
   @override
-  Future<Note> fetchNote(AuthSession session, String noteId) async {
+  Future<ResponseWithCacheHints<Note>> fetchNote(
+    AuthSession session,
+    String noteId,
+  ) async {
     fetchNoteCalls.add(noteId);
     final handler = onFetchNote;
     if (handler == null) {

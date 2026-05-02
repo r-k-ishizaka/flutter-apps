@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 
+import '../utils/image_size_reader.dart';
 import '../utils/misskey_http_client.dart';
 import 'emoji_data_source.dart';
 
@@ -52,6 +53,8 @@ class MisskeyEmojiDataSource implements EmojiDataSource {
               url: e['url'] as String? ?? '',
               category: e['category'] as String?,
               aliases: aliases,
+              width: e['width'] as int?,
+              height: e['height'] as int?,
             );
           })
           .where((e) => e.name.isNotEmpty && e.url.isNotEmpty)
@@ -81,7 +84,20 @@ class MisskeyEmojiDataSource implements EmojiDataSource {
   }
 
   @override
-  Future<List<int>> fetchEmojiImageBytes({required String imageUrl}) {
-    return client.getBytes(url: imageUrl);
+  Future<({int width, int height})?> fetchEmojiImageSize({
+    required String imageUrl,
+  }) async {
+    try {
+      final bytes = await client.getPartialBytes(url: imageUrl);
+      return ImageSizeReader.parse(bytes);
+    } catch (e, st) {
+      developer.log(
+        'Failed to fetch image size: $imageUrl',
+        name: 'EmojiDataSource',
+        error: e,
+        stackTrace: st,
+      );
+      return null;
+    }
   }
 }

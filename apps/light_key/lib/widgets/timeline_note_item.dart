@@ -5,6 +5,7 @@ import '../models/note.dart';
 import '../models/note_type.dart';
 import '../models/note_visibility.dart';
 import '../models/user.dart';
+import '../services/emoji_cache.dart';
 import '../utils/datetime_format.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
@@ -16,6 +17,7 @@ class TimelineNoteItem extends HookWidget {
   const TimelineNoteItem({
     required this.note,
     required this.animation,
+    required this.emojis,
     this.onReply,
     this.onRenote,
     this.onReaction,
@@ -26,6 +28,7 @@ class TimelineNoteItem extends HookWidget {
 
   final Note note;
   final Animation<double> animation;
+  final Map<String, EmojiCacheEntry> emojis;
   final VoidCallback? onReply;
   final VoidCallback? onRenote;
   final VoidCallback? onReaction;
@@ -108,6 +111,7 @@ class TimelineNoteItem extends HookWidget {
                               behavior: HitTestBehavior.opaque,
                               child: EmojiText(
                                 '$renoteUserName がリノート',
+                                emojis: emojis,
                                 style: Theme.of(context).textTheme.bodySmall,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -145,8 +149,9 @@ class TimelineNoteItem extends HookWidget {
                                           CrossAxisAlignment.start,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        EmojiText(
-                                          displayUserName,
+                                          EmojiText(
+                                            displayUserName,
+                                            emojis: emojis,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           emojiSize: 18,
@@ -177,40 +182,47 @@ class TimelineNoteItem extends HookWidget {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            // CW バー
-                            if (hasCw) ...[
-                              _CwBar(
-                                cwText: cw,
-                                expanded: cwExpanded.value,
-                                onToggle: () =>
-                                    cwExpanded.value = !cwExpanded.value,
-                              ),
-                              const SizedBox(height: 4),
-                            ],
+                             // CW バー
+                             if (hasCw) ...[
+                                _CwBar(
+                                 cwText: cw,
+                                 expanded: cwExpanded.value,
+                                 onToggle: () =>
+                                     cwExpanded.value = !cwExpanded.value,
+                                 emojis: emojis,
+                               ),
+                               const SizedBox(height: 4),
+                             ],
                             // 本文・メディア（CW がある場合は展開時のみ表示）
                             if (!hasCw || cwExpanded.value) ...[
-                              switch (note.noteType) {
-                                NoteType.normal => EmojiText(
-                                  note.text.isEmpty ? '(本文なし)' : note.text,
-                                ),
-                                NoteType.pureRenote => EmojiText(
-                                  displayNote.text.isEmpty
-                                      ? '(本文なし)'
-                                      : displayNote.text,
-                                ),
-                                NoteType.quoteRenote => Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    EmojiText(
-                                      note.text.isEmpty ? '(本文なし)' : note.text,
-                                    ),
+                               switch (note.noteType) {
+                               NoteType.normal => EmojiText(
+                                 note.text.isEmpty ? '(本文なし)' : note.text,
+                                 emojis: emojis,
+                               ),
+                               NoteType.pureRenote => EmojiText(
+                                 displayNote.text.isEmpty
+                                     ? '(本文なし)'
+                                     : displayNote.text,
+                                 emojis: emojis,
+                               ),
+                               NoteType.quoteRenote => Column(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                   EmojiText(
+                                     note.text.isEmpty ? '(本文なし)' : note.text,
+                                     emojis: emojis,
+                                   ),
                                     if (note.files.isNotEmpty) ...[
                                       const SizedBox(height: 8),
                                       NoteMediaList(files: note.files),
                                     ],
-                                    const SizedBox(height: 8),
-                                    RenoteCard(renote: note.renote!),
-                                  ],
+                                     const SizedBox(height: 8),
+                                     RenoteCard(
+                                       renote: note.renote!,
+                                       emojis: emojis,
+                                     ),
+                                   ],
                                 ),
                               },
                               if (note.noteType == NoteType.normal &&
@@ -232,8 +244,9 @@ class TimelineNoteItem extends HookWidget {
                             ),
                             if (displayReactions.isNotEmpty) ...[
                               const SizedBox(height: 8),
-                              NoteReactionList(
-                                reactions: displayReactions,
+                             NoteReactionList(
+                               reactions: displayReactions,
+                               emojis: emojis,
                                 myReaction: displayMyReaction,
                                 onReactionTap: onReactionChipTap,
                               ),
@@ -290,11 +303,13 @@ class _CwBar extends StatelessWidget {
     required this.cwText,
     required this.expanded,
     required this.onToggle,
+    required this.emojis,
   });
 
   final String cwText;
   final bool expanded;
   final VoidCallback onToggle;
+  final Map<String, EmojiCacheEntry> emojis;
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +325,7 @@ class _CwBar extends StatelessWidget {
         children: [
           EmojiText(
             cwText,
+            emojis: emojis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

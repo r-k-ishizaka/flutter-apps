@@ -4,14 +4,12 @@ import 'package:flutter/foundation.dart';
 
 import '../../models/auth_session.dart';
 import '../../repositories/auth_repository.dart';
-import '../../repositories/emoji_repository.dart';
 import 'auth_screen_state.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider(this._authRepository, this._emojiRepository);
+  AuthProvider(this._authRepository);
 
   final AuthRepository _authRepository;
-  final EmojiRepository _emojiRepository;
 
   AuthScreenState _state = const AuthScreenState.idle();
 
@@ -70,40 +68,10 @@ class AuthProvider extends ChangeNotifier {
           return;
         }
 
-        try {
-          _state = _state.copyWith(
-            message: 'OAuth ログインに成功しました。絵文字を同期中...',
-            emojiSyncProgress: 0,
-          );
-          notifyListeners();
-          await _emojiRepository.syncEmojis(
-            session!,
-            onProgress: (progress, message) {
-              _state = _state.copyWith(
-                emojiSyncProgress: progress,
-                message: message,
-              );
-              notifyListeners();
-            },
-          );
-          developer.log(
-            'Emoji sync completed during OAuth login',
-            name: 'AuthProvider',
-          );
-          _state = _state.copyWith(message: 'ログイン完了。', emojiSyncProgress: 1);
-        } catch (e, st) {
-          developer.log(
-            'Emoji sync failed during OAuth login: $e',
-            name: 'AuthProvider',
-            error: e,
-            stackTrace: st,
-          );
-          // 同期失敗時もログインは継続し、スプラッシュ側で再同期を試みる。
-          _state = _state.copyWith(
-            message: 'ログイン完了（絵文字同期は後で再試行します）。',
-            clearEmojiSyncProgress: true,
-          );
-        }
+        _state = _state.copyWith(
+          message: 'ログイン完了。',
+          clearEmojiSyncProgress: true,
+        );
 
         _state = _state.copyWith(
           status: AuthStatus.authenticated,

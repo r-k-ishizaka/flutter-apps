@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../models/note.dart';
 import '../../models/user.dart';
 import '../../route/app_routes.dart';
+import '../../services/emoji_cache.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/timeline_list.dart';
@@ -81,6 +82,7 @@ class TimelineScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final emojiCache = context.read<EmojiCache>().entries;
     useEffect(() {
       final provider = context.read<TimelineProvider>();
 
@@ -112,6 +114,7 @@ class TimelineScreen extends HookWidget {
     }) {
       return TimelineList(
         notes: notes,
+        emojis: emojiCache,
         isRefreshing: isRefreshing,
         message: message,
         onRefresh: () =>

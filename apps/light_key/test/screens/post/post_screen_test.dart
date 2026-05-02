@@ -4,6 +4,7 @@ import 'package:light_key/datasources/auth_data_source.dart';
 import 'package:light_key/datasources/post_data_source.dart';
 import 'package:light_key/di/di.dart';
 import 'package:light_key/models/auth_session.dart';
+import 'package:light_key/models/response_with_cache_hints.dart';
 import 'package:light_key/models/user.dart';
 import 'package:light_key/repositories/auth_repository.dart';
 import 'package:light_key/repositories/post_repository.dart';
@@ -28,11 +29,20 @@ void main() {
     AuthDataSource? authDataSource,
     PostDataSource? postDataSource,
   }) {
-    return ChangeNotifierProvider(
-      create: (_) => PostProvider(
-        authRepository: AuthRepository(authDataSource ?? _FakeAuthDataSource()),
-        postRepository: PostRepository(postDataSource ?? _FakePostDataSource()),
-      ),
+    return MultiProvider(
+      providers: [
+        Provider<EmojiCache>.value(value: getIt<EmojiCache>()),
+        ChangeNotifierProvider(
+          create: (_) => PostProvider(
+            authRepository: AuthRepository(
+              authDataSource ?? _FakeAuthDataSource(),
+            ),
+            postRepository: PostRepository(
+              postDataSource ?? _FakePostDataSource(),
+            ),
+          ),
+        ),
+      ],
       child: MaterialApp(home: PostScreen(pickReaction: pickReaction)),
     );
   }
@@ -243,18 +253,23 @@ class _FakeAuthDataSource implements AuthDataSource {
   Future<void> saveSession(AuthSession session) async {}
 
   @override
-  Future<User> verify(String baseUrl, String accessToken) async =>
-      const User(id: 'user-1', username: 'alice', name: 'Alice');
+  Future<ResponseWithCacheHints<User>> verify(
+    String baseUrl,
+    String accessToken,
+  ) async =>
+      const ResponseWithCacheHints(
+        data: User(id: 'user-1', username: 'alice', name: 'Alice'),
+      );
 }
 
 class _FakePostDataSource implements PostDataSource {
   @override
-  Future<void> createPost(
+  Future<ResponseWithCacheHints<Map<String, dynamic>>> createPost(
     AuthSession session,
     String text,
     PostVisibility visibility,
     bool isFederated,
-  ) async {}
+  ) async => const ResponseWithCacheHints(data: <String, dynamic>{});
 }
 
 class _RecordingPostDataSource implements PostDataSource {
@@ -263,7 +278,7 @@ class _RecordingPostDataSource implements PostDataSource {
   bool? lastIsFederated;
 
   @override
-  Future<void> createPost(
+  Future<ResponseWithCacheHints<Map<String, dynamic>>> createPost(
     AuthSession session,
     String text,
     PostVisibility visibility,
@@ -272,5 +287,6 @@ class _RecordingPostDataSource implements PostDataSource {
     lastText = text;
     lastVisibility = visibility;
     lastIsFederated = isFederated;
+    return const ResponseWithCacheHints(data: <String, dynamic>{});
   }
 }

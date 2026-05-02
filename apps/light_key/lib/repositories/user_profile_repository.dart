@@ -4,19 +4,25 @@ import '../datasources/user_profile_data_source.dart';
 import '../models/auth_session.dart';
 import '../models/note.dart';
 import '../models/user_profile.dart';
+import 'emoji_repository.dart';
 
 class UserProfileRepository {
-  UserProfileRepository(this._dataSource);
+  UserProfileRepository(this._dataSource, {EmojiRepository? emojiRepository})
+      : _emojiRepository = emojiRepository;
 
   final UserProfileDataSource _dataSource;
+  final EmojiRepository? _emojiRepository;
 
   Future<Result<UserProfile>> fetchUserProfile(
     AuthSession session,
     String userId,
   ) async {
     try {
-      final profile = await _dataSource.fetchUserProfile(session, userId);
-      return Success(profile);
+      final response = await _dataSource.fetchUserProfile(session, userId);
+      if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
+        await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+      }
+      return Success(response.data);
     } on Exception catch (error, stackTrace) {
       return Failure(error, stackTrace);
     }
@@ -33,7 +39,7 @@ class UserProfileRepository {
     bool allowPartial = false,
   }) async {
     try {
-      final notes = await _dataSource.fetchUserNotes(
+      final response = await _dataSource.fetchUserNotes(
         session,
         userId,
         limit: limit,
@@ -43,7 +49,10 @@ class UserProfileRepository {
         withChannelNotes: withChannelNotes,
         allowPartial: allowPartial,
       );
-      return Success(notes);
+      if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
+        await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+      }
+      return Success(response.data);
     } on Exception catch (error, stackTrace) {
       return Failure(error, stackTrace);
     }

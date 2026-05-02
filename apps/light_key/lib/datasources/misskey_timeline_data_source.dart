@@ -2,6 +2,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/auth_session.dart';
 import '../models/note.dart';
+import '../models/response_with_cache_hints.dart';
 import '../utils/misskey_http_client.dart';
 import 'misskey_timeline_connection.dart';
 import 'timeline_connection.dart';
@@ -38,26 +39,35 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
-  Future<List<Note>> fetchTimeline(
+  Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,
   }) async {
-    final response = await client.postJsonList(
+    final response = await client.postJsonListWithCacheHints(
       baseUrl: session.baseUrl,
       path: '/api/notes/timeline',
       body: {'i': session.accessToken, 'limit': limit},
     );
-    return response.map(Note.fromJson).toList(growable: false);
+    return ResponseWithCacheHints(
+      data: response.data.map(Note.fromJson).toList(growable: false),
+      emojisToCache: response.emojisToCache,
+    );
   }
 
   @override
-  Future<Note> fetchNote(AuthSession session, String noteId) async {
-    final response = await client.postJson(
+  Future<ResponseWithCacheHints<Note>> fetchNote(
+    AuthSession session,
+    String noteId,
+  ) async {
+    final response = await client.postJsonWithCacheHints(
       baseUrl: session.baseUrl,
       path: '/api/notes/show',
       body: {'i': session.accessToken, 'noteId': noteId},
     );
-    return Note.fromJson(response);
+    return ResponseWithCacheHints(
+      data: Note.fromJson(response.data),
+      emojisToCache: response.emojisToCache,
+    );
   }
 
   @override

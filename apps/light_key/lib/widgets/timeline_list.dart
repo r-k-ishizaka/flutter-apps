@@ -5,12 +5,14 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
 import '../models/user.dart';
+import '../services/emoji_cache.dart';
 import 'new_notes_banner.dart';
 import 'timeline_note_item.dart';
 
 class TimelineList extends HookWidget {
   const TimelineList({
     required this.notes,
+    required this.emojis,
     this.isRefreshing = false,
     this.message,
     this.onRefresh,
@@ -23,6 +25,7 @@ class TimelineList extends HookWidget {
   });
 
   final List<Note> notes;
+  final Map<String, EmojiCacheEntry> emojis;
   final bool isRefreshing;
   final String? message;
   final Future<void> Function()? onRefresh;
@@ -62,7 +65,12 @@ class TimelineList extends HookWidget {
         isAtTop.value = atTop;
 
         if (atTop && pendingNotes.value.isNotEmpty) {
-          _applyNoteUpdates(listKey, visibleNotes, pendingNotes.value);
+          _applyNoteUpdates(
+            listKey,
+            visibleNotes,
+            pendingNotes.value,
+            emojis,
+          );
           pendingNotes.value = [];
         }
       }
@@ -78,7 +86,7 @@ class TimelineList extends HookWidget {
       }
 
       if (isAtTop.value) {
-        _applyNoteUpdates(listKey, visibleNotes, notes);
+        _applyNoteUpdates(listKey, visibleNotes, notes, emojis);
         pendingNotes.value = [];
       } else {
         _applyExistingNoteUpdates(visibleNotes, notes);
@@ -135,6 +143,7 @@ class TimelineList extends HookWidget {
               final note = visibleNotes.value[index];
               return TimelineNoteItem(
                 note: note,
+                emojis: emojis,
                 animation: animation,
                 onReply: onNoteReply != null ? () => onNoteReply!(note) : null,
                 onRenote: onNoteRenote != null
@@ -171,7 +180,12 @@ class TimelineList extends HookWidget {
                   curve: Curves.easeOut,
                 );
                 Future.delayed(const Duration(milliseconds: 300), () {
-                  _applyNoteUpdates(listKey, visibleNotes, captured);
+                  _applyNoteUpdates(
+                    listKey,
+                    visibleNotes,
+                    captured,
+                    emojis,
+                  );
                 });
               },
             ),
@@ -190,6 +204,7 @@ class TimelineList extends HookWidget {
     GlobalKey<AnimatedListState> listKey,
     ValueNotifier<List<Note>> visibleNotes,
     List<Note> nextNotes,
+    Map<String, EmojiCacheEntry> emojis,
   ) {
     final nextIds = nextNotes.map((note) => note.id).toSet();
     final current = List<Note>.from(visibleNotes.value);
@@ -221,8 +236,11 @@ class TimelineList extends HookWidget {
       final removed = current.removeAt(i);
       listKey.currentState?.removeItem(
         i,
-        (context, animation) =>
-            TimelineNoteItem(note: removed, animation: animation),
+        (context, animation) => TimelineNoteItem(
+          note: removed,
+          emojis: emojis,
+          animation: animation,
+        ),
         duration: const Duration(milliseconds: 180),
       );
     }

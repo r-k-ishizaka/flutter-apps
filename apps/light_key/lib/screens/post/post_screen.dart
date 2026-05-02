@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../models/user.dart';
+import '../../services/emoji_cache.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../widgets/timeline_note_item.dart';
 import 'post_provider.dart';
@@ -189,7 +190,11 @@ class PostScreen extends HookWidget {
 
     // 初期化時に状態をリセット
     useEffect(() {
-      context.read<PostProvider>().reset();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.read<PostProvider>().reset();
+        }
+      });
       return null;
     }, []);
 
@@ -268,6 +273,7 @@ class PostScreen extends HookWidget {
           TimelineNoteItem(
             key: const ValueKey('post-note-preview'),
             note: previewNote,
+            emojis: context.read<EmojiCache>().entries,
             animation: const AlwaysStoppedAnimation(1),
           ),
           if (state.status == PostStatus.error && state.message != null)

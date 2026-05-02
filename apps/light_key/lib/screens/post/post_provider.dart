@@ -31,6 +31,9 @@ class PostProvider extends ChangeNotifier {
   }
 
   void reset() {
+    if (_state == const PostScreenState.idle()) {
+      return;
+    }
     _state = const PostScreenState.idle();
     notifyListeners();
   }

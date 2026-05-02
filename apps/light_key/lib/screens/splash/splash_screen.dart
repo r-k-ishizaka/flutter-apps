@@ -34,26 +34,31 @@ class SplashScreen extends HookWidget {
         ]);
         if (!context.mounted || disposed) return;
 
-        final session = authProvider.state.session;
-        if (session != null) {
-          final emojiRepo = getIt<EmojiRepository>();
+         final session = authProvider.state.session;
+         if (session != null) {
+           final emojiRepo = getIt<EmojiRepository>();
 
-          // 起動体感を優先し、絵文字のDB復元/同期は非同期で進める。
-          unawaited(() async {
-            try {
-              await emojiRepo.loadToCache();
-            } catch (_) {}
+           // スプラッシュ画面で絵文字を全同期してから本体へ遷移する
+           try {
+             await emojiRepo.syncEmojis(
+               session,
+               onProgress: (progress, message) {
+                 if (!context.mounted || disposed) return;
+                 syncMessage.value = message;
+               },
+             );
+           } catch (_) {
+             // 同期失敗時はオフライン復元で進める
+             try {
+               await emojiRepo.loadToCache();
+             } catch (_) {}
+           }
 
-            try {
-              await emojiRepo.syncEmojis(session);
-            } catch (_) {}
-          }());
-
-          if (!context.mounted || disposed) return;
-          const TimelineRoute().go(context);
-          return;
-        }
-        const AuthRoute().go(context);
+           if (!context.mounted || disposed) return;
+           const TimelineRoute().go(context);
+           return;
+         }
+         const AuthRoute().go(context);
       }
 
       unawaited(bootstrap());

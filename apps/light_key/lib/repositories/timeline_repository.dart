@@ -9,11 +9,15 @@ import '../datasources/timeline_data_source.dart';
 import '../datasources/timeline_stream_event.dart';
 import '../models/auth_session.dart';
 import '../models/note.dart';
+import '../models/response_with_cache_hints.dart';
+import 'emoji_repository.dart';
 
 class TimelineRepository {
-  TimelineRepository(this._dataSource);
+  TimelineRepository(this._dataSource, {EmojiRepository? emojiRepository})
+      : _emojiRepository = emojiRepository;
 
   final TimelineDataSource _dataSource;
+  final EmojiRepository? _emojiRepository;
   static const int _maxSubscribedNotes = 200;
 
   Future<Result<void>> createReaction(
@@ -50,8 +54,11 @@ class TimelineRepository {
     int limit = 20,
   }) async {
     try {
-      final notes = await _dataSource.fetchTimeline(session, limit: limit);
-      return Success(notes);
+      final response = await _dataSource.fetchTimeline(session, limit: limit);
+      if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
+        await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+      }
+      return Success(response.data);
     } on Exception catch (e, st) {
       return Failure(e, st);
     }
@@ -203,7 +210,9 @@ class TimelineRepository {
     }
   }
 
-  TimelineStreamEvent? _parseNoteUpdatedEvent(Map<String, dynamic> payload) {
+  Future<TimelineStreamEvent?> _parseNoteUpdatedEvent(
+    Map<String, dynamic> payload,
+  ) async {
     if (payload['type'] != 'noteUpdated') return null;
 
     final body = _asMap(payload['body']);
@@ -218,6 +227,8 @@ class TimelineRepository {
         final reaction = updateBody['reaction'] as String? ?? '';
         if (reaction.isEmpty) return null;
 
+        await _cacheReactionEmojiHint(updateBody);
+
         final delta = updateType == 'reacted' ? 1 : -1;
         return TimelineReactionUpdated(
           noteId: noteId,
@@ -226,6 +237,24 @@ class TimelineRepository {
         );
       default:
         return null;
+    }
+  }
+
+  Future<void> _cacheReactionEmojiHint(Map<String, dynamic> updateBody) async {
+    final repository = _emojiRepository;
+    if (repository == null) return;
+
+    final emoji = _asMap(updateBody['emoji']);
+    final name = emoji['name'] as String? ?? '';
+    final url = emoji['url'] as String? ?? '';
+    if (name.isEmpty || url.isEmpty) return;
+
+    try {
+      await repository.cacheEmojiHints([
+        EmojiToCache(name: name, url: url),
+      ]);
+    } on Exception {
+      // Realtime 反映を優先し、絵文字キャッシュ失敗は非致命として扱う。
     }
   }
 
@@ -243,7 +272,10 @@ class TimelineRepository {
     }
 
     final fetched = await _dataSource.fetchNote(session, noteId);
-    return TimelineNoteReceived(fetched);
+    if (_emojiRepository != null && fetched.emojisToCache.isNotEmpty) {
+      await _emojiRepository.cacheEmojiHints(fetched.emojisToCache);
+    }
+    return TimelineNoteReceived(fetched.data);
   }
 
   void _syncSubscriptions(

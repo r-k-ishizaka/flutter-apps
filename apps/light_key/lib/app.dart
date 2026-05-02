@@ -5,13 +5,13 @@ import 'package:provider/provider.dart';
 import 'di/di.dart';
 import 'providers/theme_provider.dart';
 import 'repositories/auth_repository.dart';
-import 'repositories/emoji_repository.dart';
 import 'repositories/post_repository.dart';
 import 'repositories/timeline_repository.dart';
 import 'route/app_routes.dart';
 import 'screens/auth/auth_provider.dart';
 import 'screens/post/post_provider.dart';
 import 'screens/timeline/timeline_provider.dart';
+import 'services/emoji_cache.dart';
 
 TextTheme buildMixedTextTheme(TextTheme baseTheme) {
   final jpFamily = GoogleFonts.notoSansJp().fontFamily;
@@ -30,12 +30,12 @@ class LightKeyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<EmojiCache>.value(value: getIt<EmojiCache>()),
         ChangeNotifierProvider<ThemeProvider>(
           create: (_) => getIt<ThemeProvider>(),
         ),
         ChangeNotifierProvider(
-          create: (_) =>
-              AuthProvider(getIt<AuthRepository>(), getIt<EmojiRepository>()),
+          create: (_) => AuthProvider(getIt<AuthRepository>()),
         ),
         ChangeNotifierProvider(
           create: (_) => TimelineProvider(

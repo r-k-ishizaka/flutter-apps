@@ -36,18 +36,20 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<EmojiDataSource>(
     () => MisskeyEmojiDataSource(client: getIt<MisskeyHttpClient>()),
   );
-  getIt.registerLazySingleton(
-    () => EmojiRepository(
-      dataSource: getIt<EmojiDataSource>(),
-      database: getIt<AppDatabase>(),
-      cache: getIt<EmojiCache>(),
-    ),
-  );
 
   getIt.registerLazySingleton<AuthDataSource>(
     () => MisskeyAuthDataSource(
       client: getIt<MisskeyHttpClient>(),
       prefs: getIt<SharedPreferences>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<EmojiRepository>(
+    () => EmojiRepository(
+      dataSource: getIt<EmojiDataSource>(),
+      authDataSource: getIt<AuthDataSource>(),
+      database: getIt<AppDatabase>(),
+      cache: getIt<EmojiCache>(),
     ),
   );
   getIt.registerLazySingleton<TimelineDataSource>(
@@ -60,12 +62,28 @@ Future<void> configureDependencies() async {
     () => MisskeyUserProfileDataSource(getIt<MisskeyHttpClient>()),
   );
 
-  getIt.registerLazySingleton(() => AuthRepository(getIt<AuthDataSource>()));
   getIt.registerLazySingleton(
-    () => TimelineRepository(getIt<TimelineDataSource>()),
+    () => AuthRepository(
+      getIt<AuthDataSource>(),
+      emojiRepository: getIt<EmojiRepository>(),
+    ),
   );
-  getIt.registerLazySingleton(() => PostRepository(getIt<PostDataSource>()));
   getIt.registerLazySingleton(
-    () => UserProfileRepository(getIt<UserProfileDataSource>()),
+    () => TimelineRepository(
+      getIt<TimelineDataSource>(),
+      emojiRepository: getIt<EmojiRepository>(),
+    ),
+  );
+  getIt.registerLazySingleton(
+    () => PostRepository(
+      getIt<PostDataSource>(),
+      emojiRepository: getIt<EmojiRepository>(),
+    ),
+  );
+  getIt.registerLazySingleton(
+    () => UserProfileRepository(
+      getIt<UserProfileDataSource>(),
+      emojiRepository: getIt<EmojiRepository>(),
+    ),
   );
 }

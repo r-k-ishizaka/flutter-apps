@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/emoji_cache.dart';
 import 'emoji_text.dart';
 
 /// リアクション一覧（チップ群）を表示するウィジェット。
@@ -7,12 +8,14 @@ import 'emoji_text.dart';
 class NoteReactionList extends StatelessWidget {
   const NoteReactionList({
     required this.reactions,
+    required this.emojis,
     this.myReaction,
     this.onReactionTap,
     super.key,
   });
 
   final Map<String, int> reactions;
+  final Map<String, EmojiCacheEntry> emojis;
 
   /// 自分がつけたリアクション。該当するチップにアクセントが付く。
   final String? myReaction;
@@ -21,14 +24,18 @@ class NoteReactionList extends StatelessWidget {
   // `:name@.:` は同一サーバ絵文字なので `:name:` に正規化する。
   static String _normalizeReaction(String reaction) {
     final match = RegExp(r'^:([a-zA-Z0-9_]+)@\.:$').firstMatch(reaction);
-    if (match == null) return reaction;
-    return ':${match.group(1)}:';
+    if (match == null) {
+      return reaction;
+    }
+    final normalized = ':${match.group(1)}:';
+    return normalized;
   }
 
   // `:name@host:` 形式で host が `.` 以外なら他サーバ絵文字として扱う。
   static bool _isCrossServerReaction(String reaction) {
     final match = RegExp(r'^:[a-zA-Z0-9_]+@([^:]+):$').firstMatch(reaction);
-    return match != null && match.group(1) != '.';
+    final isCrossServer = match != null && match.group(1) != '.';
+    return isCrossServer;
   }
 
   @override
@@ -58,6 +65,7 @@ class NoteReactionList extends StatelessWidget {
               reactionKey: entry.key,
               reaction: normalizedReaction,
               count: entry.value,
+              emojis: emojis,
               isEnabled: canTap,
               isMyReaction:
                   normalizedMyReaction != null &&
@@ -75,6 +83,7 @@ class _ReactionChip extends StatelessWidget {
     required this.reactionKey,
     required this.reaction,
     required this.count,
+    required this.emojis,
     this.isEnabled = true,
     this.isMyReaction = false,
     this.onTap,
@@ -83,6 +92,7 @@ class _ReactionChip extends StatelessWidget {
   final String reactionKey;
   final String reaction;
   final int count;
+  final Map<String, EmojiCacheEntry> emojis;
   final bool isEnabled;
   final bool isMyReaction;
   final ValueChanged<String>? onTap;
@@ -106,12 +116,13 @@ class _ReactionChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          EmojiText(
-            reaction,
-            emojiSize: 18,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+           EmojiText(
+             reaction,
+             emojis: emojis,
+             emojiSize: 18,
+             maxLines: 1,
+             overflow: TextOverflow.ellipsis,
+           ),
           const SizedBox(width: 4),
           Text(
             '$count',

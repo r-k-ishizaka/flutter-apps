@@ -1,4 +1,5 @@
 import '../models/auth_session.dart';
+import '../models/response_with_cache_hints.dart';
 import '../screens/post/post_screen_state.dart';
 import '../utils/misskey_http_client.dart';
 import 'post_data_source.dart';
@@ -17,13 +18,13 @@ class MisskeyPostDataSource implements PostDataSource {
   }
 
   @override
-  Future<void> createPost(
+  Future<ResponseWithCacheHints<Map<String, dynamic>>> createPost(
     AuthSession session,
     String text,
     PostVisibility visibility,
     bool isFederated,
   ) async {
-    await client.postJson(
+    return client.postJsonWithCacheHints(
       baseUrl: session.baseUrl,
       path: '/api/notes/create',
       body: {

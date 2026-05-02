@@ -9,13 +9,13 @@ void main() {
       'createdAt': '2026-04-25T00:00:00.000Z',
       'user': {
         'id': 'user-1',
-        'username': 'kikuchi',
-        'name': 'Kikuchi',
+        'username': 'sample_user',
+        'name': 'Sample User',
       },
     });
 
     expect(note.id, 'note-1');
     expect(note.text, 'hello');
-    expect(note.user.username, 'kikuchi');
+    expect(note.user.username, 'sample_user');
   });
 }

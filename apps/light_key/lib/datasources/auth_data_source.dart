@@ -1,8 +1,12 @@
 import '../models/auth_session.dart';
+import '../models/response_with_cache_hints.dart';
 import '../models/user.dart';
 
 abstract interface class AuthDataSource {
-  Future<User> verify(String baseUrl, String accessToken);
+  Future<ResponseWithCacheHints<User>> verify(
+    String baseUrl,
+    String accessToken,
+  );
 
   Future<void> saveSession(AuthSession session);
 

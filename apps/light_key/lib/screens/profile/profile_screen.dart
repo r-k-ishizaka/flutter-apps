@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../models/user_profile.dart';
+import '../../services/emoji_cache.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../widgets/emoji_text.dart';
 import '../../widgets/timeline_note_item.dart';
@@ -18,6 +19,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final emojiCache = context.read<EmojiCache>();
     final status = context.select<ProfileProvider, ProfileStatus>(
       (p) => p.state.status,
     );
@@ -37,7 +39,7 @@ class ProfileScreen extends StatelessWidget {
         ProfileStatus.loaded => RefreshIndicator(
           onRefresh: () => context.read<ProfileProvider>().load(userId),
           displacement: 64, // TabBar下に表示
-          child: _ProfileContentConsumer(userId: userId),
+          child: _ProfileContentConsumer(userId: userId, emojis: emojiCache.entries),
         ),
       },
     );
@@ -70,9 +72,10 @@ class _ProfileError extends StatelessWidget {
 
 /// loaded 状態のみ購読し、profile/notes が変わったときだけ rebuild する。
 class _ProfileContentConsumer extends StatelessWidget {
-  const _ProfileContentConsumer({required this.userId});
+  const _ProfileContentConsumer({required this.userId, required this.emojis});
 
   final String userId;
+  final Map<String, EmojiCacheEntry> emojis;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +87,7 @@ class _ProfileContentConsumer extends StatelessWidget {
       allNotes: state.$2,
       noteOnlyNotes: state.$3,
       mediaNotes: state.$4,
+      emojis: emojis,
     );
   }
 }
@@ -94,12 +98,14 @@ class _ProfileContent extends StatelessWidget {
     required this.allNotes,
     required this.noteOnlyNotes,
     required this.mediaNotes,
+    required this.emojis,
   });
 
   final UserProfile? profile;
   final List<Note> allNotes;
   final List<Note> noteOnlyNotes;
   final List<Note> mediaNotes;
+  final Map<String, EmojiCacheEntry> emojis;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +145,7 @@ class _ProfileContent extends StatelessWidget {
                     child: Column(
                       children: [
                         _ProfileHeader(profile: user),
-                        _ProfileSummary(profile: user),
+                         _ProfileSummary(profile: user, emojis: emojis),
                         SizedBox(key: profileEndKey),
                       ],
                     ),
@@ -177,6 +183,7 @@ class _ProfileContent extends StatelessWidget {
                   _ProfileNotesSliver(
                     notes: notes,
                     emptyMessage: emptyMessage,
+                    emojis: emojis,
                   ),
                 ],
               );
@@ -189,9 +196,10 @@ class _ProfileContent extends StatelessWidget {
 }
 
 class _ProfileSummary extends StatelessWidget {
-  const _ProfileSummary({required this.profile});
+  const _ProfileSummary({required this.profile, required this.emojis});
 
   final UserProfile profile;
+  final Map<String, EmojiCacheEntry> emojis;
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +211,7 @@ class _ProfileSummary extends StatelessWidget {
           const SizedBox(height: 32),
           EmojiText(
             profile.name,
+            emojis: emojis,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleLarge,
@@ -220,10 +229,11 @@ class _ProfileSummary extends StatelessWidget {
             _ProfileRolesChips(roles: profile.roles),
             const SizedBox(height: 12),
           ],
-          EmojiText(
-            _orFallback(profile.description, '未設定'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+           EmojiText(
+             _orFallback(profile.description, '未設定'),
+             emojis: emojis,
+             style: Theme.of(context).textTheme.bodyMedium,
+           ),
           const SizedBox(height: 12),
           _InfoItem(
             label: '誕生日',
@@ -263,10 +273,12 @@ class _ProfileNotesSliver extends StatelessWidget {
   const _ProfileNotesSliver({
     required this.notes,
     required this.emptyMessage,
+    required this.emojis,
   });
 
   final List<Note> notes;
   final String emptyMessage;
+  final Map<String, EmojiCacheEntry> emojis;
 
   static Future<void> _onNoteReaction(BuildContext context, Note note) async {
     final emoji = await showReactionPickerSheet(context);
@@ -312,6 +324,7 @@ class _ProfileNotesSliver extends StatelessWidget {
           return TimelineNoteItem(
             note: note,
             animation: kAlwaysCompleteAnimation,
+            emojis: emojis,
             onReaction: () => _onNoteReaction(context, note),
             onReactionChipTap: (reaction) =>
                 _onReactionChipTap(context, note, reaction),

@@ -1,11 +1,15 @@
 import '../models/auth_session.dart';
 import '../models/note.dart';
+import '../models/response_with_cache_hints.dart';
 import '../models/user_profile.dart';
 
 abstract interface class UserProfileDataSource {
-  Future<UserProfile> fetchUserProfile(AuthSession session, String userId);
+  Future<ResponseWithCacheHints<UserProfile>> fetchUserProfile(
+    AuthSession session,
+    String userId,
+  );
 
-  Future<List<Note>> fetchUserNotes(
+  Future<ResponseWithCacheHints<List<Note>>> fetchUserNotes(
     AuthSession session,
     String userId, {
     int limit = 50,

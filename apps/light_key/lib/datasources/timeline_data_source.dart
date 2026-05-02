@@ -1,9 +1,13 @@
 import '../models/auth_session.dart';
 import '../models/note.dart';
+import '../models/response_with_cache_hints.dart';
 import 'timeline_connection.dart';
 
 abstract interface class TimelineDataSource {
-  Future<List<Note>> fetchTimeline(AuthSession session, {int limit = 20});
+  Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
+    AuthSession session, {
+    int limit = 20,
+  });
 
   Future<void> createReaction(
     AuthSession session, {
@@ -14,7 +18,10 @@ abstract interface class TimelineDataSource {
   Future<void> createRenote(AuthSession session, {required String noteId});
 
   /// Fetches a single note by ID.
-  Future<Note> fetchNote(AuthSession session, String noteId);
+  Future<ResponseWithCacheHints<Note>> fetchNote(
+    AuthSession session,
+    String noteId,
+  );
 
   /// Opens a raw WebSocket connection.
   /// The caller is responsible for sending connect/disconnect/subNote/unsubNote

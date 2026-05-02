@@ -1,6 +1,7 @@
-import 'dart:developer' as developer;
-
 import 'package:dio/dio.dart';
+
+import '../models/response_with_cache_hints.dart';
+import 'emoji_caching_interceptor.dart';
 
 class MisskeyHttpClient {
   MisskeyHttpClient([Dio? dio])
@@ -17,8 +18,8 @@ class MisskeyHttpClient {
               validateStatus: (_) => true,
             ),
           ) {
-    // 全リクエスト・レスポンスをログ
-    _dio.interceptors.add(LoggingInterceptor());
+    // 絵文字をレスポンスから自動抽出してキャッシュ
+    _dio.interceptors.add(EmojiCachingInterceptor());
   }
 
   final Dio _dio;
@@ -65,6 +66,28 @@ class MisskeyHttpClient {
     throw Exception('Unexpected response format');
   }
 
+  Future<ResponseWithCacheHints<Map<String, dynamic>>> postJsonWithCacheHints({
+    required String baseUrl,
+    required String path,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await _post(baseUrl: baseUrl, path: path, body: body);
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      return ResponseWithCacheHints(
+        data: data,
+        emojisToCache: _readEmojiHintsFromExtra(response.extra),
+      );
+    }
+    if (data is Map) {
+      return ResponseWithCacheHints(
+        data: Map<String, dynamic>.from(data),
+        emojisToCache: _readEmojiHintsFromExtra(response.extra),
+      );
+    }
+    throw Exception('Unexpected response format');
+  }
+
   /// POST リクエストを送り、レスポンスボディを無視する（204 No Content など）。
   Future<void> postVoid({
     required String baseUrl,
@@ -87,6 +110,27 @@ class MisskeyHttpClient {
           .toList(growable: false);
     }
     throw Exception('Unexpected response format');
+  }
+
+  Future<ResponseWithCacheHints<List<Map<String, dynamic>>>>
+  postJsonListWithCacheHints({
+    required String baseUrl,
+    required String path,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await _post(baseUrl: baseUrl, path: path, body: body);
+    final data = response.data;
+    if (data is! List) {
+      throw Exception('Unexpected response format');
+    }
+
+    final list = data
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList(growable: false);
+    return ResponseWithCacheHints(
+      data: list,
+      emojisToCache: _readEmojiHintsFromExtra(response.extra),
+    );
   }
 
   Future<Response<dynamic>> _post({
@@ -119,6 +163,48 @@ class MisskeyHttpClient {
     return trimmed;
   }
 
+  List<EmojiToCache> _readEmojiHintsFromExtra(Map<String, dynamic> extra) {
+    final raw = extra[EmojiCachingInterceptor.extraKeyEmojisToCache];
+    if (raw is! List) {
+      return const <EmojiToCache>[];
+    }
+    return raw
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .map((e) => EmojiToCache(
+              name: e['name'] as String? ?? '',
+              url: e['url'] as String? ?? '',
+            ))
+        .where((e) => e.name.isNotEmpty && e.url.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  /// Range リクエストで先頭 [maxBytes] バイトだけ取得する（画像サイズ判定用）。
+  ///
+  /// サーバーが Range 非対応の場合（200 応答）はそのままデータを返す。
+  Future<List<int>> getPartialBytes({
+    required String url,
+    int maxBytes = 4096,
+  }) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Range': 'bytes=0-${maxBytes - 1}'},
+          validateStatus: (status) =>
+              status != null &&
+              (status == 206 || (status >= 200 && status < 300)),
+        ),
+      );
+      return response.data ?? const <int>[];
+    } on DioException catch (error) {
+      throw Exception(
+        'Misskey asset request failed: ${error.message ?? error.toString()}',
+      );
+    }
+  }
+
   /// 任意 URL からバイト配列を取得する（絵文字画像用）。
   Future<List<int>> getBytes({required String url}) async {
     try {
@@ -136,39 +222,5 @@ class MisskeyHttpClient {
         'Misskey asset request failed: ${error.message ?? error.toString()}',
       );
     }
-  }
-}
-
-/// Dio の全リクエスト・レスポンスをコンソールにログ出力するインターセプター。
-class LoggingInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    developer.log('→ REQUEST: ${options.method} ${options.uri}', name: 'Dio');
-    if (options.data != null) {
-      developer.log('  Body: ${options.data}', name: 'Dio');
-    }
-    handler.next(options);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    developer.log(
-      '← RESPONSE: ${response.statusCode} ${response.requestOptions.uri}',
-      name: 'Dio',
-    );
-    if (response.data != null) {
-      developer.log('  Data: ${response.data}', name: 'Dio');
-    }
-    handler.next(response);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    developer.log(
-      '⚠ ERROR: ${err.type} ${err.requestOptions.uri}',
-      name: 'Dio',
-    );
-    developer.log('  Message: ${err.message}', name: 'Dio');
-    handler.next(err);
   }
 }

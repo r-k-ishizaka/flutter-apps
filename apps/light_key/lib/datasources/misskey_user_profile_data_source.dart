@@ -1,5 +1,6 @@
 import '../models/auth_session.dart';
 import '../models/note.dart';
+import '../models/response_with_cache_hints.dart';
 import '../models/user_profile.dart';
 import '../utils/misskey_http_client.dart';
 import 'user_profile_data_source.dart';
@@ -10,20 +11,23 @@ class MisskeyUserProfileDataSource implements UserProfileDataSource {
   final MisskeyHttpClient _client;
 
   @override
-  Future<UserProfile> fetchUserProfile(
+  Future<ResponseWithCacheHints<UserProfile>> fetchUserProfile(
     AuthSession session,
     String userId,
   ) async {
-    final response = await _client.postJson(
+    final response = await _client.postJsonWithCacheHints(
       baseUrl: session.baseUrl,
       path: '/api/users/show',
       body: {'i': session.accessToken, 'userId': userId},
     );
-    return UserProfile.fromJson(response);
+    return ResponseWithCacheHints(
+      data: UserProfile.fromJson(response.data),
+      emojisToCache: response.emojisToCache,
+    );
   }
 
   @override
-  Future<List<Note>> fetchUserNotes(
+  Future<ResponseWithCacheHints<List<Note>>> fetchUserNotes(
     AuthSession session,
     String userId, {
     int limit = 50,
@@ -33,7 +37,7 @@ class MisskeyUserProfileDataSource implements UserProfileDataSource {
     bool withChannelNotes = true,
     bool allowPartial = false,
   }) async {
-    final response = await _client.postJsonList(
+    final response = await _client.postJsonListWithCacheHints(
       baseUrl: session.baseUrl,
       path: '/api/users/notes',
       body: {
@@ -47,6 +51,9 @@ class MisskeyUserProfileDataSource implements UserProfileDataSource {
         'allowPartial': allowPartial,
       },
     );
-    return response.map(Note.fromJson).toList(growable: false);
+    return ResponseWithCacheHints(
+      data: response.data.map(Note.fromJson).toList(growable: false),
+      emojisToCache: response.emojisToCache,
+    );
   }
 }

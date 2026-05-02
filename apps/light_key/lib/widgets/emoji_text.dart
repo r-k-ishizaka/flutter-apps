@@ -1,25 +1,27 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../di/di.dart';
 import '../services/emoji_cache.dart';
 
 /// Misskey のノート本文を絵文字付きでレンダリングするウィジェット。
 ///
-/// テキスト中の `:shortcode:` を検出し、[EmojiCache] から画像バイナリを優先参照して
-/// インライン表示する。バイナリ未保存時のみ URL を使ってフォールバックする。
-/// キャッシュに該当エントリがない場合は `:shortcode:` をそのままテキスト表示。
+/// テキスト中の `:shortcode:` を検出し、[emojis] にある URL を使って
+/// インライン表示する。キャッシュに該当エントリがない場合は
+/// `:shortcode:` をそのままテキスト表示。
 class EmojiText extends StatelessWidget {
   const EmojiText(
     this.text, {
+    required this.emojis,
     super.key,
     this.style,
     this.emojiSize = 25.0,
     this.maxLines,
     this.overflow,
+    this.host,
   });
 
   final String text;
+  final Map<String, EmojiCacheEntry> emojis;
   final TextStyle? style;
 
   /// 絵文字画像の表示高さ。
@@ -28,16 +30,17 @@ class EmojiText extends StatelessWidget {
   final int? maxLines;
   final TextOverflow? overflow;
 
-  // :shortcode: に加えて :shortcode@host: 形式も許可する。
+  /// `:name:` の解決時に使う既定ホスト。指定時は `name@host` を優先して参照する。
+  final String? host;
+
+  // :shortcode: に加えて :shortcode@host: / :shortcode@.: 形式も許可する。
   static final _emojiPattern = RegExp(
-    r':([a-zA-Z0-9_.-]+)(?:@[a-zA-Z0-9.-]+)?:',
+    r':([a-zA-Z0-9_.-]+)(?:@([a-zA-Z0-9.-]+|\.))?:',
   );
 
   @override
   Widget build(BuildContext context) {
-    final cache = getIt<EmojiCache>();
-
-    final spans = _buildSpans(text, cache, context);
+    final spans = _buildSpans(text, emojis, context);
 
     return Text.rich(
       TextSpan(children: spans),
@@ -49,7 +52,7 @@ class EmojiText extends StatelessWidget {
 
   List<InlineSpan> _buildSpans(
     String source,
-    EmojiCache cache,
+    Map<String, EmojiCacheEntry> cache,
     BuildContext context,
   ) {
     final spans = <InlineSpan>[];
@@ -62,38 +65,30 @@ class EmojiText extends StatelessWidget {
       }
 
       final name = match.group(1)!;
-      final imageBytes = cache.getImageBytes(name);
-      final url = cache.getUrl(name);
+      final explicitHost = match.group(2);
+      final entry = _resolveEmojiEntry(
+        cache: cache,
+        name: name,
+        explicitHost: explicitHost,
+      );
 
-      if (imageBytes != null && imageBytes.isNotEmpty) {
-        spans.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: emojiSize * 11),
-              child: Image.memory(
-                imageBytes,
-                height: emojiSize,
-                fit: BoxFit.fitHeight,
-                errorBuilder: (_, _, _) => Text(':$name:'),
-              ),
-            ),
-          ),
+      if (entry != null && entry.url.isNotEmpty) {
+        // アスペクト比から表示幅を計算（最大 emojiSize * 11 に制限）
+        final displayWidth = (emojiSize * entry.aspectRatio).clamp(
+          0.0,
+          emojiSize * 11,
         );
-      } else if (url != null && url.isNotEmpty) {
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: emojiSize * 11),
-              child: CachedNetworkImage(
-                imageUrl: url,
-                height: emojiSize,
-                fit: BoxFit.fitHeight,
-                placeholder: (_, _) =>
-                    SizedBox(width: emojiSize, height: emojiSize),
-                errorWidget: (_, _, _) => Text(':$name:'),
-              ),
+            child: CachedNetworkImage(
+              imageUrl: entry.url,
+              width: displayWidth,
+              height: emojiSize,
+              fit: BoxFit.fill,
+              placeholder: (_, _) =>
+                  SizedBox(width: displayWidth, height: emojiSize),
+              errorWidget: (_, _, _) => Text(':$name:'),
             ),
           ),
         );
@@ -111,5 +106,60 @@ class EmojiText extends StatelessWidget {
     }
 
     return spans;
+  }
+
+  EmojiCacheEntry? _resolveEmojiEntry({
+    required Map<String, EmojiCacheEntry> cache,
+    required String name,
+    String? explicitHost,
+  }) {
+    // 明示的な host がある場合（:name@host:）は最優先。
+    if (explicitHost != null && explicitHost.isNotEmpty && explicitHost != '.') {
+      final keyWithHost = '$name@$explicitHost';
+      final entryWithHost = cache[keyWithHost];
+      if (entryWithHost != null) {
+        return entryWithHost;
+      }
+
+      // host指定でも見つからないので bare name で再検索
+      final entryBare = cache[name];
+      if (entryBare != null) {
+        return entryBare;
+      }
+      return null;
+    }
+
+    // host 引数が与えられている場合、:name: は name@host を優先。
+    final defaultHost = host;
+    if (defaultHost != null && defaultHost.isNotEmpty) {
+      final keyWithDefaultHost = '$name@$defaultHost';
+      final entryWithDefaultHost = cache[keyWithDefaultHost];
+      if (entryWithDefaultHost != null) {
+        return entryWithDefaultHost;
+      }
+
+      // host指定でも見つからないので bare name で再検索
+      final entryBare = cache[name];
+      if (entryBare != null) {
+        return entryBare;
+      }
+      return null;
+    }
+
+    // host 指定なし → bare name で検索
+    final bareEntry = cache[name];
+    if (bareEntry != null) {
+      return bareEntry;
+    }
+
+    // bare name でもヒットしない場合、`name@host` 形式でキャッシュされた
+    // 他鯖ユーザーのプロフィール絵文字をスキャンして返す
+    final prefix = '$name@';
+    for (final entry in cache.entries) {
+      if (entry.key.startsWith(prefix)) {
+        return entry.value;
+      }
+    }
+    return null;
   }
 }

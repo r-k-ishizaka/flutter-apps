@@ -3,11 +3,14 @@ import 'package:core/models/result.dart';
 import '../datasources/auth_data_source.dart';
 import '../models/auth_session.dart';
 import '../models/user.dart';
+import 'emoji_repository.dart';
 
 class AuthRepository {
-  AuthRepository(this._dataSource);
+  AuthRepository(this._dataSource, {EmojiRepository? emojiRepository})
+      : _emojiRepository = emojiRepository;
 
   final AuthDataSource _dataSource;
+  final EmojiRepository? _emojiRepository;
 
   Future<Result<User>> signInWithOAuth(
     String baseUrl,
@@ -24,11 +27,14 @@ class AuthRepository {
         redirectUri,
         codeVerifier: codeVerifier,
       );
-      final user = await _dataSource.verify(baseUrl, accessToken);
-      await _dataSource.saveSession(
-        AuthSession(baseUrl: baseUrl, accessToken: accessToken),
-      );
-      return Success(user);
+      final response = await _dataSource.verify(baseUrl, accessToken);
+      if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
+        await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+      }
+       final session = AuthSession(baseUrl: baseUrl, accessToken: accessToken);
+       await _dataSource.saveSession(session);
+
+       return Success(response.data);
     } on Exception catch (e, st) {
       return Failure(e, st);
     }

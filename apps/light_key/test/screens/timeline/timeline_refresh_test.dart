@@ -8,6 +8,7 @@ import 'package:light_key/datasources/timeline_data_source.dart';
 import 'package:light_key/di/di.dart';
 import 'package:light_key/models/auth_session.dart';
 import 'package:light_key/models/note.dart';
+import 'package:light_key/models/response_with_cache_hints.dart';
 import 'package:light_key/models/user.dart';
 import 'package:light_key/repositories/auth_repository.dart';
 import 'package:light_key/repositories/timeline_repository.dart';
@@ -293,6 +294,7 @@ void main() {
         MaterialApp(
           home: TimelineList(
             notes: [noteWithReaction],
+            emojis: getIt<EmojiCache>().entries,
             onNoteReactionChipTap: (note, reaction) {
               tappedNote = note;
               tappedReaction = reaction;
@@ -316,6 +318,7 @@ void main() {
           home: Scaffold(
             body: NoteReactionList(
               reactions: const {':custom@example.com:': 1},
+              emojis: getIt<EmojiCache>().entries,
               onReactionTap: (_) => tapped = true,
             ),
           ),
@@ -359,7 +362,10 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
-          home: TimelineList(notes: [pureRenoteWithReaction(':custom:')]),
+          home: TimelineList(
+            notes: [pureRenoteWithReaction(':custom:')],
+            emojis: getIt<EmojiCache>().entries,
+          ),
         ),
       );
       await tester.pump();
@@ -367,7 +373,10 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
-          home: TimelineList(notes: [pureRenoteWithReaction(null)]),
+          home: TimelineList(
+            notes: [pureRenoteWithReaction(null)],
+            emojis: getIt<EmojiCache>().entries,
+          ),
         ),
       );
       await tester.pump();
@@ -396,6 +405,7 @@ void main() {
             body: Center(
               child: NoteReactionList(
                 reactions: const {':custom@.:': 1},
+                emojis: getIt<EmojiCache>().entries,
                 myReaction: ':custom:',
               ),
             ),
@@ -424,6 +434,7 @@ void main() {
         MaterialApp(
           home: TimelineList(
             notes: [_note(id: 'note-1')],
+            emojis: getIt<EmojiCache>().entries,
             onRefresh: () => completer.future,
           ),
         ),
@@ -455,6 +466,7 @@ void main() {
         MaterialApp(
           home: TimelineList(
             notes: [_note(id: 'note-1')],
+            emojis: getIt<EmojiCache>().entries,
             isRefreshing: true,
             onRefresh: () async {},
           ),
@@ -471,6 +483,7 @@ void main() {
         MaterialApp(
           home: TimelineList(
             notes: [_note(id: 'note-1')],
+            emojis: getIt<EmojiCache>().entries,
             onRefresh: () async {},
           ),
         ),
@@ -491,6 +504,7 @@ void main() {
         MaterialApp(
           home: TimelineList(
             notes: [_note(id: 'note-1')],
+            emojis: getIt<EmojiCache>().entries,
             message: '更新に失敗しました',
             onRefresh: () async {},
           ),
@@ -508,7 +522,11 @@ Note _note({required String id, String text = 'hello'}) {
     id: id,
     text: text,
     createdAt: DateTime(2026, 4, 28, 12),
-    user: const User(id: 'user-1', username: 'kikuchi', name: 'Kikuchi'),
+    user: const User(
+      id: 'user-1',
+      username: 'sample_user',
+      name: 'Sample User',
+    ),
   );
 }
 
@@ -536,8 +554,17 @@ class _FakeAuthDataSource implements AuthDataSource {
   Future<void> saveSession(AuthSession session) async {}
 
   @override
-  Future<User> verify(String baseUrl, String accessToken) async =>
-      const User(id: 'user-1', username: 'kikuchi', name: 'Kikuchi');
+  Future<ResponseWithCacheHints<User>> verify(
+    String baseUrl,
+    String accessToken,
+  ) async =>
+      const ResponseWithCacheHints(
+        data: User(
+          id: 'user-1',
+          username: 'sample_user',
+          name: 'Sample User',
+        ),
+      );
 }
 
 class _FakeTimelineDataSource implements TimelineDataSource {
@@ -566,11 +593,14 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }
 
   @override
-  Future<Note> fetchNote(AuthSession session, String noteId) async =>
-      _note(id: noteId);
+  Future<ResponseWithCacheHints<Note>> fetchNote(
+    AuthSession session,
+    String noteId,
+  ) async =>
+      ResponseWithCacheHints(data: _note(id: noteId));
 
   @override
-  Future<List<Note>> fetchTimeline(
+  Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,
   }) async {
@@ -578,7 +608,8 @@ class _FakeTimelineDataSource implements TimelineDataSource {
         ? _fetchIndex
         : fetchHandlers.length - 1;
     _fetchIndex += 1;
-    return fetchHandlers[index]();
+    final notes = await fetchHandlers[index]();
+    return ResponseWithCacheHints(data: notes);
   }
 
   @override

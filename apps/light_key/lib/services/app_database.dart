@@ -26,8 +26,11 @@ class EmojiTable extends Table {
   /// 画像 URL。
   TextColumn get url => text()();
 
-  /// 画像バイナリ（取得済みの場合）。
-  BlobColumn get imageBytes => blob().nullable()();
+  /// 画像の元幅（px）。未取得の場合は null。
+  IntColumn get width => integer().nullable()();
+
+  /// 画像の元高さ（px）。未取得の場合は null。
+  IntColumn get height => integer().nullable()();
 
   /// エイリアスを JSON 文字列として保存。例: '["ai","acid"]'
   TextColumn get aliases => text().nullable()();
@@ -45,16 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
-
-  @override
-  MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (migrator, from, to) async {
-      if (from < 2) {
-        await customStatement('ALTER TABLE emojis ADD COLUMN image_bytes BLOB');
-      }
-    },
-  );
+  int get schemaVersion => 3;
 
   // -- Emoji CRUD -----------------------------------------------------------
 
@@ -62,8 +56,6 @@ class AppDatabase extends _$AppDatabase {
   Future<List<EmojiTableData>> getAllEmojis() => select(emojiTable).get();
 
   /// リアクションピッカー向けに必要最小限の列のみ取得する。
-  ///
-  /// imageBytes(BLOB) を除外して初期表示時のI/Oコストを抑える。
   Future<List<EmojiPickerRow>> getEmojisForPicker() async {
     final rows =
         await (selectOnly(emojiTable)..addColumns([
@@ -157,6 +149,87 @@ class AppDatabase extends _$AppDatabase {
       await batch((b) {
         b.insertAll(emojiTable, emojis);
       });
+    });
+  }
+
+  /// 絵文字を差分反映する。
+  ///
+  /// [upserts] は insert/update 対象、[keepNames] に含まれない既存行は削除する。
+  Future<void> applyEmojiDiff({
+    required List<EmojiTableCompanion> upserts,
+    required Set<String> keepNames,
+  }) async {
+    await transaction(() async {
+      if (upserts.isNotEmpty) {
+        await batch((b) {
+          b.insertAllOnConflictUpdate(emojiTable, upserts);
+        });
+      }
+
+      if (keepNames.isEmpty) {
+        await delete(emojiTable).go();
+        return;
+      }
+
+      final existingNames =
+          await (selectOnly(emojiTable)..addColumns([emojiTable.name])).get();
+      final toDelete = <String>[];
+      for (final row in existingNames) {
+        final name = row.read(emojiTable.name);
+        if (name != null && !keepNames.contains(name)) {
+          toDelete.add(name);
+        }
+      }
+
+      if (toDelete.isEmpty) {
+        return;
+      }
+
+      const chunkSize = 400;
+      for (var i = 0; i < toDelete.length; i += chunkSize) {
+        final end = (i + chunkSize < toDelete.length)
+            ? i + chunkSize
+            : toDelete.length;
+        final chunk = toDelete.sublist(i, end);
+        await (delete(emojiTable)..where((t) => t.name.isIn(chunk))).go();
+      }
+    });
+  }
+
+  /// 絵文字のサイズ情報を upsert する。
+  ///
+  /// - 行が存在しない場合: [companion] の内容でそのまま挿入する。
+  /// - 行が既に存在する場合（name が一致）: width / height **のみ**を更新し、
+  ///   category・aliases などの既存データは保持する。
+  Future<void> upsertEmojiSizes(List<EmojiTableCompanion> companions) async {
+    await batch((b) {
+      for (final c in companions) {
+        b.insert(
+          emojiTable,
+          c,
+          onConflict: DoUpdate(
+            (_) => EmojiTableCompanion(width: c.width, height: c.height),
+            target: [emojiTable.name],
+          ),
+        );
+      }
+    });
+  }
+
+  /// 指定した絵文字の width / height のみを一括更新する。
+  ///
+  /// [companions] の各エントリの [EmojiTableCompanion.name] をキーとして
+  /// 対応する行の幅・高さを上書きする。
+  Future<void> updateEmojiSizes(
+    List<EmojiTableCompanion> companions,
+  ) async {
+    await transaction(() async {
+      for (final c in companions) {
+        await (update(emojiTable)..where((t) => t.name.equals(c.name.value)))
+            .write(
+              EmojiTableCompanion(width: c.width, height: c.height),
+            );
+      }
     });
   }
 }

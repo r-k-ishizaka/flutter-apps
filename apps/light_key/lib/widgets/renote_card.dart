@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
+import '../services/emoji_cache.dart';
 import '../utils/datetime_format.dart';
 import 'emoji_text.dart';
 import 'note_media_list.dart';
@@ -10,9 +11,14 @@ import 'user_avatar.dart';
 /// リノート元ノートを枠線付きカードで表示するウィジェット。
 /// 多段リノートは 1 段のみ表示。
 class RenoteCard extends HookWidget {
-  const RenoteCard({required this.renote, super.key});
+  const RenoteCard({
+    required this.renote,
+    required this.emojis,
+    super.key,
+  });
 
   final Note renote;
+  final Map<String, EmojiCacheEntry> emojis;
 
   String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
@@ -56,6 +62,7 @@ class RenoteCard extends HookWidget {
                         children: [
                           EmojiText(
                             displayUserName,
+                            emojis: emojis,
                             style: textTheme.bodySmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -84,21 +91,23 @@ class RenoteCard extends HookWidget {
                     cwText: cw,
                     expanded: cwExpanded.value,
                     onToggle: () => cwExpanded.value = !cwExpanded.value,
+                    emojis: emojis,
                   ),
                   const SizedBox(height: 4),
                 ],
                 // 本文・メディア（CW がある場合は展開時のみ表示）
                 if (!hasCw || cwExpanded.value) ...[
-                  EmojiText(
-                    renote.text.isNotEmpty
-                        ? renote.text
-                        : renote.renote != null
-                        ? '(リノート)'
-                        : '(本文なし)',
-                    style: textTheme.bodyMedium,
-                    maxLines: 5,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                   EmojiText(
+                     renote.text.isNotEmpty
+                         ? renote.text
+                         : renote.renote != null
+                         ? '(リノート)'
+                         : '(本文なし)',
+                     emojis: emojis,
+                     style: textTheme.bodyMedium,
+                     maxLines: 5,
+                     overflow: TextOverflow.ellipsis,
+                   ),
                   if (renote.files.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     NoteMediaList(files: renote.files),
@@ -118,11 +127,13 @@ class _RenoteCardCwBar extends StatelessWidget {
     required this.cwText,
     required this.expanded,
     required this.onToggle,
+    required this.emojis,
   });
 
   final String cwText;
   final bool expanded;
   final VoidCallback onToggle;
+  final Map<String, EmojiCacheEntry> emojis;
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +149,7 @@ class _RenoteCardCwBar extends StatelessWidget {
         children: [
           EmojiText(
             cwText,
+            emojis: emojis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

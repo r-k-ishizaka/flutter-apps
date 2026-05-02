@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/auth_session.dart';
+import '../models/response_with_cache_hints.dart';
 import '../models/user.dart';
 import '../utils/misskey_http_client.dart';
 import 'auth_data_source.dart';
@@ -15,13 +16,19 @@ class MisskeyAuthDataSource implements AuthDataSource {
   final SharedPreferences prefs;
 
   @override
-  Future<User> verify(String baseUrl, String accessToken) async {
-    final response = await client.postJson(
+  Future<ResponseWithCacheHints<User>> verify(
+    String baseUrl,
+    String accessToken,
+  ) async {
+    final response = await client.postJsonWithCacheHints(
       baseUrl: baseUrl,
       path: '/api/i',
       body: {'i': accessToken},
     );
-    return User.fromJson(response);
+    return ResponseWithCacheHints(
+      data: User.fromJson(response.data),
+      emojisToCache: response.emojisToCache,
+    );
   }
 
   @override
