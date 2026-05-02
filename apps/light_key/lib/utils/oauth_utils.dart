@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:crypto/crypto.dart';
 
 class OAuthUtils {
@@ -38,7 +39,8 @@ class OAuthUtils {
     required String redirectUri,
     String? state,
     String? codeChallenge,
-    String scope = 'read:account write:notes write:reactions',
+    String scope =
+        'read:account write:notes write:reactions read:notifications',
   }) {
     final uri = Uri.parse('$baseUrl/oauth/authorize');
     final queryParameters = <String, String>{

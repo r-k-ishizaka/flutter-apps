@@ -5,15 +5,18 @@ import '../datasources/auth_data_source.dart';
 import '../datasources/emoji_data_source.dart';
 import '../datasources/misskey_auth_data_source.dart';
 import '../datasources/misskey_emoji_data_source.dart';
+import '../datasources/misskey_notification_data_source.dart';
 import '../datasources/misskey_post_data_source.dart';
 import '../datasources/misskey_timeline_data_source.dart';
 import '../datasources/misskey_user_profile_data_source.dart';
+import '../datasources/notification_data_source.dart';
 import '../datasources/post_data_source.dart';
 import '../datasources/timeline_data_source.dart';
 import '../datasources/user_profile_data_source.dart';
 import '../providers/theme_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/emoji_repository.dart';
+import '../repositories/notification_repository.dart';
 import '../repositories/post_repository.dart';
 import '../repositories/timeline_repository.dart';
 import '../repositories/user_profile_repository.dart';
@@ -85,5 +88,11 @@ Future<void> configureDependencies() async {
       getIt<UserProfileDataSource>(),
       emojiRepository: getIt<EmojiRepository>(),
     ),
+  );
+  getIt.registerLazySingleton<NotificationDataSource>(
+    () => MisskeyNotificationDataSource(getIt<MisskeyHttpClient>()),
+  );
+  getIt.registerLazySingleton(
+    () => NotificationRepository(getIt<NotificationDataSource>()),
   );
 }

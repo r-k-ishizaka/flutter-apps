@@ -5,10 +5,12 @@ import 'package:provider/provider.dart';
 import 'di/di.dart';
 import 'providers/theme_provider.dart';
 import 'repositories/auth_repository.dart';
+import 'repositories/notification_repository.dart';
 import 'repositories/post_repository.dart';
 import 'repositories/timeline_repository.dart';
 import 'route/app_routes.dart';
 import 'screens/auth/auth_provider.dart';
+import 'screens/notifications/notifications_provider.dart';
 import 'screens/post/post_provider.dart';
 import 'screens/timeline/timeline_provider.dart';
 import 'services/emoji_cache.dart';
@@ -47,6 +49,12 @@ class LightKeyApp extends StatelessWidget {
           create: (_) => PostProvider(
             authRepository: getIt<AuthRepository>(),
             postRepository: getIt<PostRepository>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => NotificationsProvider(
+            authRepository: getIt<AuthRepository>(),
+            notificationRepository: getIt<NotificationRepository>(),
           ),
         ),
       ],
