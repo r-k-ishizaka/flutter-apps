@@ -31,6 +31,7 @@
 - 各画面は `screens/<screen_name>/` ディレクトリに格納します。
 - 画面のルートWidgetは `StatefulWidget` ではなく `HookWidget` を標準とし、状態管理はProvider（`ChangeNotifier`）で行います。
 - `sheets/` 配下のUIも原則 `StatefulWidget` を使わず、`HookWidget` を標準とします（画面の状態はProvider、widgetの状態（controllerなど）はhooksで管理）。
+- 画面遷移は `screen` で実行し、画面内の表示用コンポーネントや `widgets/` 配下のWidgetは、遷移処理を直接持たずコールバックで親へ通知します。
 - ディレクトリ内のファイル構成は以下を標準とします。
 
 | ファイル名 | 役割 |

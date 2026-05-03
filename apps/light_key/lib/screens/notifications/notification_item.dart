@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 
 import '../../models/misskey_notification.dart';
-import '../../services/emoji_cache.dart';
 import '../../models/user.dart';
+import '../../services/emoji_cache.dart';
 import '../../widgets/emoji_text.dart';
 
 /// 通知一覧の個別アイテム Widget
@@ -12,24 +12,39 @@ class NotificationItem extends StatelessWidget {
   const NotificationItem({
     required this.notification,
     required this.emojis,
+    this.onUserTap,
     super.key,
   });
 
   final MisskeyNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
 
   @override
   Widget build(BuildContext context) {
     return switch (notification) {
-      final FollowNotification n => _FollowItem(notification: n, emojis: emojis),
+      final FollowNotification n => _FollowItem(
+        notification: n,
+        emojis: emojis,
+        onUserTap: onUserTap,
+      ),
       final ReactionNotification n => _ReactionItem(
         notification: n,
         emojis: emojis,
+        onUserTap: onUserTap,
       ),
       final ReactionGroupedNotification n =>
-        _ReactionGroupedItem(notification: n, emojis: emojis),
+        _ReactionGroupedItem(
+          notification: n,
+          emojis: emojis,
+          onUserTap: onUserTap,
+        ),
       final FollowRequestAcceptedNotification n =>
-        _FollowRequestAcceptedItem(notification: n, emojis: emojis),
+        _FollowRequestAcceptedItem(
+          notification: n,
+          emojis: emojis,
+          onUserTap: onUserTap,
+        ),
       final UnknownNotification n => _UnknownItem(notification: n),
     };
   }
@@ -39,10 +54,15 @@ class NotificationItem extends StatelessWidget {
 // フォロー通知
 // ---------------------------------------------------------------------------
 class _FollowItem extends StatelessWidget {
-  const _FollowItem({required this.notification, required this.emojis});
+  const _FollowItem({
+    required this.notification,
+    required this.emojis,
+    this.onUserTap,
+  });
 
   final FollowNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +71,7 @@ class _FollowItem extends StatelessWidget {
         user: notification.user,
         badge: const Icon(Icons.person_add, size: 16, color: Colors.white),
         badgeColor: Colors.blue,
+        onTap: onUserTap,
       ),
       createdAt: notification.createdAt,
       title: _UserNameText(
@@ -69,10 +90,12 @@ class _FollowRequestAcceptedItem extends StatelessWidget {
   const _FollowRequestAcceptedItem({
     required this.notification,
     required this.emojis,
+    this.onUserTap,
   });
 
   final FollowRequestAcceptedNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +104,7 @@ class _FollowRequestAcceptedItem extends StatelessWidget {
         user: notification.user,
         badge: const Icon(Icons.check, size: 16, color: Colors.white),
         badgeColor: Colors.green,
+        onTap: onUserTap,
       ),
       createdAt: notification.createdAt,
       title: _UserNameText(
@@ -104,10 +128,15 @@ class _FollowRequestAcceptedItem extends StatelessWidget {
 // リアクション通知（単一）
 // ---------------------------------------------------------------------------
 class _ReactionItem extends StatelessWidget {
-  const _ReactionItem({required this.notification, required this.emojis});
+  const _ReactionItem({
+    required this.notification,
+    required this.emojis,
+    this.onUserTap,
+  });
 
   final ReactionNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +152,7 @@ class _ReactionItem extends StatelessWidget {
           style: const TextStyle(fontSize: 9, height: 1),
         ),
         badgeColor: Theme.of(context).scaffoldBackgroundColor,
+        onTap: onUserTap,
       ),
       createdAt: notification.createdAt,
       title: _UserNameText(
@@ -142,10 +172,12 @@ class _ReactionGroupedItem extends StatelessWidget {
   const _ReactionGroupedItem({
     required this.notification,
     required this.emojis,
+    this.onUserTap,
   });
 
   final ReactionGroupedNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +205,7 @@ class _ReactionGroupedItem extends StatelessWidget {
         badgeColor: leadingReaction.isNotEmpty
             ? Theme.of(context).scaffoldBackgroundColor
             : Colors.orange,
+        onTap: onUserTap,
       ),
       createdAt: notification.createdAt,
       title: Text(
@@ -207,6 +240,7 @@ class _ReactionGroupedItem extends StatelessWidget {
                         style: const TextStyle(fontSize: 9, height: 1),
                       ),
                       badgeColor: Theme.of(context).scaffoldBackgroundColor,
+                      onTap: onUserTap,
                     ),
                   )
                   .toList(growable: false),
@@ -312,15 +346,17 @@ class _AvatarWithBadge extends StatelessWidget {
     required this.user,
     this.badge,
     required this.badgeColor,
+    this.onTap,
   });
 
   final User user;
   final Widget? badge;
   final Color badgeColor;
+  final ValueChanged<User>? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    final avatar = Stack(
       clipBehavior: Clip.none,
       children: [
         _UserAvatar(user: user, radius: 20),
@@ -343,6 +379,20 @@ class _AvatarWithBadge extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    final handleTap = onTap;
+    if (user.id.isEmpty || handleTap == null) {
+      return avatar;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => handleTap(user),
+        child: avatar,
+      ),
     );
   }
 }

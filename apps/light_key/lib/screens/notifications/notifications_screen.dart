@@ -4,6 +4,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/misskey_notification.dart';
+import '../../models/user.dart';
+import '../../route/app_routes.dart';
 import '../../services/emoji_cache.dart';
 import 'notification_item.dart';
 import 'notifications_provider.dart';
@@ -11,6 +13,11 @@ import 'notifications_screen_state.dart';
 
 class NotificationsScreen extends HookWidget {
   const NotificationsScreen({super.key});
+
+  Future<void> _onUserTap(BuildContext context, User user) async {
+    if (user.id.isEmpty) return;
+    await UserProfileRoute(userId: user.id).push<void>(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +52,7 @@ class NotificationsScreen extends HookWidget {
           isLoadingMore: isLoadingMore,
           hasMore: hasMore,
           errorMessage: message,
+          onUserTap: (user) => _onUserTap(context, user),
           onRefresh: () =>
               context.read<NotificationsProvider>().fetch(showLoading: false),
           onLoadMore: () => context.read<NotificationsProvider>().fetchMore(),
@@ -60,6 +68,7 @@ class _NotificationList extends HookWidget {
     required this.hasMore,
     required this.onRefresh,
     required this.onLoadMore,
+    required this.onUserTap,
     this.errorMessage,
   });
 
@@ -69,6 +78,7 @@ class _NotificationList extends HookWidget {
   final String? errorMessage;
   final Future<void> Function() onRefresh;
   final VoidCallback onLoadMore;
+  final ValueChanged<User> onUserTap;
 
   @override
   Widget build(BuildContext context) {
@@ -169,6 +179,7 @@ class _NotificationList extends HookWidget {
                 return NotificationItem(
                   notification: notifications[index],
                   emojis: emojis,
+                  onUserTap: onUserTap,
                 );
               },
             ),
