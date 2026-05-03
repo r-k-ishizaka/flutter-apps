@@ -51,39 +51,42 @@ class ReactionPickerBody extends HookWidget {
       scrollToTopAfterBuild();
     }
 
-    useEffect(() {
-      void onFocusChanged() {
-        final focused = searchFocusNode.hasFocus;
-        if (focused == wasSearchFocused.value) return;
-        wasSearchFocused.value = focused;
-        if (!focused) {
-          if (notifier.query.isEmpty) {
-            forceSearchExpanded.value = false;
+    useEffect(
+      () {
+        void onFocusChanged() {
+          final focused = searchFocusNode.hasFocus;
+          if (focused == wasSearchFocused.value) return;
+          wasSearchFocused.value = focused;
+          if (!focused) {
+            if (notifier.query.isEmpty) {
+              forceSearchExpanded.value = false;
+            }
+            return;
           }
-          return;
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (sheetController.isAttached) {
+              sheetController.animateTo(
+                1.0,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+              );
+            }
+            scrollToTopAfterBuild();
+          });
         }
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (sheetController.isAttached) {
-            sheetController.animateTo(
-              1.0,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-            );
-          }
-          scrollToTopAfterBuild();
-        });
-      }
-
-      searchFocusNode.addListener(onFocusChanged);
-      return () => searchFocusNode.removeListener(onFocusChanged);
-    }, [
-      notifier,
-      searchFocusNode,
-      sheetController,
-      wasSearchFocused,
-      forceSearchExpanded,
-    ]);
+        searchFocusNode.addListener(onFocusChanged);
+        return () => searchFocusNode.removeListener(onFocusChanged);
+      },
+      [
+        notifier,
+        searchFocusNode,
+        sheetController,
+        wasSearchFocused,
+        forceSearchExpanded,
+      ],
+    );
 
     return PopScope(
       canPop: notifier.categoryPath.isEmpty,
@@ -92,25 +95,10 @@ class ReactionPickerBody extends HookWidget {
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final parentHeight = constraints.maxHeight;
           final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-          final fallbackKeyboardInset = parentHeight / 2;
-          final reservedKeyboardInset = keyboardInset > 0
-              ? keyboardInset
-              : fallbackKeyboardInset;
           final minSheetSize = 1 / 3;
-          final desiredInitialSize =
-              ((PinnedSheetHeaderDelegate.headerHeight +
-                          reservedKeyboardInset +
-                          64) /
-                      parentHeight)
-                  .clamp(0.0, 1.0);
-          final middleSheetSize = desiredInitialSize < minSheetSize
-              ? minSheetSize
-              : desiredInitialSize;
           const minExtentEpsilon = 0.005;
-          final rawSnapSizes = <double>[0, minSheetSize, middleSheetSize, 1.0]
-            ..sort();
+          final rawSnapSizes = <double>[0, minSheetSize, 1.0]..sort();
           final snapSizes = <double>[];
           for (final size in rawSnapSizes) {
             if (snapSizes.isEmpty || (size - snapSizes.last).abs() > 0.0001) {
