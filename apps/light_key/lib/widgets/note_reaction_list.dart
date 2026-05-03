@@ -38,6 +38,8 @@ class NoteReactionList extends StatelessWidget {
     return isCrossServer;
   }
 
+  static const int _maxVisibleReactions = 16;
+
   @override
   Widget build(BuildContext context) {
     if (reactions.isEmpty) return const SizedBox.shrink();
@@ -54,26 +56,79 @@ class NoteReactionList extends StatelessWidget {
             return a.key.compareTo(b.key);
           });
 
+    final hasMore = sortedEntries.length > _maxVisibleReactions;
+
+    // 上位16件を基本とし、自分のリアクションが16件目以降にある場合も必ず含める
+    List<MapEntry<String, int>> visibleEntries;
+    if (!hasMore) {
+      visibleEntries = sortedEntries;
+    } else {
+      visibleEntries = sortedEntries.take(_maxVisibleReactions).toList();
+      if (normalizedMyReaction != null) {
+        final alreadyVisible = visibleEntries.any(
+          (e) => _normalizeReaction(e.key) == normalizedMyReaction,
+        );
+        if (!alreadyVisible) {
+          final myEntry = sortedEntries.firstWhere(
+            (e) => _normalizeReaction(e.key) == normalizedMyReaction,
+            orElse: () => const MapEntry('', 0),
+          );
+          if (myEntry.key.isNotEmpty) {
+            visibleEntries = [...visibleEntries, myEntry];
+          }
+        }
+      }
+    }
+
+    final hiddenCount = sortedEntries.length - visibleEntries.length;
+
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: sortedEntries
-          .map((entry) {
-            final normalizedReaction = _normalizeReaction(entry.key);
-            final canTap = !_isCrossServerReaction(entry.key);
-            return _ReactionChip(
-              reactionKey: entry.key,
-              reaction: normalizedReaction,
-              count: entry.value,
-              emojis: emojis,
-              isEnabled: canTap,
-              isMyReaction:
-                  normalizedMyReaction != null &&
-                  normalizedMyReaction == normalizedReaction,
-              onTap: canTap ? onReactionTap : null,
-            );
-          })
-          .toList(growable: false),
+      children: [
+        ...visibleEntries.map((entry) {
+          final normalizedReaction = _normalizeReaction(entry.key);
+          final canTap = !_isCrossServerReaction(entry.key);
+          return _ReactionChip(
+            reactionKey: entry.key,
+            reaction: normalizedReaction,
+            count: entry.value,
+            emojis: emojis,
+            isEnabled: canTap,
+            isMyReaction:
+                normalizedMyReaction != null &&
+                normalizedMyReaction == normalizedReaction,
+            onTap: canTap ? onReactionTap : null,
+          );
+        }),
+        if (hiddenCount > 0) _MoreReactionsChip(hiddenCount: hiddenCount),
+      ],
+    );
+  }
+}
+
+class _MoreReactionsChip extends StatelessWidget {
+  const _MoreReactionsChip({required this.hiddenCount});
+
+  final int hiddenCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          'もっと見る',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
     );
   }
 }
