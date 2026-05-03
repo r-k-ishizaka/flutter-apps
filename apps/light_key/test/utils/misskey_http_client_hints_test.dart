@@ -1,72 +1,127 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:light_key/utils/misskey_http_client.dart';
-import 'package:light_key/models/response_with_cache_hints.dart';
 
 void main() {
-  group('MisskeyHttpClient._readEmojiHintsFromExtra', () {
-    test('emojisToCache が正しく読み込まれる', () {
-      final client = MisskeyHttpClient();
+  group('MisskeyHttpClient hints', () {
+    Future<MisskeyHttpClient> buildClientWithExtra(
+      Object responseData,
+      Map<String, dynamic> extra,
+    ) async {
+      final dio = Dio(
+        BaseOptions(
+          headers: const {'Content-Type': 'application/json'},
+          validateStatus: (_) => true,
+        ),
+      );
 
-      // Simulate response.extra with emoji hints
-      final extra = <String, dynamic>{
-        'emojisToCache': [
-          {'name': 'sumi', 'url': 'https://example.com/sumi.png'},
-          {'name': 'custom@host.com', 'url': 'https://host.com/custom.png'},
-        ],
-      };
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.resolve(
+              Response<dynamic>(
+                requestOptions: options,
+                statusCode: 200,
+                data: responseData,
+                extra: extra,
+              ),
+            );
+          },
+        ),
+      );
 
-      // Use reflection to call the private method for testing
-      // Since it's private, we'll test it indirectly through postJsonListWithCacheHints
-      final hints = <EmojiToCache>[
-        const EmojiToCache(name: 'sumi', url: 'https://example.com/sumi.png'),
-        const EmojiToCache(name: 'custom@host.com', url: 'https://host.com/custom.png'),
-      ];
+      return MisskeyHttpClient(dio);
+    }
 
-      expect(hints.length, 2);
-      expect(hints[0].name, 'sumi');
-      expect(hints[0].url, 'https://example.com/sumi.png');
-      expect(hints[1].name, 'custom@host.com');
-      expect(hints[1].url, 'https://host.com/custom.png');
+    test('postJsonWithCacheHints: emojisToCache が正しく読み込まれる', () async {
+      final client = await buildClientWithExtra(
+        <String, dynamic>{'ok': true},
+        <String, dynamic>{
+          'emojisToCache': <Map<String, String>>[
+            <String, String>{
+              'name': 'sumi',
+              'url': 'https://example.com/sumi.png',
+            },
+            <String, String>{
+              'name': 'custom@host.com',
+              'url': 'https://host.com/custom.png',
+            },
+          ],
+        },
+      );
+
+      final response = await client.postJsonWithCacheHints(
+        baseUrl: 'https://example.com',
+        path: '/api/test',
+        body: const <String, dynamic>{'x': 1},
+      );
+
+      expect(response.emojisToCache.length, 2);
+      expect(response.emojisToCache[0].name, 'sumi');
+      expect(response.emojisToCache[0].url, 'https://example.com/sumi.png');
+      expect(response.emojisToCache[1].name, 'custom@host.com');
+      expect(response.emojisToCache[1].url, 'https://host.com/custom.png');
     });
 
-    test('emojisToCache が List でない場合は空を返す', () {
-      final extra = <String, dynamic>{
-        'emojisToCache': 'not a list',
-      };
+    test('postJsonWithCacheHints: emojisToCache が List でない場合は空を返す', () async {
+      final client = await buildClientWithExtra(
+        <String, dynamic>{'ok': true},
+        <String, dynamic>{'emojisToCache': 'not a list'},
+      );
 
-      // The method should return empty list when extra['emojisToCache'] is not a List
-      expect(extra['emojisToCache'] is List, false);
+      final response = await client.postJsonWithCacheHints(
+        baseUrl: 'https://example.com',
+        path: '/api/test',
+        body: const <String, dynamic>{'x': 1},
+      );
+
+      expect(response.emojisToCache, isEmpty);
     });
 
-    test('emojisToCache が存在しない場合は空を返す', () {
-      final extra = <String, dynamic>{
-        'someOtherKey': 'value',
-      };
+    test('postJsonWithCacheHints: emojisToCache が無い場合は空を返す', () async {
+      final client = await buildClientWithExtra(
+        <String, dynamic>{'ok': true},
+        <String, dynamic>{'someOtherKey': 'value'},
+      );
 
-      expect(extra['emojisToCache'], isNull);
+      final response = await client.postJsonWithCacheHints(
+        baseUrl: 'https://example.com',
+        path: '/api/test',
+        body: const <String, dynamic>{'x': 1},
+      );
+
+      expect(response.emojisToCache, isEmpty);
     });
 
-    test('emojisToCache に無効なエントリがある場合、それらはフィルタリングされる', () {
-      final hints = [
-        {'name': 'valid', 'url': 'https://example.com/valid.png'},
-        {'name': '', 'url': 'https://example.com/empty-name.png'}, // empty name
-        {'name': 'no-url', 'url': ''}, // empty URL
-        {'name': 'invalid-value', 'url': 123}, // url is not String
-      ];
+    test('postJsonWithCacheHints: 無効エントリはフィルタされる', () async {
+      final client = await buildClientWithExtra(
+        <String, dynamic>{'ok': true},
+        <String, dynamic>{
+          'emojisToCache': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'name': 'valid',
+              'url': 'https://example.com/valid.png',
+            },
+            <String, dynamic>{
+              'name': '',
+              'url': 'https://example.com/empty-name.png',
+            },
+            <String, dynamic>{'name': 'no-url', 'url': ''},
+            <String, dynamic>{'name': 'missing-url'},
+            <String, dynamic>{'url': 'https://example.com/missing-name.png'},
+          ],
+        },
+      );
 
-      // Filter out invalid entries
-      final filtered = hints
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .map((e) => EmojiToCache(
-                name: e['name'] as String? ?? '',
-                url: e['url'] as String? ?? '',
-              ))
-          .where((e) => e.name.isNotEmpty && e.url.isNotEmpty)
-          .toList();
+      final response = await client.postJsonWithCacheHints(
+        baseUrl: 'https://example.com',
+        path: '/api/test',
+        body: const <String, dynamic>{'x': 1},
+      );
 
-      expect(filtered.length, 1);
-      expect(filtered[0].name, 'valid');
+      expect(response.emojisToCache.length, 1);
+      expect(response.emojisToCache[0].name, 'valid');
+      expect(response.emojisToCache[0].url, 'https://example.com/valid.png');
     });
   });
 }

@@ -514,6 +514,53 @@ void main() {
       expect(find.text('更新中...'), findsNothing);
       expect(find.text('最新の状態を確認しました'), findsNothing);
     });
+
+    testWidgets('リアクションが17件以上ある場合は上位16件と「もっと見る」を表示する', (tester) async {
+      final reactions = <String, int>{
+        for (var i = 0; i < 18; i++) ':e$i:': 100 - i,
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteReactionList(
+              reactions: reactions,
+              emojis: getIt<EmojiCache>().entries,
+            ),
+          ),
+        ),
+      );
+
+      for (var i = 0; i < 16; i++) {
+        expect(find.byKey(ValueKey('reaction-chip-:e$i:')), findsOneWidget);
+      }
+      expect(find.byKey(const ValueKey('reaction-chip-:e16:')), findsNothing);
+      expect(find.byKey(const ValueKey('reaction-chip-:e17:')), findsNothing);
+      expect(find.text('もっと見る'), findsOneWidget);
+    });
+
+    testWidgets('myReaction が17件目以降でもチップ表示される', (tester) async {
+      final reactions = <String, int>{
+        for (var i = 0; i < 18; i++) ':e$i:': 100 - i,
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteReactionList(
+              reactions: reactions,
+              emojis: getIt<EmojiCache>().entries,
+              myReaction: ':e16:',
+            ),
+          ),
+        ),
+      );
+
+      // 上位16件に加えて、自分のリアクション(:e16:)が追加表示される
+      expect(find.byKey(const ValueKey('reaction-chip-:e16:')), findsOneWidget);
+      expect(find.byKey(const ValueKey('reaction-chip-:e17:')), findsNothing);
+      expect(find.text('もっと見る'), findsOneWidget);
+    });
   });
 }
 
