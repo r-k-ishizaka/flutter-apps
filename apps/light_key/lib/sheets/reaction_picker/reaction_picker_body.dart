@@ -22,11 +22,17 @@ class ReactionPickerBody extends HookWidget {
     final notifier = context.watch<ReactionPickerProvider>();
     final searchController = useTextEditingController();
     final searchFocusNode = useFocusNode();
+    useListenable(searchFocusNode);
     final sheetController = useMemoized(DraggableScrollableController.new);
     final latestScrollController = useRef<ScrollController?>(null);
     final wasSearchFocused = useState(false);
+    final forceSearchExpanded = useState(false);
     final wasAtMinExtent = useRef(false);
     final colorScheme = Theme.of(context).colorScheme;
+    final isSearchExpanded =
+        forceSearchExpanded.value ||
+        searchFocusNode.hasFocus ||
+        notifier.query.isNotEmpty;
 
     void scrollToTopAfterBuild() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -50,7 +56,12 @@ class ReactionPickerBody extends HookWidget {
         final focused = searchFocusNode.hasFocus;
         if (focused == wasSearchFocused.value) return;
         wasSearchFocused.value = focused;
-        if (!focused) return;
+        if (!focused) {
+          if (notifier.query.isEmpty) {
+            forceSearchExpanded.value = false;
+          }
+          return;
+        }
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (sheetController.isAttached) {
@@ -66,7 +77,13 @@ class ReactionPickerBody extends HookWidget {
 
       searchFocusNode.addListener(onFocusChanged);
       return () => searchFocusNode.removeListener(onFocusChanged);
-    }, [searchFocusNode, sheetController, wasSearchFocused]);
+    }, [
+      notifier,
+      searchFocusNode,
+      sheetController,
+      wasSearchFocused,
+      forceSearchExpanded,
+    ]);
 
     return PopScope(
       canPop: notifier.categoryPath.isEmpty,
@@ -85,14 +102,14 @@ class ReactionPickerBody extends HookWidget {
           final desiredInitialSize =
               ((PinnedSheetHeaderDelegate.headerHeight +
                           reservedKeyboardInset +
-                          120) /
+                          64) /
                       parentHeight)
                   .clamp(0.0, 1.0);
-          final initialSheetSize = desiredInitialSize < minSheetSize
+          final middleSheetSize = desiredInitialSize < minSheetSize
               ? minSheetSize
               : desiredInitialSize;
           const minExtentEpsilon = 0.005;
-          final rawSnapSizes = <double>[minSheetSize, initialSheetSize, 1.0]
+          final rawSnapSizes = <double>[0, minSheetSize, middleSheetSize, 1.0]
             ..sort();
           final snapSizes = <double>[];
           for (final size in rawSnapSizes) {
@@ -123,10 +140,10 @@ class ReactionPickerBody extends HookWidget {
             },
             child: DraggableScrollableSheet(
               controller: sheetController,
-              initialChildSize: initialSheetSize,
+              initialChildSize: minSheetSize,
               minChildSize: 0,
               maxChildSize: 1.0,
-              shouldCloseOnMinExtent: false,
+              shouldCloseOnMinExtent: true,
               snap: true,
               snapSizes: snapSizes,
               expand: false,
@@ -140,6 +157,7 @@ class ReactionPickerBody extends HookWidget {
                       colorScheme: colorScheme,
                       categoryPath: notifier.categoryPath,
                       query: notifier.query,
+                      isSearchExpanded: isSearchExpanded,
                       searchController: searchController,
                       searchFocusNode: searchFocusNode,
                       onBack: notifier.categoryPath.isEmpty
@@ -150,7 +168,22 @@ class ReactionPickerBody extends HookWidget {
                           : () {
                               searchController.clear();
                               notifier.clearQuery();
+                              if (!searchFocusNode.hasFocus) {
+                                forceSearchExpanded.value = false;
+                              }
                             },
+                      onSearchPressed: () {
+                        forceSearchExpanded.value = true;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          searchFocusNode.requestFocus();
+                        });
+                      },
+                      onSearchBackPressed: () {
+                        searchFocusNode.unfocus();
+                        searchController.clear();
+                        notifier.clearQuery();
+                        forceSearchExpanded.value = false;
+                      },
                       onClose: () => Navigator.of(context).pop(),
                       onQueryChanged: notifier.updateQuery,
                     ),
