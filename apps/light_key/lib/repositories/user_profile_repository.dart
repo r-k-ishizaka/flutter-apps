@@ -4,6 +4,7 @@ import '../datasources/user_profile_data_source.dart';
 import '../models/auth_session.dart';
 import '../models/note.dart';
 import '../models/user_profile.dart';
+import '../utils/note_emoji_filter.dart';
 import 'emoji_repository.dart';
 
 class UserProfileRepository {
@@ -20,7 +21,13 @@ class UserProfileRepository {
     try {
       final response = await _dataSource.fetchUserProfile(session, userId);
       if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
-        await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+        final filtered = NoteEmojiFilter.filterForProfile(
+          response.data,
+          response.emojisToCache,
+        );
+        if (filtered.isNotEmpty) {
+          await _emojiRepository.cacheEmojiHints(filtered);
+        }
       }
       return Success(response.data);
     } on Exception catch (error, stackTrace) {
@@ -50,7 +57,13 @@ class UserProfileRepository {
         allowPartial: allowPartial,
       );
       if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
-        await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+        final filtered = NoteEmojiFilter.filterForNotes(
+          response.data,
+          response.emojisToCache,
+        );
+        if (filtered.isNotEmpty) {
+          await _emojiRepository.cacheEmojiHints(filtered);
+        }
       }
       return Success(response.data);
     } on Exception catch (error, stackTrace) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/emoji_cache.dart';
+import '../utils/note_emoji_filter.dart';
 import 'emoji_text.dart';
 
 /// リアクション一覧（チップ群）を表示するウィジェット。
@@ -38,7 +39,7 @@ class NoteReactionList extends StatelessWidget {
     return isCrossServer;
   }
 
-  static const int _maxVisibleReactions = 16;
+  static const int _maxVisibleReactions = NoteEmojiFilter.maxVisibleReactions;
 
   @override
   Widget build(BuildContext context) {
