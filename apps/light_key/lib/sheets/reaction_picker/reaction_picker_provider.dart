@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:light_key/utils/emoji_name_scope.dart';
 
+import '../../datasources/auth_data_source.dart';
 import '../../di/di.dart';
 import '../../services/app_database.dart';
 import 'custom_emoji_item.dart';
@@ -28,6 +30,8 @@ class ReactionPickerProvider extends ChangeNotifier {
   bool _isLoading = true;
   Object? _loadError;
   bool _disposed = false;
+  String? _sessionHost;
+  Future<void>? _sessionHostLoadTask;
 
   List<String> get categoryPath => _categoryPath;
 
@@ -212,12 +216,16 @@ class ReactionPickerProvider extends ChangeNotifier {
 
   Future<void> _loadInitialCategories() async {
     try {
+      await _ensureSessionHostLoaded();
       final db = getIt<AppDatabase>();
-      final categories = await db.getEmojiCategoriesForPicker();
+      final rows = await db.getEmojisForPicker();
 
       final counts = <String, int>{};
-      for (final category in categories) {
-        final normalized = _normalizeCategoryPath(category ?? '');
+      for (final row in rows) {
+        if (!isEmojiAvailableForHost(row.name, sessionHost: _sessionHost)) {
+          continue;
+        }
+        final normalized = _normalizeCategoryPath(row.category ?? '');
         final parts = _splitCategoryPath(normalized);
         if (parts.isEmpty) continue;
         final top = parts[0];
@@ -244,6 +252,7 @@ class ReactionPickerProvider extends ChangeNotifier {
     _safeNotifyListeners();
 
     try {
+      await _ensureSessionHostLoaded();
       final db = getIt<AppDatabase>();
       final rows = await db.getEmojisForPickerByTopCategory(top);
       _mergeRows(rows, topCategoryFilter: top);
@@ -264,6 +273,7 @@ class ReactionPickerProvider extends ChangeNotifier {
     _safeNotifyListeners();
 
     try {
+      await _ensureSessionHostLoaded();
       final db = getIt<AppDatabase>();
       final rows = await db.getEmojisForPicker();
       _mergeRows(rows);
@@ -283,6 +293,9 @@ class ReactionPickerProvider extends ChangeNotifier {
   void _mergeRows(List<EmojiPickerRow> rows, {String? topCategoryFilter}) {
     for (final row in rows) {
       if (row.url.isEmpty) continue;
+      if (!isEmojiAvailableForHost(row.name, sessionHost: _sessionHost)) {
+        continue;
+      }
       final category = _normalizeCategoryPath(row.category ?? '');
       final parts = _splitCategoryPath(category);
       if (parts.isEmpty) continue;
@@ -299,6 +312,23 @@ class ReactionPickerProvider extends ChangeNotifier {
     }
 
     _rebuildEmojiMapFromLoadedRows();
+  }
+
+  Future<void> _ensureSessionHostLoaded() {
+    return _sessionHostLoadTask ??= _loadSessionHost();
+  }
+
+  Future<void> _loadSessionHost() async {
+    try {
+      final session = await getIt<AuthDataSource>().loadSession();
+      final parsedHost = Uri.tryParse(session?.baseUrl ?? '')?.host;
+      _sessionHost =
+          (parsedHost == null || parsedHost.isEmpty)
+          ? null
+          : parsedHost.toLowerCase();
+    } catch (_) {
+      _sessionHost = null;
+    }
   }
 
   void _rebuildEmojiMapFromLoadedRows() {
