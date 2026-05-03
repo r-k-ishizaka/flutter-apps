@@ -23,10 +23,20 @@ class HomeScreen extends StatelessWidget {
     return selectedIndex;
   }
 
+  String get _title {
+    switch (_currentIndex) {
+      case 1:
+        return '通知';
+      case 0:
+      default:
+        return 'ホーム';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ホーム'), actions: actions),
+      appBar: AppBar(title: Text(_title), actions: actions),
       floatingActionButton: FloatingActionButton(
         onPressed: onPostTap,
         child: const Icon(Icons.edit_note),
