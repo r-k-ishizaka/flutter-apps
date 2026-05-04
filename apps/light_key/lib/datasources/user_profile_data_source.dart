@@ -18,5 +18,6 @@ abstract interface class UserProfileDataSource {
     bool withFiles = false,
     bool withChannelNotes = true,
     bool allowPartial = false,
+    String? untilId,
   });
 }

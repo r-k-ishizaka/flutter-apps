@@ -20,6 +20,8 @@ class ProfileProvider extends ChangeNotifier {
   final UserProfileRepository _profileRepository;
   final TimelineRepository _timelineRepository;
 
+  static const int _notesPageSize = 10;
+
   ProfileScreenState _state = const ProfileScreenState.idle();
 
   ProfileScreenState get state => _state;
@@ -105,6 +107,9 @@ class ProfileProvider extends ChangeNotifier {
                           allNotes: List<Note>.unmodifiable(mergedAll),
                           noteOnlyNotes: List<Note>.unmodifiable(noteOnlyNotes),
                           mediaNotes: List<Note>.unmodifiable(mediaNotes),
+                          allNotesUntilId: mergedAll.isNotEmpty ? mergedAll.last.id : null,
+                          noteOnlyNotesUntilId: noteOnlyNotes.isNotEmpty ? noteOnlyNotes.last.id : null,
+                          mediaNotesUntilId: mediaNotes.isNotEmpty ? mediaNotes.last.id : null,
                         );
                       },
                       failure: (error, _) {
@@ -236,6 +241,150 @@ class ProfileProvider extends ChangeNotifier {
     );
   }
 
+  /// 「全て」タブの追加読み込みを実行する
+  Future<void> loadMoreAllNotes(String userId) =>
+      _loadMoreByTab(userId, _ProfileNotesTab.all);
+
+  /// 「ノート」タブの追加読み込みを実行する
+  Future<void> loadMoreNoteOnlyNotes(String userId) =>
+      _loadMoreByTab(userId, _ProfileNotesTab.noteOnly);
+
+  /// 「メディア」タブの追加読み込みを実行する
+  Future<void> loadMoreMediaNotes(String userId) =>
+      _loadMoreByTab(userId, _ProfileNotesTab.media);
+
+  Future<void> _loadMoreByTab(String userId, _ProfileNotesTab tab) async {
+    final currentState = _state;
+    if (currentState.status != ProfileStatus.loaded) {
+      return;
+    }
+
+    final tabState = _tabState(currentState, tab);
+    if (tabState.isLoadingMore || tabState.untilId == null || tabState.notes.isEmpty) {
+      return;
+    }
+
+    _state = _setLoadingMore(_state, tab, isLoading: true);
+    notifyListeners();
+
+    final sessionResult = await _authRepository.restoreSession();
+    await sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          _state = _setLoadingMore(_state, tab, isLoading: false);
+          return;
+        }
+
+        final options = _fetchOptionsFor(tab);
+        final result = await _profileRepository.fetchUserNotes(
+          session,
+          userId,
+          limit: _notesPageSize,
+          withReplies: options.withReplies,
+          withRenotes: options.withRenotes,
+          withFiles: options.withFiles,
+          withChannelNotes: true,
+          allowPartial: true,
+          untilId: tabState.untilId,
+        );
+
+        result.when(
+          success: (newNotes) {
+            if (newNotes.isNotEmpty) {
+              _state = _appendNotes(_state, tab, newNotes);
+            }
+          },
+          failure: (error, _) {},
+        );
+        _state = _setLoadingMore(_state, tab, isLoading: false);
+      },
+      failure: (error, _) {
+        _state = _setLoadingMore(_state, tab, isLoading: false);
+      },
+    );
+
+    notifyListeners();
+  }
+
+  _PagedTabState _tabState(ProfileScreenState state, _ProfileNotesTab tab) {
+    return switch (tab) {
+      _ProfileNotesTab.all => _PagedTabState(
+        notes: state.allNotes,
+        untilId: state.allNotesUntilId,
+        isLoadingMore: state.isLoadingMoreAllNotes,
+      ),
+      _ProfileNotesTab.noteOnly => _PagedTabState(
+        notes: state.noteOnlyNotes,
+        untilId: state.noteOnlyNotesUntilId,
+        isLoadingMore: state.isLoadingMoreNoteOnlyNotes,
+      ),
+      _ProfileNotesTab.media => _PagedTabState(
+        notes: state.mediaNotes,
+        untilId: state.mediaNotesUntilId,
+        isLoadingMore: state.isLoadingMoreMediaNotes,
+      ),
+    };
+  }
+
+  ({bool withReplies, bool withRenotes, bool withFiles}) _fetchOptionsFor(
+    _ProfileNotesTab tab,
+  ) {
+    return switch (tab) {
+      _ProfileNotesTab.all => (
+        withReplies: true,
+        withRenotes: true,
+        withFiles: false,
+      ),
+      _ProfileNotesTab.noteOnly => (
+        withReplies: false,
+        withRenotes: false,
+        withFiles: false,
+      ),
+      _ProfileNotesTab.media => (
+        withReplies: false,
+        withRenotes: false,
+        withFiles: true,
+      ),
+    };
+  }
+
+  ProfileScreenState _setLoadingMore(
+    ProfileScreenState state,
+    _ProfileNotesTab tab, {
+    required bool isLoading,
+  }) {
+    return switch (tab) {
+      _ProfileNotesTab.all => state.copyWith(isLoadingMoreAllNotes: isLoading),
+      _ProfileNotesTab.noteOnly =>
+        state.copyWith(isLoadingMoreNoteOnlyNotes: isLoading),
+      _ProfileNotesTab.media =>
+        state.copyWith(isLoadingMoreMediaNotes: isLoading),
+    };
+  }
+
+  ProfileScreenState _appendNotes(
+    ProfileScreenState state,
+    _ProfileNotesTab tab,
+    List<Note> newNotes,
+  ) {
+    final currentNotes = _tabState(state, tab).notes;
+    final merged = List<Note>.unmodifiable([...currentNotes, ...newNotes]);
+    return switch (tab) {
+      _ProfileNotesTab.all => state.copyWith(
+        allNotes: merged,
+        allNotesUntilId: newNotes.last.id,
+      ),
+      _ProfileNotesTab.noteOnly => state.copyWith(
+        noteOnlyNotes: merged,
+        noteOnlyNotesUntilId: newNotes.last.id,
+      ),
+      _ProfileNotesTab.media => state.copyWith(
+        mediaNotes: merged,
+        mediaNotesUntilId: newNotes.last.id,
+      ),
+    };
+  }
+
   void _applyMyReaction(String targetNoteId, String reaction) {
     List<Note> updateList(List<Note> notes) => notes
         .map((item) {
@@ -271,4 +420,18 @@ class ProfileProvider extends ChangeNotifier {
     updated = updated.applyReactionDelta(reaction, 1);
     return updated.copyWith(myReaction: reaction);
   }
+}
+
+enum _ProfileNotesTab { all, noteOnly, media }
+
+class _PagedTabState {
+  const _PagedTabState({
+    required this.notes,
+    required this.untilId,
+    required this.isLoadingMore,
+  });
+
+  final List<Note> notes;
+  final String? untilId;
+  final bool isLoadingMore;
 }

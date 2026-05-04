@@ -44,6 +44,7 @@ class UserProfileRepository {
     bool withFiles = false,
     bool withChannelNotes = true,
     bool allowPartial = false,
+    String? untilId,
   }) async {
     try {
       final response = await _dataSource.fetchUserNotes(
@@ -55,6 +56,7 @@ class UserProfileRepository {
         withFiles: withFiles,
         withChannelNotes: withChannelNotes,
         allowPartial: allowPartial,
+        untilId: untilId,
       );
       if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
         final filtered = NoteEmojiFilter.filterForNotes(

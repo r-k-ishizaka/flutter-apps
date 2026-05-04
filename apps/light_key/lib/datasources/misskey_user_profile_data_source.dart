@@ -36,20 +36,25 @@ class MisskeyUserProfileDataSource implements UserProfileDataSource {
     bool withFiles = false,
     bool withChannelNotes = true,
     bool allowPartial = false,
+    String? untilId,
   }) async {
+    final body = <String, dynamic>{
+      'i': session.accessToken,
+      'userId': userId,
+      'limit': limit,
+      'withRenotes': withRenotes,
+      'withReplies': withReplies,
+      'withFiles': withFiles,
+      'withChannelNotes': withChannelNotes,
+      'allowPartial': allowPartial,
+    };
+    if (untilId != null) {
+      body['untilId'] = untilId;
+    }
     final response = await _client.postJsonListWithCacheHints(
       baseUrl: session.baseUrl,
       path: '/api/users/notes',
-      body: {
-        'i': session.accessToken,
-        'userId': userId,
-        'limit': limit,
-        'withRenotes': withRenotes,
-        'withReplies': withReplies,
-        'withFiles': withFiles,
-        'withChannelNotes': withChannelNotes,
-        'allowPartial': allowPartial,
-      },
+      body: body,
     );
     return ResponseWithCacheHints(
       data: response.data.map(Note.fromJson).toList(growable: false),

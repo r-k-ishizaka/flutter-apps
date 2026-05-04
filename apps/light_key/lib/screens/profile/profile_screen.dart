@@ -84,6 +84,7 @@ class _ProfileContentConsumer extends StatelessWidget {
       (p) => (p.state.profile, p.state.allNotes, p.state.noteOnlyNotes, p.state.mediaNotes),
     );
     return _ProfileContent(
+      userId: userId,
       profile: state.$1,
       allNotes: state.$2,
       noteOnlyNotes: state.$3,
@@ -95,6 +96,7 @@ class _ProfileContentConsumer extends StatelessWidget {
 
 class _ProfileContent extends StatelessWidget {
   const _ProfileContent({
+    required this.userId,
     required this.profile,
     required this.allNotes,
     required this.noteOnlyNotes,
@@ -102,6 +104,7 @@ class _ProfileContent extends StatelessWidget {
     required this.emojis,
   });
 
+  final String userId;
   final UserProfile? profile;
   final List<Note> allNotes;
   final List<Note> noteOnlyNotes;
@@ -139,54 +142,84 @@ class _ProfileContent extends StatelessWidget {
                 _ => 'メディア付きノートがありません。',
               };
 
-              return CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        _ProfileHeader(profile: user),
-                         _ProfileSummary(profile: user, emojis: emojis),
-                        SizedBox(key: profileEndKey),
-                      ],
+              return NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is ScrollUpdateNotification) {
+                    final maxScroll = notification.metrics.maxScrollExtent;
+                    final currentScroll = notification.metrics.pixels;
+                    const delta = 200.0;
+
+                    if (maxScroll.isFinite && maxScroll - currentScroll <= delta) {
+                      final tabController = DefaultTabController.maybeOf(context);
+                      if (tabController != null) {
+                        final provider = context.read<ProfileProvider>();
+                        switch (tabController.index) {
+                          case 0:
+                            provider.loadMoreAllNotes(userId);
+                          case 1:
+                            provider.loadMoreNoteOnlyNotes(userId);
+                          case 2:
+                            provider.loadMoreMediaNotes(userId);
+                        }
+                      }
+                    }
+                  }
+                  return false;
+                },
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Column(
+                        children: [
+                          _ProfileHeader(profile: user),
+                           _ProfileSummary(profile: user, emojis: emojis),
+                          SizedBox(key: profileEndKey),
+                        ],
+                      ),
                     ),
-                  ),
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _ProfileTabBarHeaderDelegate(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface,
-                          border: Border(
-                            bottom: BorderSide(color: colorScheme.outlineVariant),
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _ProfileTabBarHeaderDelegate(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            border: Border(
+                              bottom: BorderSide(color: colorScheme.outlineVariant),
+                            ),
                           ),
-                        ),
-                        child: TabBar(
-                          onTap: (_) {
-                            final targetContext = profileEndKey.currentContext;
-                            if (targetContext == null) return;
-                            Scrollable.ensureVisible(
-                              targetContext,
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOut,
-                              alignment: 0,
-                            );
-                          },
-                          tabs: [
-                            Tab(text: '全て'),
-                            Tab(text: 'ノート'),
-                            Tab(text: 'メディア'),
-                          ],
+                          child: TabBar(
+                            onTap: (_) {
+                              final targetContext = profileEndKey.currentContext;
+                              if (targetContext == null) return;
+                              Scrollable.ensureVisible(
+                                targetContext,
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOut,
+                                alignment: 0,
+                              );
+                            },
+                            tabs: [
+                              Tab(text: '全て'),
+                              Tab(text: 'ノート'),
+                              Tab(text: 'メディア'),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  _ProfileNotesSliver(
-                    notes: notes,
-                    emptyMessage: emptyMessage,
-                    emojis: emojis,
-                  ),
-                ],
+                    _ProfileNotesSliver(
+                      notes: notes,
+                      emptyMessage: emptyMessage,
+                      emojis: emojis,
+                      isLoadingMore: switch (selectedIndex) {
+                        0 => context.select<ProfileProvider, bool>((p) => p.state.isLoadingMoreAllNotes),
+                        1 => context.select<ProfileProvider, bool>((p) => p.state.isLoadingMoreNoteOnlyNotes),
+                        _ => context.select<ProfileProvider, bool>((p) => p.state.isLoadingMoreMediaNotes),
+                      },
+                    ),
+                  ],
+                ),
               );
             },
           );
@@ -270,16 +303,62 @@ class _ProfileSummary extends StatelessWidget {
   }
 }
 
-class _ProfileNotesSliver extends StatelessWidget {
+class _ProfileNotesSliver extends StatefulWidget {
   const _ProfileNotesSliver({
     required this.notes,
     required this.emptyMessage,
     required this.emojis,
+    required this.isLoadingMore,
   });
 
   final List<Note> notes;
   final String emptyMessage;
   final Map<String, EmojiCacheEntry> emojis;
+  final bool isLoadingMore;
+
+  @override
+  State<_ProfileNotesSliver> createState() => _ProfileNotesSliverState();
+}
+
+class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
+  @override
+  Widget build(BuildContext context) {
+    final notes = widget.notes;
+    if (notes.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: Text(widget.emptyMessage)),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          // 最後のアイテムの場合
+          if (index == notes.length) {
+            return widget.isLoadingMore
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : const SizedBox.shrink();
+          }
+
+          final note = notes[index];
+          return TimelineNoteItem(
+            note: note,
+            animation: kAlwaysCompleteAnimation,
+            emojis: widget.emojis,
+            onRenote: () => _onNoteRenote(context, note),
+            onReaction: () => _onNoteReaction(context, note),
+            onReactionChipTap: (reaction) =>
+                _onReactionChipTap(context, note, reaction),
+          );
+        },
+        childCount: notes.length + (widget.isLoadingMore ? 1 : 0),
+      ),
+    );
+  }
 
   static void _showComingSoonSnackBar(BuildContext context, String label) {
     final messenger = ScaffoldMessenger.maybeOf(context);
@@ -335,34 +414,6 @@ class _ProfileNotesSliver extends StatelessWidget {
         _showComingSoonSnackBar(context, '引用');
         return;
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (notes.isEmpty) {
-      return SliverFillRemaining(
-        hasScrollBody: false,
-        child: Center(child: Text(emptyMessage)),
-      );
-    }
-
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final note = notes[index];
-          return TimelineNoteItem(
-            note: note,
-            animation: kAlwaysCompleteAnimation,
-            emojis: emojis,
-            onRenote: () => _onNoteRenote(context, note),
-            onReaction: () => _onNoteReaction(context, note),
-            onReactionChipTap: (reaction) =>
-                _onReactionChipTap(context, note, reaction),
-          );
-        },
-        childCount: notes.length,
-      ),
-    );
   }
 }
 

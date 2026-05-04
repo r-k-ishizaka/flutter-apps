@@ -11,6 +11,12 @@ class ProfileScreenState {
     this.allNotes = const <Note>[],
     this.noteOnlyNotes = const <Note>[],
     this.mediaNotes = const <Note>[],
+    this.allNotesUntilId,
+    this.noteOnlyNotesUntilId,
+    this.mediaNotesUntilId,
+    this.isLoadingMoreAllNotes = false,
+    this.isLoadingMoreNoteOnlyNotes = false,
+    this.isLoadingMoreMediaNotes = false,
   });
 
   const ProfileScreenState.idle()
@@ -19,7 +25,13 @@ class ProfileScreenState {
       message = null,
       allNotes = const <Note>[],
       noteOnlyNotes = const <Note>[],
-      mediaNotes = const <Note>[];
+      mediaNotes = const <Note>[],
+      allNotesUntilId = null,
+      noteOnlyNotesUntilId = null,
+      mediaNotesUntilId = null,
+      isLoadingMoreAllNotes = false,
+      isLoadingMoreNoteOnlyNotes = false,
+      isLoadingMoreMediaNotes = false;
 
   final ProfileStatus status;
   final UserProfile? profile;
@@ -27,6 +39,12 @@ class ProfileScreenState {
   final List<Note> allNotes;
   final List<Note> noteOnlyNotes;
   final List<Note> mediaNotes;
+  final String? allNotesUntilId;
+  final String? noteOnlyNotesUntilId;
+  final String? mediaNotesUntilId;
+  final bool isLoadingMoreAllNotes;
+  final bool isLoadingMoreNoteOnlyNotes;
+  final bool isLoadingMoreMediaNotes;
 
   ProfileScreenState copyWith({
     ProfileStatus? status,
@@ -35,6 +53,12 @@ class ProfileScreenState {
     List<Note>? allNotes,
     List<Note>? noteOnlyNotes,
     List<Note>? mediaNotes,
+    String? allNotesUntilId,
+    String? noteOnlyNotesUntilId,
+    String? mediaNotesUntilId,
+    bool? isLoadingMoreAllNotes,
+    bool? isLoadingMoreNoteOnlyNotes,
+    bool? isLoadingMoreMediaNotes,
     bool clearMessage = false,
     bool clearProfile = false,
     bool clearNotes = false,
@@ -48,6 +72,15 @@ class ProfileScreenState {
           ? const <Note>[]
           : (noteOnlyNotes ?? this.noteOnlyNotes),
       mediaNotes: clearNotes ? const <Note>[] : (mediaNotes ?? this.mediaNotes),
+      allNotesUntilId: allNotesUntilId ?? this.allNotesUntilId,
+      noteOnlyNotesUntilId: noteOnlyNotesUntilId ?? this.noteOnlyNotesUntilId,
+      mediaNotesUntilId: mediaNotesUntilId ?? this.mediaNotesUntilId,
+      isLoadingMoreAllNotes:
+          isLoadingMoreAllNotes ?? this.isLoadingMoreAllNotes,
+      isLoadingMoreNoteOnlyNotes:
+          isLoadingMoreNoteOnlyNotes ?? this.isLoadingMoreNoteOnlyNotes,
+      isLoadingMoreMediaNotes:
+          isLoadingMoreMediaNotes ?? this.isLoadingMoreMediaNotes,
     );
   }
 }
