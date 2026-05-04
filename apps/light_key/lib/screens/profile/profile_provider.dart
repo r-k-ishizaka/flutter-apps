@@ -208,6 +208,34 @@ class ProfileProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createRenote(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'リノート対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final renoteResult = await _timelineRepository.createRenote(
+          session,
+          noteId: targetNote.id,
+        );
+        return renoteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'リノート送信に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   void _applyMyReaction(String targetNoteId, String reaction) {
     List<Note> updateList(List<Note> notes) => notes
         .map((item) {

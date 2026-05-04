@@ -6,6 +6,7 @@ import '../../models/note.dart';
 import '../../models/user_profile.dart';
 import '../../services/emoji_cache.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
+import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/emoji_text.dart';
 import '../../widgets/timeline_note_item.dart';
 import '../../widgets/user_avatar.dart';
@@ -280,6 +281,14 @@ class _ProfileNotesSliver extends StatelessWidget {
   final String emptyMessage;
   final Map<String, EmojiCacheEntry> emojis;
 
+  static void _showComingSoonSnackBar(BuildContext context, String label) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$label は準備中です')));
+  }
+
   static Future<void> _onNoteReaction(BuildContext context, Note note) async {
     final emoji = await showReactionPickerSheet(context);
     if (emoji == null || !context.mounted) return;
@@ -308,6 +317,26 @@ class _ProfileNotesSliver extends StatelessWidget {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  static Future<void> _onNoteRenote(BuildContext context, Note note) async {
+    final action = await showRenoteActionSheet(context);
+    if (action == null || !context.mounted) return;
+
+    switch (action) {
+      case RenoteAction.renote:
+        final message = await context.read<ProfileProvider>().createRenote(note);
+        if (!context.mounted) return;
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger == null) return;
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(message ?? 'リノートしました。')));
+        return;
+      case RenoteAction.quote:
+        _showComingSoonSnackBar(context, '引用');
+        return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (notes.isEmpty) {
@@ -325,6 +354,7 @@ class _ProfileNotesSliver extends StatelessWidget {
             note: note,
             animation: kAlwaysCompleteAnimation,
             emojis: emojis,
+            onRenote: () => _onNoteRenote(context, note),
             onReaction: () => _onNoteReaction(context, note),
             onReactionChipTap: (reaction) =>
                 _onReactionChipTap(context, note, reaction),
