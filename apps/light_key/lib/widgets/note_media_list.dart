@@ -8,6 +8,11 @@ import '../models/note_file.dart';
 const _kGridHeight = 240.0;
 const _kRadius = 10.0;
 const _kSpacing = 4.0;
+const _kRevealFadeDuration = Duration(milliseconds: 100);
+
+ValueKey<String> _tileKeyFor(NoteFile file) => ValueKey(
+  '${file.thumbnailUrl ?? ''}|${file.blurhash ?? ''}|${file.isSensitive}',
+);
 
 class NoteMediaList extends StatelessWidget {
   const NoteMediaList({required this.files, super.key});
@@ -36,21 +41,31 @@ class NoteMediaList extends StatelessWidget {
   Widget _two(List<NoteFile> files) => Row(
     spacing: _kSpacing,
     children: [
-      Expanded(child: _Tile(file: files[0])),
-      Expanded(child: _Tile(file: files[1])),
+      Expanded(
+        child: _Tile(key: _tileKeyFor(files[0]), file: files[0]),
+      ),
+      Expanded(
+        child: _Tile(key: _tileKeyFor(files[1]), file: files[1]),
+      ),
     ],
   );
 
   Widget _three(List<NoteFile> files) => Row(
     spacing: _kSpacing,
     children: [
-      Expanded(child: _Tile(file: files[0])),
+      Expanded(
+        child: _Tile(key: _tileKeyFor(files[0]), file: files[0]),
+      ),
       Expanded(
         child: Column(
           spacing: _kSpacing,
           children: [
-            Expanded(child: _Tile(file: files[1])),
-            Expanded(child: _Tile(file: files[2])),
+            Expanded(
+              child: _Tile(key: _tileKeyFor(files[1]), file: files[1]),
+            ),
+            Expanded(
+              child: _Tile(key: _tileKeyFor(files[2]), file: files[2]),
+            ),
           ],
         ),
       ),
@@ -66,8 +81,12 @@ class NoteMediaList extends StatelessWidget {
           child: Row(
             spacing: _kSpacing,
             children: [
-              Expanded(child: _Tile(file: files[0])),
-              Expanded(child: _Tile(file: files[1])),
+              Expanded(
+                child: _Tile(key: _tileKeyFor(files[0]), file: files[0]),
+              ),
+              Expanded(
+                child: _Tile(key: _tileKeyFor(files[1]), file: files[1]),
+              ),
             ],
           ),
         ),
@@ -75,11 +94,13 @@ class NoteMediaList extends StatelessWidget {
           child: Row(
             spacing: _kSpacing,
             children: [
-              Expanded(child: _Tile(file: files[2])),
+              Expanded(
+                child: _Tile(key: _tileKeyFor(files[2]), file: files[2]),
+              ),
               Expanded(
                 child: extra > 0
                     ? _OverlayTile(file: files[3], extra: extra)
-                    : _Tile(file: files[3]),
+                    : _Tile(key: _tileKeyFor(files[3]), file: files[3]),
               ),
             ],
           ),
@@ -90,63 +111,113 @@ class NoteMediaList extends StatelessWidget {
 }
 
 class _Tile extends HookWidget {
-  const _Tile({required this.file});
+  const _Tile({required this.file, super.key});
 
   final NoteFile file;
 
   @override
   Widget build(BuildContext context) {
     final revealed = useState(!file.isSensitive);
-    return _buildContent(context, revealed);
-  }
-
-  Widget _buildContent(BuildContext context, ValueNotifier<bool> revealed) {
-    final thumbnailUrl = file.thumbnailUrl;
-    final imageWidget = thumbnailUrl == null
-        ? _BlurHashOrFallback(blurhash: file.blurhash)
-        : CachedNetworkImage(
-            imageUrl: thumbnailUrl,
-            fit: BoxFit.contain,
-            width: double.infinity,
-            height: double.infinity,
-            placeholder: (context, _) =>
-                _BlurHashOrFallback(blurhash: file.blurhash),
-            errorWidget: (context, _, _) =>
-                _BlurHashOrFallback(blurhash: file.blurhash),
-          );
+    final imageWidget = _MediaImage(file: file);
 
     if (!file.isSensitive) {
       return SizedBox.expand(key: const ValueKey('normal'), child: imageWidget);
     }
 
-    // センシティブ画像は実画像を背面で先読みし、前面のblurhash+レイヤーで完全に隠す
     return Stack(
       fit: StackFit.expand,
       children: [
-        imageWidget,
-        IgnorePointer(
-          ignoring: revealed.value,
-          child: AnimatedOpacity(
-            duration: revealed.value
-                ? const Duration(milliseconds: 100)
-                : Duration.zero,
-            opacity: revealed.value ? 0 : 1,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _BlurHashOrFallback(blurhash: file.blurhash),
-                ColoredBox(
-                  color: Colors.black54,
-                  child: Center(
+        Offstage(offstage: !revealed.value, child: imageWidget),
+        _SensitiveOverlay(
+          blurhash: file.blurhash,
+          revealed: revealed.value,
+          onReveal: () {
+            revealed.value = true;
+          },
+        ),
+        if (revealed.value)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _HideSensitiveButton(
+              onPressed: () {
+                revealed.value = false;
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MediaImage extends StatelessWidget {
+  const _MediaImage({required this.file});
+
+  final NoteFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnailUrl = file.thumbnailUrl;
+    if (thumbnailUrl == null) {
+      return _BlurHashOrFallback(blurhash: file.blurhash);
+    }
+
+    return CachedNetworkImage(
+      imageUrl: thumbnailUrl,
+      fit: BoxFit.contain,
+      width: double.infinity,
+      height: double.infinity,
+      placeholder: (context, _) => _BlurHashOrFallback(blurhash: file.blurhash),
+      errorWidget: (context, _, _) =>
+          _BlurHashOrFallback(blurhash: file.blurhash),
+    );
+  }
+}
+
+class _SensitiveOverlay extends StatelessWidget {
+  const _SensitiveOverlay({
+    required this.blurhash,
+    required this.revealed,
+    required this.onReveal,
+  });
+
+  final String? blurhash;
+  final bool revealed;
+  final VoidCallback onReveal;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: revealed,
+      child: AnimatedOpacity(
+        duration: revealed ? _kRevealFadeDuration : Duration.zero,
+        opacity: revealed ? 0 : 1,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const ColoredBox(color: Colors.black),
+            _BlurHashOrFallback(blurhash: blurhash),
+            ColoredBox(
+              color: Colors.black54,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact =
+                      constraints.maxHeight < 140 || constraints.maxWidth < 140;
+                  final iconSize = isCompact ? 20.0 : 26.0;
+                  final spacingSmall = isCompact ? 6.0 : 12.0;
+                  final spacingLarge = isCompact ? 8.0 : 16.0;
+
+                  return Center(
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.warning,
                           color: Colors.white,
-                          size: 32,
+                          size: iconSize,
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: spacingSmall),
                         Text(
                           'センシティブ',
                           style: Theme.of(context).textTheme.titleMedium
@@ -155,52 +226,54 @@ class _Tile extends HookWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: spacingLarge),
                         OutlinedButton(
-                          onPressed: () {
-                            revealed.value = true;
-                          },
+                          onPressed: onReveal,
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(
                               color: Colors.white,
                               width: 1.5,
                             ),
                             foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isCompact ? 10 : 16,
+                              vertical: isCompact ? 6 : 8,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: const Text('タップして表示'),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // 表示状態の場合のみ隠すボタンを表示
-        if (revealed.value)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: GestureDetector(
-              onTap: () {
-                revealed.value = false;
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(8),
-                child: const Icon(
-                  Icons.visibility_off,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                  );
+                },
               ),
             ),
-          ),
-      ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HideSensitiveButton extends StatelessWidget {
+  const _HideSensitiveButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.black54,
+          shape: BoxShape.circle,
+        ),
+        padding: const EdgeInsets.all(8),
+        child: const Icon(Icons.visibility_off, color: Colors.white, size: 20),
+      ),
     );
   }
 }
@@ -227,7 +300,7 @@ class _SingleImageAspectRatioTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return AspectRatio(
       aspectRatio: _aspectRatio(),
-      child: _Tile(file: file),
+      child: _Tile(key: _tileKeyFor(file), file: file),
     );
   }
 }
@@ -243,7 +316,7 @@ class _OverlayTile extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _Tile(file: file),
+        _Tile(key: _tileKeyFor(file), file: file),
         ColoredBox(
           color: Colors.black54,
           child: Center(
