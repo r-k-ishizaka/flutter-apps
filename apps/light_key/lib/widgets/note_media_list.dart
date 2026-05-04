@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note_file.dart';
 
@@ -88,30 +89,118 @@ class NoteMediaList extends StatelessWidget {
   }
 }
 
-class _Tile extends StatelessWidget {
+class _Tile extends HookWidget {
   const _Tile({required this.file});
 
   final NoteFile file;
 
   @override
   Widget build(BuildContext context) {
-    if (file.isSensitive) {
-      return _BlurHashOrFallback(blurhash: file.blurhash);
-    }
+    final revealed = useState(!file.isSensitive);
+    return _buildContent(context, revealed);
+  }
 
+  Widget _buildContent(BuildContext context, ValueNotifier<bool> revealed) {
     final thumbnailUrl = file.thumbnailUrl;
-    if (thumbnailUrl == null) {
-      return _BlurHashOrFallback(blurhash: file.blurhash);
+    final imageWidget = thumbnailUrl == null
+        ? _BlurHashOrFallback(blurhash: file.blurhash)
+        : CachedNetworkImage(
+            imageUrl: thumbnailUrl,
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            placeholder: (context, _) =>
+                _BlurHashOrFallback(blurhash: file.blurhash),
+            errorWidget: (context, _, _) =>
+                _BlurHashOrFallback(blurhash: file.blurhash),
+          );
+
+    if (!file.isSensitive) {
+      return SizedBox.expand(key: const ValueKey('normal'), child: imageWidget);
     }
 
-    return CachedNetworkImage(
-      imageUrl: thumbnailUrl,
-      fit: BoxFit.contain,
-      width: double.infinity,
-      height: double.infinity,
-      placeholder: (context, _) => _BlurHashOrFallback(blurhash: file.blurhash),
-      errorWidget: (context, _, _) =>
-          _BlurHashOrFallback(blurhash: file.blurhash),
+    // センシティブ画像は実画像を背面で先読みし、前面のblurhash+レイヤーで完全に隠す
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        imageWidget,
+        IgnorePointer(
+          ignoring: revealed.value,
+          child: AnimatedOpacity(
+            duration: revealed.value
+                ? const Duration(milliseconds: 100)
+                : Duration.zero,
+            opacity: revealed.value ? 0 : 1,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _BlurHashOrFallback(blurhash: file.blurhash),
+                ColoredBox(
+                  color: Colors.black54,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.warning,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'センシティブ',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton(
+                          onPressed: () {
+                            revealed.value = true;
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('タップして表示'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // 表示状態の場合のみ隠すボタンを表示
+        if (revealed.value)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                revealed.value = false;
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(8),
+                child: const Icon(
+                  Icons.visibility_off,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
