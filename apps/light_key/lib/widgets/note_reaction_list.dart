@@ -178,6 +178,7 @@ class _ReactionChip extends StatelessWidget {
              emojiSize: 18,
              maxLines: 1,
              overflow: TextOverflow.ellipsis,
+             showCrossServerCacheMissAsError: true,
            ),
           const SizedBox(width: 4),
           Text(

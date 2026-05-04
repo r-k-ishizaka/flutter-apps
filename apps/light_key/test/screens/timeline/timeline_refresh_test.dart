@@ -342,6 +342,22 @@ void main() {
       expect(decoration.color, isNull);
     });
 
+    testWidgets('他サーバー絵文字がキャッシュ未ヒットなら取得エラー画像を表示する', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteReactionList(
+              reactions: const {':aaa@test:': 1},
+              emojis: getIt<EmojiCache>().entries,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+      expect(find.text(':aaa@test:'), findsNothing);
+    });
+
     testWidgets('純粋リノート更新時も renote.myReaction を保持する', (tester) async {
       const reactionKey = ':custom@.:';
       final theme = ThemeData(useMaterial3: true);

@@ -18,6 +18,7 @@ class EmojiText extends StatelessWidget {
     this.maxLines,
     this.overflow,
     this.host,
+    this.showCrossServerCacheMissAsError = false,
   });
 
   final String text;
@@ -32,6 +33,9 @@ class EmojiText extends StatelessWidget {
 
   /// `:name:` の解決時に使う既定ホスト。指定時は `name@host` を優先して参照する。
   final String? host;
+
+  /// `:name@host:` がキャッシュ未登録のとき、shortcode文字列ではなくエラー画像を表示する。
+  final bool showCrossServerCacheMissAsError;
 
   // :shortcode: に加えて :shortcode@host: / :shortcode@.: 形式も許可する。
   static final _emojiPattern = RegExp(
@@ -96,8 +100,17 @@ class EmojiText extends StatelessWidget {
           ),
         );
       } else {
-        // 未登録の shortcode はそのまま表示
-        spans.add(TextSpan(text: match.group(0)));
+        final isCrossServer =
+            explicitHost != null &&
+            explicitHost.isNotEmpty &&
+            explicitHost != '.';
+
+        if (showCrossServerCacheMissAsError && isCrossServer) {
+          spans.add(_buildErrorSpan(context));
+        } else {
+          // 未登録の shortcode はそのまま表示
+          spans.add(TextSpan(text: match.group(0)));
+        }
       }
 
       lastEnd = match.end;
@@ -109,6 +122,24 @@ class EmojiText extends StatelessWidget {
     }
 
     return spans;
+  }
+
+  InlineSpan _buildErrorSpan(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: SizedBox.square(
+          dimension: emojiSize,
+          child: Icon(
+            Icons.broken_image_outlined,
+            size: emojiSize,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
   }
 
   EmojiCacheEntry? _resolveEmojiEntry({
