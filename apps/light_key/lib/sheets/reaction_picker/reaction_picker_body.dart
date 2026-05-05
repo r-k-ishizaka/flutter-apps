@@ -449,13 +449,18 @@ class ReactionPickerBody extends HookWidget {
         SliverList(
           delegate: SliverChildBuilderDelegate((context, index) {
             final subCatName = subCategoryNames[index];
-            return ListTile(
-              dense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              title: Text(subCatName),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () =>
-                  onCategorySelected([...notifier.categoryPath, subCatName]),
+            return Column(
+              children: [
+                ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  title: Text(subCatName),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () =>
+                      onCategorySelected([...notifier.categoryPath, subCatName]),
+                ),
+                const Divider(height: 1),
+              ],
             );
           }, childCount: subCategoryNames.length),
         ),
