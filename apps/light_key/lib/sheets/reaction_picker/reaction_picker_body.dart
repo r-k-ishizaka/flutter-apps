@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +9,73 @@ import 'emoji_cells.dart';
 import 'pinned_sheet_header.dart';
 import 'reaction_picker_provider.dart';
 import 'search_result_tile.dart';
+
+bool _useInitialSheetAnimationDone(ReactionPickerProvider notifier) {
+  final isInitialSheetAnimationDone = useState(false);
+
+  useEffect(
+    () {
+      const initialSheetAnimationDuration = Duration(milliseconds: 300);
+      final timer = Timer(initialSheetAnimationDuration, () {
+        isInitialSheetAnimationDone.value = true;
+        unawaited(notifier.ensureInitialCategoriesLoaded());
+      });
+      return timer.cancel;
+    },
+    [isInitialSheetAnimationDone, notifier],
+  );
+
+  return isInitialSheetAnimationDone.value;
+}
+
+ValueNotifier<bool> _useForceSearchExpanded({
+  required ReactionPickerProvider notifier,
+  required FocusNode searchFocusNode,
+  required DraggableScrollableController sheetController,
+  required VoidCallback scrollToTopAfterBuild,
+}) {
+  final forceSearchExpanded = useState(false);
+  final wasSearchFocused = useState(false);
+
+  useEffect(
+    () {
+      void onFocusChanged() {
+        final focused = searchFocusNode.hasFocus;
+        if (focused == wasSearchFocused.value) return;
+        wasSearchFocused.value = focused;
+        if (!focused) {
+          if (notifier.query.isEmpty) {
+            forceSearchExpanded.value = false;
+          }
+          return;
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (sheetController.isAttached) {
+            sheetController.animateTo(
+              1.0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+            );
+          }
+          scrollToTopAfterBuild();
+        });
+      }
+
+      searchFocusNode.addListener(onFocusChanged);
+      return () => searchFocusNode.removeListener(onFocusChanged);
+    },
+    [
+      notifier,
+      searchFocusNode,
+      sheetController,
+      wasSearchFocused,
+      forceSearchExpanded,
+    ],
+  );
+
+  return forceSearchExpanded;
+}
 
 /// リアクションピッカーの本体ウィジェット。
 ///
@@ -25,14 +94,8 @@ class ReactionPickerBody extends HookWidget {
     useListenable(searchFocusNode);
     final sheetController = useMemoized(DraggableScrollableController.new);
     final latestScrollController = useRef<ScrollController?>(null);
-    final wasSearchFocused = useState(false);
-    final forceSearchExpanded = useState(false);
     final wasAtMinExtent = useRef(false);
     final colorScheme = Theme.of(context).colorScheme;
-    final isSearchExpanded =
-        forceSearchExpanded.value ||
-        searchFocusNode.hasFocus ||
-        notifier.query.isNotEmpty;
 
     void scrollToTopAfterBuild() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -50,43 +113,17 @@ class ReactionPickerBody extends HookWidget {
       notifier.navigateToCategory(nextPath);
       scrollToTopAfterBuild();
     }
-
-    useEffect(
-      () {
-        void onFocusChanged() {
-          final focused = searchFocusNode.hasFocus;
-          if (focused == wasSearchFocused.value) return;
-          wasSearchFocused.value = focused;
-          if (!focused) {
-            if (notifier.query.isEmpty) {
-              forceSearchExpanded.value = false;
-            }
-            return;
-          }
-
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (sheetController.isAttached) {
-              sheetController.animateTo(
-                1.0,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-              );
-            }
-            scrollToTopAfterBuild();
-          });
-        }
-
-        searchFocusNode.addListener(onFocusChanged);
-        return () => searchFocusNode.removeListener(onFocusChanged);
-      },
-      [
-        notifier,
-        searchFocusNode,
-        sheetController,
-        wasSearchFocused,
-        forceSearchExpanded,
-      ],
+    final forceSearchExpanded = _useForceSearchExpanded(
+      notifier: notifier,
+      searchFocusNode: searchFocusNode,
+      sheetController: sheetController,
+      scrollToTopAfterBuild: scrollToTopAfterBuild,
     );
+    final isInitialSheetAnimationDone = _useInitialSheetAnimationDone(notifier);
+    final isSearchExpanded =
+        forceSearchExpanded.value ||
+        searchFocusNode.hasFocus ||
+        notifier.query.isNotEmpty;
 
     return PopScope(
       canPop: notifier.categoryPath.isEmpty,
@@ -179,100 +216,18 @@ class ReactionPickerBody extends HookWidget {
                 ];
 
                 final bodySlivers = <Widget>[];
-
-                // よく使う絵文字セクション（トップレベル＋クエリ未入力のみ表示）
-                if (notifier.categoryPath.isEmpty && notifier.query.isEmpty) {
-                  bodySlivers.add(
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                        child: Text(
-                          'よく使う絵文字',
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                      ),
-                    ),
-                  );
-
-                  final frequent = notifier.filteredFrequent;
-                  if (frequent.isEmpty) {
-                    bodySlivers.add(
-                      const SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-                          child: Text('該当する絵文字がありません'),
-                        ),
-                      ),
-                    );
-                  } else {
-                    bodySlivers.add(
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 8,
-                                childAspectRatio: 1,
-                              ),
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final emoji = frequent[index];
-                            return EmojiCell(
-                              emoji: emoji,
-                              onTap: () => onSelected(emoji),
-                            );
-                          }, childCount: frequent.length),
-                        ),
-                      ),
-                    );
-                  }
-                }
-
-                // カスタム絵文字セクション
-                if (notifier.isLoading) {
-                  bodySlivers.add(
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    ),
-                  );
-                } else if (notifier.loadError != null) {
-                  bodySlivers.add(
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Text('リアクション一覧の読み込みに失敗しました'),
-                      ),
-                    ),
-                  );
-                } else if (notifier.categoryPath.isNotEmpty) {
-                  bodySlivers.addAll(
-                    _buildCategoryDetailSlivers(
-                      context,
-                      notifier,
-                      handleCategorySelected,
-                    ),
-                  );
-                } else {
-                  bodySlivers.addAll(
-                    _buildTopLevelSlivers(
-                      context,
-                      notifier,
-                      handleCategorySelected,
-                    ),
-                  );
-                }
-
-                final bottomPadding = keyboardInset > 0
-                    ? keyboardInset
-                    : MediaQuery.viewPaddingOf(context).bottom;
-                bodySlivers.add(
-                  SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+                final shouldShowLoadingSlivers =
+                    !isInitialSheetAnimationDone || notifier.isLoading;
+                bodySlivers.addAll(_buildFrequentSectionSlivers(context, notifier));
+                bodySlivers.addAll(
+                  _buildCustomEmojiSectionSlivers(
+                    context,
+                    notifier,
+                    shouldShowLoadingSlivers,
+                    handleCategorySelected,
+                  ),
                 );
+                bodySlivers.add(_buildBottomInsetSliver(context, keyboardInset));
 
                 slivers.addAll(bodySlivers);
 
@@ -289,6 +244,140 @@ class ReactionPickerBody extends HookWidget {
   }
 
   // ── Sliver builders ────────────────────────────────────────────────────────
+
+  List<Widget> _buildFrequentSectionSlivers(
+    BuildContext context,
+    ReactionPickerProvider notifier,
+  ) {
+    if (notifier.categoryPath.isNotEmpty || notifier.query.isNotEmpty) {
+      return const [];
+    }
+
+    final slivers = <Widget>[
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: Text(
+            'よく使う絵文字',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ),
+      ),
+    ];
+
+    final frequent = notifier.filteredFrequent;
+    if (frequent.isEmpty) {
+      slivers.add(
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Text('該当する絵文字がありません'),
+          ),
+        ),
+      );
+      return slivers;
+    }
+
+    slivers.add(
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 8,
+            childAspectRatio: 1,
+          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final emoji = frequent[index];
+            return EmojiCell(emoji: emoji, onTap: () => onSelected(emoji));
+          }, childCount: frequent.length),
+        ),
+      ),
+    );
+    return slivers;
+  }
+
+  List<Widget> _buildCustomEmojiSectionSlivers(
+    BuildContext context,
+    ReactionPickerProvider notifier,
+    bool shouldShowLoadingSlivers,
+    void Function(List<String>) onCategorySelected,
+  ) {
+    if (shouldShowLoadingSlivers) {
+      return _buildTopLevelLoadingSlivers(context);
+    }
+
+    if (notifier.loadError != null) {
+      return const [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Text('リアクション一覧の読み込みに失敗しました'),
+          ),
+        ),
+      ];
+    }
+
+    if (notifier.categoryPath.isNotEmpty) {
+      return _buildCategoryDetailSlivers(context, notifier, onCategorySelected);
+    }
+
+    return _buildTopLevelSlivers(context, notifier, onCategorySelected);
+  }
+
+  Widget _buildBottomInsetSliver(BuildContext context, double keyboardInset) {
+    final bottomPadding = keyboardInset > 0
+        ? keyboardInset
+        : MediaQuery.viewPaddingOf(context).bottom;
+    return SliverToBoxAdapter(child: SizedBox(height: bottomPadding));
+  }
+
+  List<Widget> _buildTopLevelLoadingSlivers(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final placeholderColor = colorScheme.onSurface.withValues(alpha: 0.12);
+
+    return [
+      SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final titleWidthFactor = 0.4 + (index % 4) * 0.1;
+          return ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            title: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: titleWidthFactor,
+                child: Container(
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: placeholderColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: 0.18,
+                  child: Container(
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: placeholderColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            trailing: Icon(Icons.chevron_right, color: placeholderColor),
+          );
+        }, childCount: 12),
+      ),
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+    ];
+  }
 
   List<Widget> _buildSearchResultsSlivers(
     BuildContext context,

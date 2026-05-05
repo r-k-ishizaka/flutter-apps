@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:light_key/utils/emoji_name_scope.dart';
@@ -14,9 +14,7 @@ const _kFrequentReactions = <String>[];
 
 /// リアクションピッカーのUI状態とビジネスロジックを管理する ChangeNotifier。
 class ReactionPickerProvider extends ChangeNotifier {
-  ReactionPickerProvider() {
-    _loadInitialCategories();
-  }
+  ReactionPickerProvider();
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +30,7 @@ class ReactionPickerProvider extends ChangeNotifier {
   bool _disposed = false;
   String? _sessionHost;
   Future<void>? _sessionHostLoadTask;
+  Future<void>? _initialLoadTask;
 
   List<String> get categoryPath => _categoryPath;
 
@@ -42,6 +41,11 @@ class ReactionPickerProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Object? get loadError => _loadError;
+
+  /// トップカテゴリの初期ロードを必要時に1回だけ開始する。
+  Future<void> ensureInitialCategoriesLoaded() {
+    return _initialLoadTask ??= _loadInitialCategories();
+  }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
 
@@ -322,8 +326,7 @@ class ReactionPickerProvider extends ChangeNotifier {
     try {
       final session = await getIt<AuthDataSource>().loadSession();
       final parsedHost = Uri.tryParse(session?.baseUrl ?? '')?.host;
-      _sessionHost =
-          (parsedHost == null || parsedHost.isEmpty)
+      _sessionHost = (parsedHost == null || parsedHost.isEmpty)
           ? null
           : parsedHost.toLowerCase();
     } catch (_) {
