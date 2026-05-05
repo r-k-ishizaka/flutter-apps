@@ -302,8 +302,55 @@ class _NoteStatusIcons extends StatelessWidget {
         if (note.localOnly)
           Tooltip(
             message: 'ローカルのみ（連合なし）',
-            child: Icon(Icons.wifi_off, size: iconSize, color: color),
+            child: _LocalOnlyIcon(size: iconSize, color: color),
           ),
+      ],
+    );
+  }
+}
+
+/// 連合なし（ローカルのみ）アイコン。ロケットに斜線を重ねた表現。
+class _LocalOnlyIcon extends StatelessWidget {
+  const _LocalOnlyIcon({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = Theme.of(context).colorScheme.surface;
+    final slashW = size * 0.85;
+    final slashH = size * 0.19;
+    final outlineW = size * 0.95;
+    final outlineH = size * 0.32;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(Icons.rocket_launch, size: size, color: color),
+        Transform.rotate(
+          angle: 0.7,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: outlineW,
+                height: outlineH,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(outlineH / 2),
+                ),
+              ),
+              Container(
+                width: slashW,
+                height: slashH,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(slashH / 2),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
