@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../models/user.dart';
 import '../../route/app_routes.dart';
 import '../../services/emoji_cache.dart';
+import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/timeline_list.dart';
@@ -48,6 +50,30 @@ class TimelineScreen extends HookWidget {
     final emoji = await showReactionPickerSheet(context);
     if (emoji == null || !context.mounted) return;
     await _sendReaction(context, note, emoji);
+  }
+
+  Future<void> _onNoteBodyEmojiTap(
+    BuildContext context,
+    Note note,
+    String emoji,
+  ) async {
+    final action = await showNoteEmojiActionSheet(context, emoji: emoji);
+    if (action == null || !context.mounted) return;
+
+    switch (action) {
+      case NoteEmojiAction.react:
+        await _sendReaction(context, note, emoji);
+        return;
+      case NoteEmojiAction.copy:
+        await Clipboard.setData(ClipboardData(text: emoji));
+        if (!context.mounted) return;
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger == null) return;
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('絵文字をコピーしました。')));
+        return;
+    }
   }
 
   Future<void> _onNoteRenote(BuildContext context, Note note) async {
@@ -125,6 +151,8 @@ class TimelineScreen extends HookWidget {
         onNoteReactionChipTap: (note, reaction) =>
             _sendReaction(context, note, reaction),
         onNoteUserTap: (_, user) => _onUserTap(context, user),
+        onNoteBodyEmojiTap: (note, emoji) =>
+            _onNoteBodyEmojiTap(context, note, emoji),
       );
     }
 

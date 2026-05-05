@@ -15,6 +15,7 @@ import 'package:light_key/repositories/timeline_repository.dart';
 import 'package:light_key/screens/timeline/timeline_provider.dart';
 import 'package:light_key/screens/timeline/timeline_screen_state.dart';
 import 'package:light_key/services/emoji_cache.dart';
+import 'package:light_key/widgets/emoji_text.dart';
 import 'package:light_key/widgets/note_reaction_list.dart';
 import 'package:light_key/widgets/timeline_list.dart';
 
@@ -161,6 +162,154 @@ void main() {
       expect(timelineDataSource.reactionCalls, [('note-1', '👍')]);
     });
 
+    test('既存リアクションがあるノートで別リアクションに切り替わる', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [
+            _note(id: 'note-1').copyWith(
+              reactions: const {':old:': 3},
+              myReaction: ':old:',
+            ),
+          ],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+
+      final message = await provider.createReaction(_note(id: 'note-1'), ':new:');
+
+      expect(message, isNull);
+      final loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.single.myReaction, ':new:');
+      expect(loadedState.notes.single.reactions[':old:'], 2);
+      expect(loadedState.notes.single.reactions[':new:'], 1);
+      expect(timelineDataSource.reactionCalls, [('note-1', ':new:')]);
+    });
+
+    test('本文絵文字の :name: はそのまま送信する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [
+            _note(id: 'note-1').copyWith(
+              reactions: const {':blob_bongo_cat_keyboard@.:': 1},
+              myReaction: ':blob_bongo_cat_keyboard@.:',
+            ),
+          ],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+
+      final message = await provider.createReaction(
+        _note(id: 'note-1'),
+        ':blob_bongo_cat_keyboard:',
+      );
+
+      expect(message, isNull);
+      expect(timelineDataSource.reactionCalls, [
+        ('note-1', ':blob_bongo_cat_keyboard:'),
+      ]);
+    });
+
+    test('互換入力の :name@.: は :name: に変換して送信する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [
+            _note(id: 'note-1').copyWith(
+              reactions: const {':blob_uooo@.:': 3},
+              myReaction: ':blob_uooo@.:',
+            ),
+          ],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+
+      final message = await provider.createReaction(
+        _note(id: 'note-1'),
+        ':blob_bongo_cat_keyboard@.:',
+      );
+
+      expect(message, isNull);
+      expect(timelineDataSource.reactionCalls, [
+        ('note-1', ':blob_bongo_cat_keyboard:'),
+      ]);
+    });
+
+    test('refreshで古いmyReactionが来てもreactionsと不整合なら現在値を優先する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [
+            _note(id: 'note-1').copyWith(
+              reactions: const {':old@.:': 3},
+              myReaction: ':old@.:',
+            ),
+          ],
+          () async => [
+            _note(id: 'note-1').copyWith(
+              reactions: const {':new@.:': 1},
+              myReaction: ':old@.:',
+            ),
+          ],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+      await provider.createReaction(_note(id: 'note-1'), ':new@.:');
+      await provider.fetch(showLoading: false);
+
+      final loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.single.myReaction, ':new:');
+    });
+
     test('純粋リノートでは元ノートにリアクションを送信する', () async {
       final authRepository = AuthRepository(
         _FakeAuthDataSource(
@@ -282,6 +431,34 @@ void main() {
   });
 
   group('TimelineList refresh feedback', () {
+    testWidgets('本文絵文字をタップするとノートと絵文字が渡される', (tester) async {
+      Note? tappedNote;
+      String? tappedEmoji;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TimelineList(
+            notes: [_note(id: 'note-1', text: 'hello :custom:')],
+            emojis: getIt<EmojiCache>().entries,
+            onNoteBodyEmojiTap: (note, emoji) {
+              tappedNote = note;
+              tappedEmoji = emoji;
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('${EmojiText.emojiTapKeyPrefix}:custom:'),
+        ),
+      );
+      await tester.pump();
+
+      expect(tappedNote?.id, 'note-1');
+      expect(tappedEmoji, ':custom:');
+    });
+
     testWidgets('表示中のリアクションをタップすると送信コールバックが呼ばれる', (tester) async {
       Note? tappedNote;
       String? tappedReaction;

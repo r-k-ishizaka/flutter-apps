@@ -23,6 +23,7 @@ class TimelineNoteItem extends HookWidget {
     this.onReaction,
     this.onReactionChipTap,
     this.onUserTap,
+    this.onBodyEmojiTap,
     super.key,
   });
 
@@ -34,6 +35,7 @@ class TimelineNoteItem extends HookWidget {
   final VoidCallback? onReaction;
   final ValueChanged<String>? onReactionChipTap;
   final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onBodyEmojiTap;
 
   String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
@@ -112,6 +114,7 @@ class TimelineNoteItem extends HookWidget {
                               child: EmojiText(
                                 '$renoteUserName がリノート',
                                 emojis: emojis,
+                                host: note.user.host,
                                 style: Theme.of(context).textTheme.bodySmall,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -152,6 +155,7 @@ class TimelineNoteItem extends HookWidget {
                                           EmojiText(
                                             displayUserName,
                                             emojis: emojis,
+                                          host: displayNote.user.host,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           emojiSize: 18,
@@ -189,6 +193,7 @@ class TimelineNoteItem extends HookWidget {
                                  expanded: cwExpanded.value,
                                  onToggle: () =>
                                      cwExpanded.value = !cwExpanded.value,
+                                   host: displayNote.user.host,
                                  emojis: emojis,
                                ),
                                const SizedBox(height: 4),
@@ -199,12 +204,16 @@ class TimelineNoteItem extends HookWidget {
                                NoteType.normal => EmojiText(
                                  note.text.isEmpty ? '(本文なし)' : note.text,
                                  emojis: emojis,
+                                 host: note.user.host,
+                                 onEmojiTap: onBodyEmojiTap,
                                ),
                                NoteType.pureRenote => EmojiText(
                                  displayNote.text.isEmpty
                                      ? '(本文なし)'
                                      : displayNote.text,
                                  emojis: emojis,
+                                 host: displayNote.user.host,
+                                 onEmojiTap: onBodyEmojiTap,
                                ),
                                NoteType.quoteRenote => Column(
                                  crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,6 +221,8 @@ class TimelineNoteItem extends HookWidget {
                                    EmojiText(
                                      note.text.isEmpty ? '(本文なし)' : note.text,
                                      emojis: emojis,
+                                     host: note.user.host,
+                                     onEmojiTap: onBodyEmojiTap,
                                    ),
                                     if (note.files.isNotEmpty) ...[
                                       const SizedBox(height: 8),
@@ -221,6 +232,7 @@ class TimelineNoteItem extends HookWidget {
                                      RenoteCard(
                                        renote: note.renote!,
                                        emojis: emojis,
+                                       onBodyEmojiTap: onBodyEmojiTap,
                                      ),
                                    ],
                                 ),
@@ -303,12 +315,14 @@ class _CwBar extends StatelessWidget {
     required this.cwText,
     required this.expanded,
     required this.onToggle,
+    required this.host,
     required this.emojis,
   });
 
   final String cwText;
   final bool expanded;
   final VoidCallback onToggle;
+  final String? host;
   final Map<String, EmojiCacheEntry> emojis;
 
   @override
@@ -326,6 +340,7 @@ class _CwBar extends StatelessWidget {
           EmojiText(
             cwText,
             emojis: emojis,
+            host: host,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

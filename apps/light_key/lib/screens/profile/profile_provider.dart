@@ -177,8 +177,8 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   Future<String?> createReaction(Note note, String reaction) async {
-    final normalizedReaction = reaction.trim();
-    if (normalizedReaction.isEmpty) {
+    final requestedReaction = reaction.trim();
+    if (requestedReaction.isEmpty) {
       return 'リアクションが選択されていません。';
     }
 
@@ -190,6 +190,7 @@ class ProfileProvider extends ChangeNotifier {
     }
 
     final sessionResult = await _authRepository.restoreSession();
+    final outgoingReaction = _normalizeOutgoingReaction(requestedReaction);
     return sessionResult.when(
       success: (session) async {
         if (session == null) {
@@ -199,11 +200,11 @@ class ProfileProvider extends ChangeNotifier {
         final reactionResult = await _timelineRepository.createReaction(
           session,
           noteId: targetNote.id,
-          reaction: normalizedReaction,
+          reaction: outgoingReaction,
         );
         return reactionResult.when(
           success: (_) {
-            _applyMyReaction(targetNote.id, normalizedReaction);
+            _applyMyReaction(targetNote.id, outgoingReaction);
             return null;
           },
           failure: (error, _) => 'リアクション送信に失敗しました: $error',
@@ -211,6 +212,15 @@ class ProfileProvider extends ChangeNotifier {
       },
       failure: (error, _) async => 'セッション取得に失敗しました: $error',
     );
+  }
+
+  String _normalizeOutgoingReaction(String reaction) {
+    final sameServerDot = RegExp(r'^:([a-zA-Z0-9_.-]+)@\.:$').firstMatch(reaction);
+    if (sameServerDot != null) {
+      return ':${sameServerDot.group(1)}:';
+    }
+
+    return reaction;
   }
 
   Future<String?> createRenote(Note note) async {

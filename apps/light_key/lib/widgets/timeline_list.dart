@@ -21,6 +21,7 @@ class TimelineList extends HookWidget {
     this.onNoteReaction,
     this.onNoteReactionChipTap,
     this.onNoteUserTap,
+    this.onNoteBodyEmojiTap,
     super.key,
   });
 
@@ -34,6 +35,7 @@ class TimelineList extends HookWidget {
   final void Function(Note note)? onNoteReaction;
   final void Function(Note note, String reaction)? onNoteReactionChipTap;
   final void Function(Note note, User user)? onNoteUserTap;
+  final void Function(Note note, String emoji)? onNoteBodyEmojiTap;
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +159,9 @@ class TimelineList extends HookWidget {
                     : null,
                 onUserTap: onNoteUserTap != null
                     ? (user) => onNoteUserTap!(note, user)
+                    : null,
+                onBodyEmojiTap: onNoteBodyEmojiTap != null
+                    ? (emoji) => onNoteBodyEmojiTap!(note, emoji)
                     : null,
               );
             },

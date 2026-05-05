@@ -12,6 +12,7 @@ sealed class User with _$User {
     @Default('') String id,
     @Default('') String username,
     @Default('') String name,
+    String? host,
     String? avatarUrl,
     @JsonKey(name: 'avatarBlurhash') String? avatarBlurHash,
   }) = _User;
@@ -27,5 +28,6 @@ Map<String, dynamic> _normalizeUserJson(Map<String, dynamic> json) {
     'id': json['id'] as String? ?? '',
     'username': username,
     'name': json['name'] as String? ?? username,
+    'host': json['host'] as String?,
   };
 }

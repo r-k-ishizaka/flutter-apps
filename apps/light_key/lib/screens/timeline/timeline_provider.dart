@@ -195,8 +195,8 @@ class TimelineProvider extends ChangeNotifier {
   }
 
   Future<String?> createReaction(Note note, String reaction) async {
-    final normalizedReaction = reaction.trim();
-    if (normalizedReaction.isEmpty) {
+    final requestedReaction = reaction.trim();
+    if (requestedReaction.isEmpty) {
       return 'リアクションが選択されていません。';
     }
 
@@ -206,6 +206,8 @@ class TimelineProvider extends ChangeNotifier {
     if (targetNote.id.isEmpty) {
       return 'リアクション対象のノートIDが見つかりません。';
     }
+
+    final outgoingReaction = _normalizeOutgoingReaction(requestedReaction);
 
     final sessionResult = await _authRepository.restoreSession();
     return sessionResult.when(
@@ -217,11 +219,11 @@ class TimelineProvider extends ChangeNotifier {
         final reactionResult = await _timelineRepository.createReaction(
           session,
           noteId: targetNote.id,
-          reaction: normalizedReaction,
+          reaction: outgoingReaction,
         );
         return reactionResult.when(
           success: (_) {
-            _applyMyReaction(note, targetNote.id, normalizedReaction);
+            _applyMyReaction(note, targetNote.id, outgoingReaction);
             return null;
           },
           failure: (error, _) => 'リアクション送信に失敗しました: $error',
@@ -273,12 +275,12 @@ class TimelineProvider extends ChangeNotifier {
         .map((item) {
           // 直接の note に一致する場合
           if (item.id == targetNoteId) {
-            return item.copyWith(myReaction: reaction);
+            return _updateNoteReaction(item, reaction);
           }
           // 純粋リノートのリノート元に一致する場合
           final renote = item.renote;
           if (renote != null && renote.id == targetNoteId) {
-            return item.copyWith(renote: renote.copyWith(myReaction: reaction));
+            return item.copyWith(renote: _updateNoteReaction(renote, reaction));
           }
           return item;
         })
@@ -286,6 +288,21 @@ class TimelineProvider extends ChangeNotifier {
 
     _state = loadedState.copyWith(notes: List<Note>.unmodifiable(updatedNotes));
     notifyListeners();
+  }
+
+  Note _updateNoteReaction(Note note, String reaction) {
+    final previousReaction = note.myReaction;
+    if (previousReaction == reaction) {
+      return note.copyWith(myReaction: reaction);
+    }
+
+    var updated = note;
+    if (previousReaction != null && previousReaction.isNotEmpty) {
+      updated = updated.applyReactionDelta(previousReaction, -1);
+    }
+    updated = updated.applyReactionDelta(reaction, 1);
+
+    return updated.copyWith(myReaction: reaction);
   }
 
   List<Note> _mergeNotesPreservingMyReaction(
@@ -333,9 +350,60 @@ class TimelineProvider extends ChangeNotifier {
     };
 
     return incoming.copyWith(
-      myReaction: incoming.myReaction ?? matchedCurrent?.myReaction,
+      myReaction: _resolveMergedMyReaction(incoming, matchedCurrent),
       renote: mergedRenote,
     );
+  }
+
+  String? _resolveMergedMyReaction(Note incoming, Note? current) {
+    final incomingReaction = incoming.myReaction;
+    final currentReaction = current?.myReaction;
+
+    if (incomingReaction == null || incomingReaction.isEmpty) {
+      return currentReaction;
+    }
+    if (currentReaction == null || currentReaction.isEmpty) {
+      return incomingReaction;
+    }
+    if (incomingReaction == currentReaction) {
+      return incomingReaction;
+    }
+
+    final incomingExists = _reactionKeyExists(
+      incoming.reactions,
+      incomingReaction,
+    );
+    final currentExists = _reactionKeyExists(incoming.reactions, currentReaction);
+    if (!incomingExists && currentExists) {
+      return currentReaction;
+    }
+
+    return incomingReaction;
+  }
+
+  String _normalizeOutgoingReaction(String reaction) {
+    final sameServerDot = RegExp(r'^:([a-zA-Z0-9_.-]+)@\.:$').firstMatch(reaction);
+    if (sameServerDot != null) {
+      // 互換入力として受け取りつつ、送信は自鯖形式 `:name:` を優先する。
+      return ':${sameServerDot.group(1)}:';
+    }
+
+    return reaction;
+  }
+
+  bool _reactionKeyExists(Map<String, int> reactions, String reaction) {
+    if (reactions.containsKey(reaction)) {
+      return true;
+    }
+    final sameServerBare = RegExp(r'^:([a-zA-Z0-9_.-]+):$').firstMatch(reaction);
+    if (sameServerBare != null) {
+      return reactions.containsKey(':${sameServerBare.group(1)}@.:');
+    }
+    final sameServerDot = RegExp(r'^:([a-zA-Z0-9_.-]+)@\.:$').firstMatch(reaction);
+    if (sameServerDot != null) {
+      return reactions.containsKey(':${sameServerDot.group(1)}:');
+    }
+    return false;
   }
 
   @override

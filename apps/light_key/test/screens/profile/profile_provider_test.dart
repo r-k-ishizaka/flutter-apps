@@ -14,6 +14,82 @@ import 'package:light_key/repositories/user_profile_repository.dart';
 import 'package:light_key/screens/profile/profile_provider.dart';
 
 void main() {
+  group('ProfileProvider.createReaction', () {
+    test('通常ノートにリアクションを送信する', () async {
+      final provider = _buildProvider(
+        authSession: const AuthSession(
+          baseUrl: 'https://example.com',
+          accessToken: 'token',
+        ),
+      );
+
+      final message = await provider.provider.createReaction(
+        _note(id: 'note-1'),
+        '👍',
+      );
+
+      expect(message, isNull);
+      expect(provider.timelineDataSource.reactionCalls, [('note-1', '👍')]);
+    });
+
+    test('純粋リノートでは元ノートにリアクションを送信する', () async {
+      final provider = _buildProvider(
+        authSession: const AuthSession(
+          baseUrl: 'https://example.com',
+          accessToken: 'token',
+        ),
+      );
+      final pureRenote = Note(
+        id: 'renote-wrapper',
+        text: '',
+        createdAt: DateTime(2026, 4, 28, 12),
+        user: const User(id: 'user-2', username: 'bob', name: 'Bob'),
+        renote: _note(id: 'renoted-note'),
+      );
+
+      final message = await provider.provider.createReaction(
+        pureRenote,
+        ':custom:',
+      );
+
+      expect(message, isNull);
+      expect(provider.timelineDataSource.reactionCalls, [
+        ('renoted-note', ':custom:'),
+      ]);
+    });
+
+    test('互換入力の :name@.: は :name: に変換して送信する', () async {
+      final provider = _buildProvider(
+        authSession: const AuthSession(
+          baseUrl: 'https://example.com',
+          accessToken: 'token',
+        ),
+      );
+
+      final message = await provider.provider.createReaction(
+        _note(id: 'note-1'),
+        ':blob_bongo_cat_keyboard@.:',
+      );
+
+      expect(message, isNull);
+      expect(provider.timelineDataSource.reactionCalls, [
+        ('note-1', ':blob_bongo_cat_keyboard:'),
+      ]);
+    });
+
+    test('未認証時はエラーメッセージを返す', () async {
+      final provider = _buildProvider();
+
+      final message = await provider.provider.createReaction(
+        _note(id: 'note-1'),
+        '👍',
+      );
+
+      expect(message, '先に認証してください。');
+      expect(provider.timelineDataSource.reactionCalls, isEmpty);
+    });
+  });
+
   group('ProfileProvider.createRenote', () {
     test('通常ノートをリノート送信する', () async {
       final provider = _buildProvider(
@@ -190,6 +266,7 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   _FakeTimelineDataSource({this.renoteError});
 
   final Exception? renoteError;
+  final List<(String noteId, String reaction)> reactionCalls = [];
   final List<String> renoteCalls = [];
 
   @override
@@ -197,7 +274,9 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     AuthSession session, {
     required String noteId,
     required String reaction,
-  }) async {}
+  }) async {
+    reactionCalls.add((noteId, reaction));
+  }
 
   @override
   Future<void> createRenote(

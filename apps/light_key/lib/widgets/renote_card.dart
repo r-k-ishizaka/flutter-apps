@@ -14,11 +14,13 @@ class RenoteCard extends HookWidget {
   const RenoteCard({
     required this.renote,
     required this.emojis,
+    this.onBodyEmojiTap,
     super.key,
   });
 
   final Note renote;
   final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<String>? onBodyEmojiTap;
 
   String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
@@ -63,6 +65,7 @@ class RenoteCard extends HookWidget {
                           EmojiText(
                             displayUserName,
                             emojis: emojis,
+                            host: renote.user.host,
                             style: textTheme.bodySmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -91,6 +94,7 @@ class RenoteCard extends HookWidget {
                     cwText: cw,
                     expanded: cwExpanded.value,
                     onToggle: () => cwExpanded.value = !cwExpanded.value,
+                    host: renote.user.host,
                     emojis: emojis,
                   ),
                   const SizedBox(height: 4),
@@ -104,6 +108,8 @@ class RenoteCard extends HookWidget {
                          ? '(リノート)'
                          : '(本文なし)',
                      emojis: emojis,
+                     host: renote.user.host,
+                     onEmojiTap: onBodyEmojiTap,
                      style: textTheme.bodyMedium,
                      maxLines: 5,
                      overflow: TextOverflow.ellipsis,
@@ -127,12 +133,14 @@ class _RenoteCardCwBar extends StatelessWidget {
     required this.cwText,
     required this.expanded,
     required this.onToggle,
+    required this.host,
     required this.emojis,
   });
 
   final String cwText;
   final bool expanded;
   final VoidCallback onToggle;
+  final String? host;
   final Map<String, EmojiCacheEntry> emojis;
 
   @override
@@ -150,6 +158,7 @@ class _RenoteCardCwBar extends StatelessWidget {
           EmojiText(
             cwText,
             emojis: emojis,
+            host: host,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

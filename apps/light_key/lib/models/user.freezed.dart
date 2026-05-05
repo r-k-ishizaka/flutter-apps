@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
- String get id; String get username; String get name; String? get avatarUrl;@JsonKey(name: 'avatarBlurhash') String? get avatarBlurHash;
+ String get id; String get username; String get name; String? get host; String? get avatarUrl;@JsonKey(name: 'avatarBlurhash') String? get avatarBlurHash;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.name, name) || other.name == name)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.avatarBlurHash, avatarBlurHash) || other.avatarBlurHash == avatarBlurHash));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.name, name) || other.name == name)&&(identical(other.host, host) || other.host == host)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.avatarBlurHash, avatarBlurHash) || other.avatarBlurHash == avatarBlurHash));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,name,avatarUrl,avatarBlurHash);
+int get hashCode => Object.hash(runtimeType,id,username,name,host,avatarUrl,avatarBlurHash);
 
 @override
 String toString() {
-  return 'User(id: $id, username: $username, name: $name, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
+  return 'User(id: $id, username: $username, name: $name, host: $host, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
- String id, String username, String name, String? avatarUrl,@JsonKey(name: 'avatarBlurhash') String? avatarBlurHash
+ String id, String username, String name, String? host, String? avatarUrl,@JsonKey(name: 'avatarBlurhash') String? avatarBlurHash
 });
 
 
@@ -65,12 +65,13 @@ class _$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? name = null,Object? avatarUrl = freezed,Object? avatarBlurHash = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? name = null,Object? host = freezed,Object? avatarUrl = freezed,Object? avatarBlurHash = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String,host: freezed == host ? _self.host : host // ignore: cast_nullable_to_non_nullable
+as String?,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
 as String?,avatarBlurHash: freezed == avatarBlurHash ? _self.avatarBlurHash : avatarBlurHash // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String name,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String name,  String? host,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);case _:
+return $default(_that.id,_that.username,_that.name,_that.host,_that.avatarUrl,_that.avatarBlurHash);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarB
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String name,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String name,  String? host,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)  $default,) {final _that = this;
 switch (_that) {
 case _User():
-return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);}
+return $default(_that.id,_that.username,_that.name,_that.host,_that.avatarUrl,_that.avatarBlurHash);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -192,10 +193,10 @@ return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarB
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String name,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String name,  String? host,  String? avatarUrl, @JsonKey(name: 'avatarBlurhash')  String? avatarBlurHash)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarBlurHash);case _:
+return $default(_that.id,_that.username,_that.name,_that.host,_that.avatarUrl,_that.avatarBlurHash);case _:
   return null;
 
 }
@@ -207,12 +208,13 @@ return $default(_that.id,_that.username,_that.name,_that.avatarUrl,_that.avatarB
 @JsonSerializable()
 
 class _User extends User {
-  const _User({this.id = '', this.username = '', this.name = '', this.avatarUrl, @JsonKey(name: 'avatarBlurhash') this.avatarBlurHash}): super._();
+  const _User({this.id = '', this.username = '', this.name = '', this.host, this.avatarUrl, @JsonKey(name: 'avatarBlurhash') this.avatarBlurHash}): super._();
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
 @override@JsonKey() final  String id;
 @override@JsonKey() final  String username;
 @override@JsonKey() final  String name;
+@override final  String? host;
 @override final  String? avatarUrl;
 @override@JsonKey(name: 'avatarBlurhash') final  String? avatarBlurHash;
 
@@ -229,16 +231,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.name, name) || other.name == name)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.avatarBlurHash, avatarBlurHash) || other.avatarBlurHash == avatarBlurHash));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.name, name) || other.name == name)&&(identical(other.host, host) || other.host == host)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.avatarBlurHash, avatarBlurHash) || other.avatarBlurHash == avatarBlurHash));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,name,avatarUrl,avatarBlurHash);
+int get hashCode => Object.hash(runtimeType,id,username,name,host,avatarUrl,avatarBlurHash);
 
 @override
 String toString() {
-  return 'User(id: $id, username: $username, name: $name, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
+  return 'User(id: $id, username: $username, name: $name, host: $host, avatarUrl: $avatarUrl, avatarBlurHash: $avatarBlurHash)';
 }
 
 
@@ -249,7 +251,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String username, String name, String? avatarUrl,@JsonKey(name: 'avatarBlurhash') String? avatarBlurHash
+ String id, String username, String name, String? host, String? avatarUrl,@JsonKey(name: 'avatarBlurhash') String? avatarBlurHash
 });
 
 
@@ -266,12 +268,13 @@ class __$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? name = null,Object? avatarUrl = freezed,Object? avatarBlurHash = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? name = null,Object? host = freezed,Object? avatarUrl = freezed,Object? avatarBlurHash = freezed,}) {
   return _then(_User(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String,host: freezed == host ? _self.host : host // ignore: cast_nullable_to_non_nullable
+as String?,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
 as String?,avatarBlurHash: freezed == avatarBlurHash ? _self.avatarBlurHash : avatarBlurHash // ignore: cast_nullable_to_non_nullable
 as String?,
   ));

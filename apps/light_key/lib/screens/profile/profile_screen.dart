@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../models/user_profile.dart';
 import '../../services/emoji_cache.dart';
+import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/emoji_text.dart';
@@ -353,6 +355,8 @@ class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
             onReaction: () => _onNoteReaction(context, note),
             onReactionChipTap: (reaction) =>
                 _onReactionChipTap(context, note, reaction),
+            onBodyEmojiTap: (emoji) =>
+                _onNoteBodyEmojiTap(context, note, emoji),
           );
         },
         childCount: notes.length + (widget.isLoadingMore ? 1 : 0),
@@ -371,17 +375,10 @@ class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
   static Future<void> _onNoteReaction(BuildContext context, Note note) async {
     final emoji = await showReactionPickerSheet(context);
     if (emoji == null || !context.mounted) return;
-    final message = await context.read<ProfileProvider>().createReaction(
-      note,
-      emoji,
-    );
-    if (!context.mounted || message == null) return;
-    ScaffoldMessenger.maybeOf(context)
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    await _sendReaction(context, note, emoji);
   }
 
-  static Future<void> _onReactionChipTap(
+  static Future<void> _sendReaction(
     BuildContext context,
     Note note,
     String reaction,
@@ -394,6 +391,36 @@ class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
     ScaffoldMessenger.maybeOf(context)
       ?..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  static Future<void> _onNoteBodyEmojiTap(
+    BuildContext context,
+    Note note,
+    String emoji,
+  ) async {
+    final action = await showNoteEmojiActionSheet(context, emoji: emoji);
+    if (action == null || !context.mounted) return;
+
+    switch (action) {
+      case NoteEmojiAction.react:
+        await _sendReaction(context, note, emoji);
+        return;
+      case NoteEmojiAction.copy:
+        await Clipboard.setData(ClipboardData(text: emoji));
+        if (!context.mounted) return;
+        ScaffoldMessenger.maybeOf(context)
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('絵文字をコピーしました。')));
+        return;
+    }
+  }
+
+  static Future<void> _onReactionChipTap(
+    BuildContext context,
+    Note note,
+    String reaction,
+  ) async {
+    await _sendReaction(context, note, reaction);
   }
 
   static Future<void> _onNoteRenote(BuildContext context, Note note) async {

@@ -19,6 +19,7 @@ class EmojiText extends StatelessWidget {
     this.overflow,
     this.host,
     this.showCrossServerCacheMissAsError = false,
+    this.onEmojiTap,
   });
 
   final String text;
@@ -37,10 +38,14 @@ class EmojiText extends StatelessWidget {
   /// `:name@host:` がキャッシュ未登録のとき、shortcode文字列ではなくエラー画像を表示する。
   final bool showCrossServerCacheMissAsError;
 
+  /// `:shortcode:` をタップしたときに呼び出される。
+  final ValueChanged<String>? onEmojiTap;
+
   // :shortcode: に加えて :shortcode@host: / :shortcode@.: 形式も許可する。
   static final _emojiPattern = RegExp(
     r':([a-zA-Z0-9_.-]+)(?:@([a-zA-Z0-9.-]+|\.))?:',
   );
+  static const emojiTapKeyPrefix = 'emoji-text-tap-';
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +75,7 @@ class EmojiText extends StatelessWidget {
 
       final name = match.group(1)!;
       final explicitHost = match.group(2);
+      final shortcode = match.group(0)!;
       final entry = _resolveEmojiEntry(
         cache: cache,
         name: name,
@@ -85,16 +91,23 @@ class EmojiText extends StatelessWidget {
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: CachedNetworkImage(
-                imageUrl: entry.url,
-                width: displayWidth,
-                height: emojiSize,
-                fit: BoxFit.fill,
-                placeholder: (_, _) =>
-                    SizedBox(width: displayWidth, height: emojiSize),
-                errorWidget: (_, _, _) => Text(':$name:'),
+            child: GestureDetector(
+              key: ValueKey('$emojiTapKeyPrefix$shortcode'),
+              onTap: onEmojiTap != null
+                  ? () => onEmojiTap!(shortcode)
+                  : null,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: CachedNetworkImage(
+                  imageUrl: entry.url,
+                  width: displayWidth,
+                  height: emojiSize,
+                  fit: BoxFit.fill,
+                  placeholder: (_, _) =>
+                      SizedBox(width: displayWidth, height: emojiSize),
+                  errorWidget: (_, _, _) => Text(':$name:'),
+                ),
               ),
             ),
           ),
@@ -109,7 +122,21 @@ class EmojiText extends StatelessWidget {
           spans.add(_buildErrorSpan(context));
         } else {
           // 未登録の shortcode はそのまま表示
-          spans.add(TextSpan(text: match.group(0)));
+          if (onEmojiTap == null) {
+            spans.add(TextSpan(text: shortcode));
+          } else {
+            spans.add(
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: GestureDetector(
+                  key: ValueKey('$emojiTapKeyPrefix$shortcode'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onEmojiTap!(shortcode),
+                  child: Text(shortcode, style: style),
+                ),
+              ),
+            );
+          }
         }
       }
 

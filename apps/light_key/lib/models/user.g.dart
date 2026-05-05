@@ -10,6 +10,7 @@ _User _$UserFromJson(Map<String, dynamic> json) => _User(
   id: json['id'] as String? ?? '',
   username: json['username'] as String? ?? '',
   name: json['name'] as String? ?? '',
+  host: json['host'] as String?,
   avatarUrl: json['avatarUrl'] as String?,
   avatarBlurHash: json['avatarBlurhash'] as String?,
 );
@@ -18,6 +19,7 @@ Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'id': instance.id,
   'username': instance.username,
   'name': instance.name,
+  'host': instance.host,
   'avatarUrl': instance.avatarUrl,
   'avatarBlurhash': instance.avatarBlurHash,
 };

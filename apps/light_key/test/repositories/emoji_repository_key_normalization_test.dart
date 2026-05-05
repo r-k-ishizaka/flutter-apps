@@ -89,6 +89,34 @@ void main() {
 
       expect(normalized, {'custom@host.com': 'https://host.com/custom.png'});
     });
+
+    test('localNamesはemojisToCacheの @. URLをbare keyへ統合する', () {
+      final repository = _FakeEmojiRepository(
+        const AuthSession(baseUrl: 'https://self.com', accessToken: 'token'),
+      );
+
+      final merged = repository.testMergeLocalNames(
+        emojisToCache: {'custom@.': 'https://self.com/custom.png'},
+        localNames: const {'custom'},
+        cacheEntries: const {},
+      );
+
+      expect(merged, {'custom@.': 'https://self.com/custom.png', 'custom': 'https://self.com/custom.png'});
+    });
+
+    test('localNamesはcacheの @. URLでもbare keyへ統合する', () {
+      final repository = _FakeEmojiRepository(
+        const AuthSession(baseUrl: 'https://self.com', accessToken: 'token'),
+      );
+
+      final merged = repository.testMergeLocalNames(
+        emojisToCache: const {},
+        localNames: const {'custom'},
+        cacheEntries: const {'custom@.': 'https://self.com/custom.png'},
+      );
+
+      expect(merged, {'custom': 'https://self.com/custom.png'});
+    });
   });
 }
 
@@ -124,5 +152,24 @@ class _FakeEmojiRepository  {
     }
 
     return normalized;
+  }
+
+  Map<String, String> testMergeLocalNames({
+    required Map<String, String> emojisToCache,
+    required Set<String> localNames,
+    required Map<String, String> cacheEntries,
+  }) {
+    final merged = Map<String, String>.from(emojisToCache);
+    for (final name in localNames) {
+      if (!merged.containsKey(name)) {
+        String? url = cacheEntries[name];
+        url ??= emojisToCache['$name@.'];
+        url ??= cacheEntries['$name@.'];
+        if (url != null && url.isNotEmpty) {
+          merged[name] = url;
+        }
+      }
+    }
+    return merged;
   }
 }
