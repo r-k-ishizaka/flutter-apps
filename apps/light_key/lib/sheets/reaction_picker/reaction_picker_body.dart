@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,40 @@ import 'emoji_cells.dart';
 import 'pinned_sheet_header.dart';
 import 'reaction_picker_provider.dart';
 import 'search_result_tile.dart';
+
+/// カテゴリの代表アイコンをを表示。URLがなければデフォルトアイコンを表示。
+class _CategoryRepresentativeIcon extends StatelessWidget {
+  const _CategoryRepresentativeIcon({
+    required this.iconUrl,
+    this.size = 24,
+  });
+
+  final String? iconUrl;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (iconUrl == null || iconUrl!.isEmpty) {
+      return Icon(Icons.emoji_emotions, size: size);
+    }
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CachedNetworkImage(
+        imageUrl: iconUrl!,
+        fit: BoxFit.contain,
+        placeholder: (context, url) => Center(
+          child: SizedBox.square(
+            dimension: size * 0.5,
+            child: const CircularProgressIndicator(strokeWidth: 1),
+          ),
+        ),
+        errorWidget: (context, url, error) => Icon(Icons.emoji_emotions, size: size),
+      ),
+    );
+  }
+}
 
 bool _useInitialSheetAnimationDone(ReactionPickerProvider notifier) {
   final isInitialSheetAnimationDone = useState(false);
@@ -449,15 +484,32 @@ class ReactionPickerBody extends HookWidget {
         SliverList(
           delegate: SliverChildBuilderDelegate((context, index) {
             final subCatName = subCategoryNames[index];
+            final nextPath = [...notifier.categoryPath, subCatName];
+            final categoryPathKey = nextPath.join('/');
+            final representativeUrl =
+                notifier.getRepresentativeEmojiUrlForCategory(categoryPathKey);
             return Column(
               children: [
                 ListTile(
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                   title: Text(subCatName),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () =>
-                      onCategorySelected([...notifier.categoryPath, subCatName]),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: _CategoryRepresentativeIcon(
+                          iconUrl: representativeUrl,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  onTap: () => onCategorySelected(nextPath),
                 ),
                 const Divider(height: 1),
               ],
@@ -513,12 +565,28 @@ class ReactionPickerBody extends HookWidget {
       SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final entry = categories[index];
+          final representativeUrl =
+              notifier.getRepresentativeEmojiUrlByTopCategory(entry.key);
           return ListTile(
             dense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             title: Text(entry.key),
             subtitle: Text('${entry.value} 件'),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: _CategoryRepresentativeIcon(
+                    iconUrl: representativeUrl,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
             onTap: () => onCategorySelected([entry.key]),
           );
         }, childCount: categories.length),

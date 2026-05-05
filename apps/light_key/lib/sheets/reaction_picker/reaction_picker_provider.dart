@@ -25,6 +25,8 @@ class ReactionPickerProvider extends ChangeNotifier {
   bool _allEmojisLoaded = false;
   Map<String, int> _topCategoryCounts = const {};
   Map<String, List<CustomEmojiItem>> _emojisByCategory = const {};
+  Map<String, String> _representativeUrlByCategoryPath = const {};
+  Map<String, String> _representativeUrlByTopCategory = const {};
   bool _isLoading = true;
   Object? _loadError;
   bool _disposed = false;
@@ -106,6 +108,16 @@ class ReactionPickerProvider extends ChangeNotifier {
   List<MapEntry<String, int>> get topLevelCategories {
     return _topCategoryCounts.entries.toList(growable: false)
       ..sort((a, b) => a.key.compareTo(b.key));
+  }
+
+  /// 指定されたカテゴリの代表絵文字URLを取得。なければnull。
+  String? getRepresentativeEmojiUrlForCategory(String categoryPath) {
+    return _representativeUrlByCategoryPath[categoryPath];
+  }
+
+  /// トップレベルカテゴリの代表絵文字URLを取得。なければnull。
+  String? getRepresentativeEmojiUrlByTopCategory(String topCategory) {
+    return _representativeUrlByTopCategory[topCategory];
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────────
@@ -237,6 +249,10 @@ class ReactionPickerProvider extends ChangeNotifier {
       }
 
       _topCategoryCounts = Map.unmodifiable(counts);
+
+      // 初期表示で代表アイコンを出せるよう、カテゴリデータも同時に構築する。
+      _mergeRows(rows);
+
       _isLoading = false;
       _loadError = null;
     } catch (e) {
@@ -250,7 +266,9 @@ class ReactionPickerProvider extends ChangeNotifier {
     if (path.isEmpty) return;
 
     final top = path.first;
-    if (_loadedTopCategories.contains(top) || _allEmojisLoaded) return;
+    if (_loadedTopCategories.contains(top) || _allEmojisLoaded) {
+      return;
+    }
 
     _isLoading = true;
     _safeNotifyListeners();
@@ -318,6 +336,15 @@ class ReactionPickerProvider extends ChangeNotifier {
     _rebuildEmojiMapFromLoadedRows();
   }
 
+  int _stableIndexForKey(String key, int length) {
+    if (length <= 1) return 0;
+    var hash = 0;
+    for (final unit in key.codeUnits) {
+      hash = ((hash * 31) + unit) & 0x7fffffff;
+    }
+    return hash % length;
+  }
+
   Future<void> _ensureSessionHostLoaded() {
     return _sessionHostLoadTask ??= _loadSessionHost();
   }
@@ -359,6 +386,32 @@ class ReactionPickerProvider extends ChangeNotifier {
       for (final key in sortedKeys)
         key: List<CustomEmojiItem>.unmodifiable(grouped[key]!),
     };
+
+    final representativeByCategory = <String, String>{};
+    final representativeByTop = <String, String>{};
+    final topItems = <String, List<CustomEmojiItem>>{};
+
+    for (final categoryPath in sortedKeys) {
+      final items = _emojisByCategory[categoryPath]!;
+      if (items.isEmpty) continue;
+      final idx = _stableIndexForKey(categoryPath, items.length);
+      representativeByCategory[categoryPath] = items[idx].url;
+
+      final parts = _splitCategoryPath(categoryPath);
+      if (parts.isEmpty) continue;
+      topItems.putIfAbsent(parts.first, () => []).addAll(items);
+    }
+
+    final sortedTop = topItems.keys.toList()..sort();
+    for (final top in sortedTop) {
+      final items = topItems[top]!;
+      if (items.isEmpty) continue;
+      final idx = _stableIndexForKey(top, items.length);
+      representativeByTop[top] = items[idx].url;
+    }
+
+    _representativeUrlByCategoryPath = Map.unmodifiable(representativeByCategory);
+    _representativeUrlByTopCategory = Map.unmodifiable(representativeByTop);
   }
 
   void _safeNotifyListeners() {
