@@ -1,38 +1,15 @@
-enum PostStatus { idle, submitting, success, error }
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'post_screen_state.freezed.dart';
 
 enum PostVisibility { public, home, follower }
 
-class PostScreenState {
-  const PostScreenState({
-    required this.status,
-    required this.visibility,
-    required this.isFederated,
-    this.message,
-  });
+@freezed
+sealed class PostScreenState with _$PostScreenState {
+  const factory PostScreenState.idle() = PostScreenStateIdle;
 
-  const PostScreenState.idle()
-    : status = PostStatus.idle,
-      visibility = PostVisibility.public,
-      isFederated = true,
-      message = null;
+  const factory PostScreenState.submitting() = PostScreenStateSubmitting;
 
-  final PostStatus status;
-  final PostVisibility visibility;
-  final bool isFederated;
-  final String? message;
-
-  PostScreenState copyWith({
-    PostStatus? status,
-    PostVisibility? visibility,
-    bool? isFederated,
-    String? message,
-    bool clearMessage = false,
-  }) {
-    return PostScreenState(
-      status: status ?? this.status,
-      visibility: visibility ?? this.visibility,
-      isFederated: isFederated ?? this.isFederated,
-      message: clearMessage ? null : (message ?? this.message),
-    );
-  }
+  const factory PostScreenState.error({required String message}) =
+      PostScreenStateError;
 }

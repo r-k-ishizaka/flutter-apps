@@ -7,12 +7,11 @@ import '../../models/user.dart';
 import '../../services/emoji_cache.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../widgets/timeline_note_item.dart';
+import 'post_effect_state.dart';
 import 'post_provider.dart';
 import 'post_screen_state.dart';
 
 typedef ReactionPickerLauncher = Future<String?> Function(BuildContext context);
-
-const String postSuccessMessage = '投稿に成功しました';
 
 extension on PostVisibility {
   IconData get icon {
@@ -89,10 +88,6 @@ class PostScreen extends HookWidget {
     TextEditingController textController,
   ) async {
     await context.read<PostProvider>().submit(textController.text);
-    if (context.mounted &&
-        context.read<PostProvider>().state.status == PostStatus.success) {
-      Navigator.of(context).pop(postSuccessMessage);
-    }
   }
 
   Future<void> _showVisibilityPicker(BuildContext context) async {
@@ -185,7 +180,13 @@ class PostScreen extends HookWidget {
     final textController = useTextEditingController();
     final textValue = useValueListenable(textController);
     final focusNode = useFocusNode();
-    final state = context.watch<PostProvider>().state;
+    final provider = context.watch<PostProvider>();
+    final state = provider.state;
+    final visibility = provider.visibility;
+    final isFederated = provider.isFederated;
+    final effectState = context.select<PostProvider, PostEffectState>(
+      (p) => p.effectState,
+    );
     final previewCreatedAt = useMemoized(DateTime.now);
 
     // 初期化時に状態をリセット
@@ -197,6 +198,32 @@ class PostScreen extends HookWidget {
       });
       return null;
     }, []);
+
+    useEffect(() {
+      if (effectState == const PostEffectState.none()) return null;
+
+      // Effectは一度だけ消費し、画面副作用はフレーム後に実行する。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+
+        context.read<PostProvider>().consumeEffect();
+
+        switch (effectState) {
+          case PostEffectStateNone():
+            break;
+          case PostEffectStateCloseWithMessage(:final message):
+            Navigator.of(context).pop(message);
+            break;
+          case PostEffectStateShowError(:final message):
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
+            break;
+        }
+      });
+
+      return null;
+    }, [effectState]);
 
     final previewNote = Note(
       id: 'post-preview',
@@ -215,26 +242,26 @@ class PostScreen extends HookWidget {
         actions: [
           IconButton(
             key: const ValueKey('post-visibility-button'),
-            tooltip: '公開範囲: ${state.visibility.label}',
-            onPressed: state.status == PostStatus.submitting
+            tooltip: '公開範囲: ${visibility.label}',
+            onPressed: state is PostScreenStateSubmitting
                 ? null
                 : () => _showVisibilityPicker(context),
-            icon: Icon(state.visibility.icon),
+            icon: Icon(visibility.icon),
           ),
           IconButton(
             key: const ValueKey('post-federation-toggle-button'),
-            tooltip: '連合: ${state.isFederated ? 'あり' : 'なし'}',
-            onPressed: state.status == PostStatus.submitting
+            tooltip: '連合: ${isFederated ? 'あり' : 'なし'}',
+            onPressed: state is PostScreenStateSubmitting
                 ? null
-                : () => _toggleFederation(context, state.isFederated),
-            icon: _buildFederationIcon(context, state.isFederated),
+                : () => _toggleFederation(context, isFederated),
+            icon: _buildFederationIcon(context, isFederated),
           ),
           TextButton(
             key: const ValueKey('post-submit-button'),
-            onPressed: state.status == PostStatus.submitting
+            onPressed: state is PostScreenStateSubmitting
                 ? null
                 : () => _submitPost(context, textController),
-            child: state.status == PostStatus.submitting
+            child: state is PostScreenStateSubmitting
                 ? const SizedBox(
                     width: 18,
                     height: 18,
@@ -276,10 +303,10 @@ class PostScreen extends HookWidget {
             emojis: context.read<EmojiCache>().entries,
             animation: const AlwaysStoppedAnimation(1),
           ),
-          if (state.status == PostStatus.error && state.message != null)
+          if (state case PostScreenStateError(:final message))
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(state.message!),
+              child: Text(message),
             ),
         ],
       ),

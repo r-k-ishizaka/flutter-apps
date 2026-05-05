@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../repositories/auth_repository.dart';
 import '../../repositories/post_repository.dart';
+import 'post_effect_state.dart';
 import 'post_screen_state.dart';
 
 class PostProvider extends ChangeNotifier {
@@ -14,77 +15,95 @@ class PostProvider extends ChangeNotifier {
   final AuthRepository _authRepository;
   final PostRepository _postRepository;
 
-  PostScreenState _state = const PostScreenState.idle();
+  PostScreenState _screenState = const PostScreenState.idle();
+  PostEffectState _effectState = const PostEffectState.none();
+  PostVisibility _visibility = PostVisibility.public;
+  bool _isFederated = true;
 
-  PostScreenState get state => _state;
+  PostScreenState get state => _screenState;
+  PostEffectState get effectState => _effectState;
+  PostVisibility get visibility => _visibility;
+  bool get isFederated => _isFederated;
 
   void setVisibility(PostVisibility visibility) {
-    if (_state.visibility == visibility) return;
-    _state = _state.copyWith(visibility: visibility);
+    if (_visibility == visibility) return;
+    _visibility = visibility;
     notifyListeners();
   }
 
   void setFederated(bool isFederated) {
-    if (_state.isFederated == isFederated) return;
-    _state = _state.copyWith(isFederated: isFederated);
+    if (_isFederated == isFederated) return;
+    _isFederated = isFederated;
     notifyListeners();
   }
 
   void reset() {
-    if (_state == const PostScreenState.idle()) {
+    if (_screenState == const PostScreenState.idle() &&
+        _effectState == const PostEffectState.none() &&
+        _visibility == PostVisibility.public &&
+        _isFederated) {
       return;
     }
-    _state = const PostScreenState.idle();
+    _screenState = const PostScreenState.idle();
+    _effectState = const PostEffectState.none();
+    _visibility = PostVisibility.public;
+    _isFederated = true;
+    notifyListeners();
+  }
+
+  void consumeEffect() {
+    if (_effectState == const PostEffectState.none()) return;
+    _effectState = const PostEffectState.none();
     notifyListeners();
   }
 
   Future<void> submit(String text) async {
     if (text.trim().isEmpty) {
-      _state = _state.copyWith(
-        status: PostStatus.error,
-        message: '投稿内容を入力してください。',
-      );
+      const message = '投稿内容を入力してください。';
+      _screenState = const PostScreenState.error(message: message);
+      _effectState = const PostEffectState.showError(message);
       notifyListeners();
       return;
     }
 
-    _state = _state.copyWith(status: PostStatus.submitting, clearMessage: true);
+    _screenState = const PostScreenState.submitting();
+    _effectState = const PostEffectState.none();
     notifyListeners();
 
     final sessionResult = await _authRepository.restoreSession();
     await sessionResult.when(
       success: (session) async {
         if (session == null) {
-          _state = _state.copyWith(
-            status: PostStatus.error,
-            message: '先に認証してください。',
-          );
+          const message = '先に認証してください。';
+          _screenState = const PostScreenState.error(message: message);
+          _effectState = const PostEffectState.showError(message);
           return;
         }
 
         final postResult = await _postRepository.createPost(
           session,
           text.trim(),
-          _state.visibility,
-          _state.isFederated,
+          _visibility,
+          _isFederated,
         );
         postResult.when(
           success: (_) {
-            _state = const PostScreenState.idle();
+            _screenState = const PostScreenState.idle();
+            _effectState = const PostEffectState.closeWithMessage(
+              postSuccessMessage,
+            );
           },
           failure: (error, _) {
-            _state = _state.copyWith(
-              status: PostStatus.error,
-              message: '投稿に失敗しました: $error',
-            );
+            final message = '投稿に失敗しました: $error';
+            _screenState = PostScreenState.error(message: message);
+            _effectState = PostEffectState.showError(message);
           },
         );
       },
       failure: (error, _) {
-        _state = _state.copyWith(
-          status: PostStatus.error,
-          message: 'セッション取得に失敗しました: $error',
-        );
+        final message = 'セッション取得に失敗しました: $error';
+        _screenState = PostScreenState.error(message: message);
+        _effectState = PostEffectState.showError(message);
       },
     );
 
