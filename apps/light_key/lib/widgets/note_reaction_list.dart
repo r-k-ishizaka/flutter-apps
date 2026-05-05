@@ -47,8 +47,18 @@ class NoteReactionList extends StatelessWidget {
     final normalizedMyReaction = myReaction == null
         ? null
         : _normalizeReaction(myReaction!);
+
+    // 正規化キーが同じエントリをマージしてカウントを合算する。
+    // 例: `:name@.:` と `:name:` は同一リアクションとして扱う。
+    final mergedReactions = <String, int>{};
+    for (final entry in reactions.entries) {
+      if (entry.value <= 0) continue;
+      final normalized = _normalizeReaction(entry.key);
+      mergedReactions[normalized] = (mergedReactions[normalized] ?? 0) + entry.value;
+    }
+
     final sortedEntries =
-        reactions.entries
+        mergedReactions.entries
             .where((entry) => entry.value > 0)
             .toList(growable: false)
           ..sort((a, b) {
@@ -88,7 +98,8 @@ class NoteReactionList extends StatelessWidget {
       runSpacing: 6,
       children: [
         ...visibleEntries.map((entry) {
-          final normalizedReaction = _normalizeReaction(entry.key);
+          // マージ後のキーはすでに正規化済み
+          final normalizedReaction = entry.key;
           final canTap = !_isCrossServerReaction(entry.key);
           return _ReactionChip(
             reactionKey: entry.key,

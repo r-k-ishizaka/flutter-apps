@@ -291,6 +291,13 @@ class TimelineProvider extends ChangeNotifier {
   }
 
   Note _updateNoteReaction(Note note, String reaction) {
+    // WS 購読中はカウント変更を reacted/unreacted イベントに委ねる。
+    // （API レスポンスより先に WS が届いた場合の applyReactionDelta 二重適用を防ぐ。）
+    // WS が非アクティブな場合はローカルで楽観的にカウントを更新する。
+    if (_timelineSubscription != null) {
+      return note.copyWith(myReaction: reaction);
+    }
+
     final previousReaction = note.myReaction;
     if (previousReaction == reaction) {
       return note.copyWith(myReaction: reaction);

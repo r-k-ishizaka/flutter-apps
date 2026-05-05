@@ -192,6 +192,7 @@ void main() {
 
       expect(message, isNull);
       final loadedState = provider.state as TimelineScreenStateLoaded;
+      // WS 非接続時はカウントも楽観的に更新する。
       expect(loadedState.notes.single.myReaction, ':new:');
       expect(loadedState.notes.single.reactions[':old:'], 2);
       expect(loadedState.notes.single.reactions[':new:'], 1);
@@ -574,10 +575,11 @@ void main() {
       );
       await tester.pump();
 
+      // NoteReactionList は `:custom@.:` を `:custom:` に正規化してチップキーを生成する
       final decoratedBox = tester.widget<DecoratedBox>(
         find
             .ancestor(
-              of: find.byKey(const ValueKey('reaction-chip-:custom@.:')),
+              of: find.byKey(const ValueKey('reaction-chip-:custom:')),
               matching: find.byType(DecoratedBox),
             )
             .first,
@@ -606,10 +608,11 @@ void main() {
         ),
       );
 
+      // NoteReactionList は `:custom@.:` を `:custom:` に正規化してチップキーを生成する
       final decoratedBox = tester.widget<DecoratedBox>(
         find
             .ancestor(
-              of: find.byKey(const ValueKey('reaction-chip-:custom@.:')),
+              of: find.byKey(const ValueKey('reaction-chip-:custom:')),
               matching: find.byType(DecoratedBox),
             )
             .first,
