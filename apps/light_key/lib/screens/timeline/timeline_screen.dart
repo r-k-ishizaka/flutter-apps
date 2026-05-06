@@ -171,6 +171,7 @@ class TimelineScreen extends HookWidget {
         onNoteBodyEmojiTap: (note, emoji) =>
             _onNoteBodyEmojiTap(context, note, emoji),
         onNoteTap: (note) => _onNoteTap(context, note),
+        onReplyNoteTap: (reply) => _onNoteTap(context, reply),
       );
     }
 

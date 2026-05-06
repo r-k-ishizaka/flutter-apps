@@ -32,6 +32,9 @@ sealed class Note with _$Note {
     /// リノート元のノート。純粋リノート・引用リノートの場合に設定される。
     Note? renote,
 
+    /// リプライ元ノート。リプライ投稿の場合に設定される。
+    Note? reply,
+
     /// 公開範囲
     @JsonKey(fromJson: _visibilityFromJson)
     @Default(NoteVisibility.public) NoteVisibility visibility,
@@ -79,6 +82,7 @@ Map<String, dynamic> _normalizeNoteJson(Map<String, dynamic> json) {
     'files': json['files'] is List ? json['files'] : const <dynamic>[],
     'myReaction': json['myReaction'] as String?,
     'renote': json['renote'] is Map ? json['renote'] : null,
+    'reply': json['reply'] is Map ? json['reply'] : null,
   };
 }
 

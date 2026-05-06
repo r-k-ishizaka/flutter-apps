@@ -23,6 +23,7 @@ class TimelineList extends HookWidget {
     this.onNoteUserTap,
     this.onNoteBodyEmojiTap,
     this.onNoteTap,
+    this.onReplyNoteTap,
     super.key,
   });
 
@@ -38,6 +39,7 @@ class TimelineList extends HookWidget {
   final void Function(Note note, User user)? onNoteUserTap;
   final void Function(Note note, String emoji)? onNoteBodyEmojiTap;
   final void Function(Note note)? onNoteTap;
+  final void Function(Note note)? onReplyNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -161,6 +163,7 @@ class TimelineList extends HookWidget {
                 onBodyEmojiTap: onNoteBodyEmojiTap != null
                     ? (emoji) => onNoteBodyEmojiTap!(note, emoji)
                     : null,
+                onReplyNoteTap: onReplyNoteTap,
               );
             },
           ),
@@ -280,10 +283,17 @@ class TimelineList extends HookWidget {
       (_, final incomingRenote?) => incomingRenote,
       _ => null,
     };
+    final mergedReply = switch ((current.reply, incoming.reply)) {
+      (final currentReply?, final incomingReply?) =>
+        _mergeNotePreservingMyReaction(currentReply, incomingReply),
+      (_, final incomingReply?) => incomingReply,
+      _ => null,
+    };
 
     return incoming.copyWith(
       myReaction: incoming.myReaction ?? current.myReaction,
       renote: mergedRenote,
+      reply: mergedReply,
     );
   }
 }

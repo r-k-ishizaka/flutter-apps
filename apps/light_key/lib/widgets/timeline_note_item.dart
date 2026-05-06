@@ -25,6 +25,7 @@ class TimelineNoteItem extends HookWidget {
     this.onReactionChipTap,
     this.onUserTap,
     this.onBodyEmojiTap,
+    this.onReplyNoteTap,
     this.showAllMedia = false,
     this.showAllReactions = false,
     super.key,
@@ -40,6 +41,7 @@ class TimelineNoteItem extends HookWidget {
   final ValueChanged<String>? onReactionChipTap;
   final ValueChanged<User>? onUserTap;
   final ValueChanged<String>? onBodyEmojiTap;
+  final ValueChanged<Note>? onReplyNoteTap;
   final bool showAllMedia;
   final bool showAllReactions;
 
@@ -75,6 +77,7 @@ class TimelineNoteItem extends HookWidget {
     final onRenoteUserTap = note.user.id.isNotEmpty && onUserTap != null
         ? () => onUserTap!(note.user)
         : null;
+    final displayReplyNote = displayNote.reply;
 
     // CW の有無
     final cw = displayNote.cw;
@@ -133,6 +136,14 @@ class TimelineNoteItem extends HookWidget {
                           ],
                         ),
                       ),
+                    if (displayReplyNote != null) ...[
+                      _ReplyThreadPreview(
+                        rootReply: displayReplyNote,
+                        emojis: emojis,
+                        onBodyEmojiTap: onBodyEmojiTap,
+                        onReplyNoteTap: onReplyNoteTap,
+                      ),
+                    ],
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -294,6 +305,320 @@ class TimelineNoteItem extends HookWidget {
             const Divider(height: 1),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ReplyNotePreview extends HookWidget {
+  const _ReplyNotePreview({
+    required this.note,
+    required this.emojis,
+    this.onBodyEmojiTap,
+    this.onTap,
+  });
+
+  final Note note;
+  final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<String>? onBodyEmojiTap;
+  final VoidCallback? onTap;
+
+  String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final cwExpanded = useState(false);
+    final connectorColor = colorScheme.outlineVariant;
+    final primaryTextColor = colorScheme.onSurface.withValues(alpha: 0.72);
+    final secondaryTextColor = colorScheme.onSurfaceVariant.withValues(
+      alpha: 0.72,
+    );
+    final displayUserName = note.user.name.isNotEmpty
+        ? note.user.name
+        : note.user.username;
+    final cw = note.cw;
+    final hasCw = cw != null && cw.isNotEmpty;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: IntrinsicHeight(
+        child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 40,
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: UserAvatar(
+                    avatarUrl: note.user.avatarUrl,
+                    avatarBlurHash: note.user.avatarBlurHash,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(width: 2, color: connectorColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: EmojiText(
+                          displayUserName,
+                          emojis: emojis,
+                          host: note.user.host,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: primaryTextColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          emojiSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _createdAtLabel(note.createdAt),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: secondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '@${note.user.username}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: secondaryTextColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  if (hasCw) ...[
+                    _ReplyPreviewCwBar(
+                      cwText: cw,
+                      expanded: cwExpanded.value,
+                      onToggle: () => cwExpanded.value = !cwExpanded.value,
+                      host: note.user.host,
+                      emojis: emojis,
+                      textColor: secondaryTextColor,
+                      accentColor: colorScheme.primary.withValues(alpha: 0.82),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  if (!hasCw || cwExpanded.value)
+                    EmojiText(
+                      note.text.isEmpty ? '(本文なし)' : note.text,
+                      emojis: emojis,
+                      host: note.user.host,
+                      onEmojiTap: onBodyEmojiTap,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: primaryTextColor,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      emojiSize: 14,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
+class _ReplyThreadPreview extends HookWidget {
+  const _ReplyThreadPreview({
+    required this.rootReply,
+    required this.emojis,
+    this.onBodyEmojiTap,
+    this.onReplyNoteTap,
+  });
+
+  final Note rootReply;
+  final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<String>? onBodyEmojiTap;
+  final ValueChanged<Note>? onReplyNoteTap;
+
+  List<Note> _buildReplyChain(Note root) {
+    final chain = <Note>[];
+    final visitedIds = <String>{};
+    Note? current = root;
+
+    while (current != null) {
+      final id = current.id;
+      if (id.isNotEmpty) {
+        if (visitedIds.contains(id)) {
+          break;
+        }
+        visitedIds.add(id);
+      }
+      chain.add(current);
+      current = current.reply;
+    }
+
+    return chain;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final expanded = useState(false);
+    final replyChain = useMemoized(() => _buildReplyChain(rootReply), [rootReply]);
+
+    if (replyChain.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final hasMore = replyChain.length > 1;
+    final orderedChain = expanded.value
+        ? replyChain.reversed.toList(growable: false)
+        : <Note>[replyChain.first];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final note in orderedChain)
+          _ReplyNotePreview(
+            note: note,
+            emojis: emojis,
+            onBodyEmojiTap: onBodyEmojiTap,
+            onTap: onReplyNoteTap != null ? () => onReplyNoteTap!(note) : null,
+          ),
+        if (hasMore)
+          _ReplyThreadToggle(
+            hiddenCount: replyChain.length - 1,
+            expanded: expanded.value,
+            onToggle: () => expanded.value = !expanded.value,
+          ),
+      ],
+    );
+  }
+}
+
+class _ReplyThreadToggle extends StatelessWidget {
+  const _ReplyThreadToggle({
+    required this.hiddenCount,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final int hiddenCount;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 40,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              width: 2,
+              height: 16,
+              color: colorScheme.outlineVariant,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GestureDetector(
+            onTap: onToggle,
+            child: Text(
+              expanded ? '返信元を折りたたむ' : 'さらに$hiddenCount件の返信元を表示',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.primary.withValues(alpha: 0.82),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReplyPreviewCwBar extends StatelessWidget {
+  const _ReplyPreviewCwBar({
+    required this.cwText,
+    required this.expanded,
+    required this.onToggle,
+    required this.host,
+    required this.emojis,
+    required this.textColor,
+    required this.accentColor,
+  });
+
+  final String cwText;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final String? host;
+  final Map<String, EmojiCacheEntry> emojis;
+  final Color textColor;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          EmojiText(
+            cwText,
+            emojis: emojis,
+            host: host,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: textColor,
+            ),
+            emojiSize: 14,
+          ),
+          const SizedBox(height: 2),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: onToggle,
+              child: Text(
+                expanded ? '隠す' : 'もっと見る',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
