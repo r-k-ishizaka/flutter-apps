@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
+import '../../models/note_type.dart';
 import '../../models/user_profile.dart';
+import '../../route/app_routes.dart';
 import '../../services/emoji_cache.dart';
 import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
@@ -42,7 +44,10 @@ class ProfileScreen extends StatelessWidget {
         ProfileStatus.loaded => RefreshIndicator(
           onRefresh: () => context.read<ProfileProvider>().load(userId),
           displacement: 64, // TabBar下に表示
-          child: _ProfileContentConsumer(userId: userId, emojis: emojiCache.entries),
+          child: _ProfileContentConsumer(
+            userId: userId,
+            emojis: emojiCache.entries,
+          ),
         ),
       },
     );
@@ -82,9 +87,18 @@ class _ProfileContentConsumer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.select<ProfileProvider, (UserProfile?, List<Note>, List<Note>, List<Note>)>(
-      (p) => (p.state.profile, p.state.allNotes, p.state.noteOnlyNotes, p.state.mediaNotes),
-    );
+    final state = context
+        .select<
+          ProfileProvider,
+          (UserProfile?, List<Note>, List<Note>, List<Note>)
+        >(
+          (p) => (
+            p.state.profile,
+            p.state.allNotes,
+            p.state.noteOnlyNotes,
+            p.state.mediaNotes,
+          ),
+        );
     return _ProfileContent(
       userId: userId,
       profile: state.$1,
@@ -151,8 +165,11 @@ class _ProfileContent extends StatelessWidget {
                     final currentScroll = notification.metrics.pixels;
                     const delta = 200.0;
 
-                    if (maxScroll.isFinite && maxScroll - currentScroll <= delta) {
-                      final tabController = DefaultTabController.maybeOf(context);
+                    if (maxScroll.isFinite &&
+                        maxScroll - currentScroll <= delta) {
+                      final tabController = DefaultTabController.maybeOf(
+                        context,
+                      );
                       if (tabController != null) {
                         final provider = context.read<ProfileProvider>();
                         switch (tabController.index) {
@@ -175,7 +192,7 @@ class _ProfileContent extends StatelessWidget {
                       child: Column(
                         children: [
                           _ProfileHeader(profile: user),
-                           _ProfileSummary(profile: user, emojis: emojis),
+                          _ProfileSummary(profile: user, emojis: emojis),
                           SizedBox(key: profileEndKey),
                         ],
                       ),
@@ -187,12 +204,15 @@ class _ProfileContent extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: colorScheme.surface,
                             border: Border(
-                              bottom: BorderSide(color: colorScheme.outlineVariant),
+                              bottom: BorderSide(
+                                color: colorScheme.outlineVariant,
+                              ),
                             ),
                           ),
                           child: TabBar(
                             onTap: (_) {
-                              final targetContext = profileEndKey.currentContext;
+                              final targetContext =
+                                  profileEndKey.currentContext;
                               if (targetContext == null) return;
                               Scrollable.ensureVisible(
                                 targetContext,
@@ -215,9 +235,15 @@ class _ProfileContent extends StatelessWidget {
                       emptyMessage: emptyMessage,
                       emojis: emojis,
                       isLoadingMore: switch (selectedIndex) {
-                        0 => context.select<ProfileProvider, bool>((p) => p.state.isLoadingMoreAllNotes),
-                        1 => context.select<ProfileProvider, bool>((p) => p.state.isLoadingMoreNoteOnlyNotes),
-                        _ => context.select<ProfileProvider, bool>((p) => p.state.isLoadingMoreMediaNotes),
+                        0 => context.select<ProfileProvider, bool>(
+                          (p) => p.state.isLoadingMoreAllNotes,
+                        ),
+                        1 => context.select<ProfileProvider, bool>(
+                          (p) => p.state.isLoadingMoreNoteOnlyNotes,
+                        ),
+                        _ => context.select<ProfileProvider, bool>(
+                          (p) => p.state.isLoadingMoreMediaNotes,
+                        ),
                       },
                     ),
                   ],
@@ -265,11 +291,11 @@ class _ProfileSummary extends StatelessWidget {
             _ProfileRolesChips(roles: profile.roles),
             const SizedBox(height: 12),
           ],
-           EmojiText(
-             _orFallback(profile.description, '未設定'),
-             emojis: emojis,
-             style: Theme.of(context).textTheme.bodyMedium,
-           ),
+          EmojiText(
+            _orFallback(profile.description, '未設定'),
+            emojis: emojis,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           const SizedBox(height: 12),
           _InfoItem(
             label: '誕生日',
@@ -334,34 +360,47 @@ class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
     }
 
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          // 最後のアイテムの場合
-          if (index == notes.length) {
-            return widget.isLoadingMore
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : const SizedBox.shrink();
-          }
+      delegate: SliverChildBuilderDelegate((context, index) {
+        // 最後のアイテムの場合
+        if (index == notes.length) {
+          return widget.isLoadingMore
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : const SizedBox.shrink();
+        }
 
-          final note = notes[index];
-          return TimelineNoteItem(
-            note: note,
-            animation: kAlwaysCompleteAnimation,
-            emojis: widget.emojis,
-            onRenote: () => _onNoteRenote(context, note),
-            onReaction: () => _onNoteReaction(context, note),
-            onReactionChipTap: (reaction) =>
-                _onReactionChipTap(context, note, reaction),
-            onBodyEmojiTap: (emoji) =>
-                _onNoteBodyEmojiTap(context, note, emoji),
-          );
-        },
-        childCount: notes.length + (widget.isLoadingMore ? 1 : 0),
-      ),
+        final note = notes[index];
+        return TimelineNoteItem(
+          note: note,
+          animation: kAlwaysCompleteAnimation,
+          emojis: widget.emojis,
+          onTap: () => _onNoteTap(context, note),
+          onRenote: () => _onNoteRenote(context, note),
+          onReaction: () => _onNoteReaction(context, note),
+          onReactionChipTap: (reaction) =>
+              _onReactionChipTap(context, note, reaction),
+          onBodyEmojiTap: (emoji) => _onNoteBodyEmojiTap(context, note, emoji),
+        );
+      }, childCount: notes.length + (widget.isLoadingMore ? 1 : 0)),
     );
+  }
+
+  static String _noteDetailId(Note note) {
+    if (note.noteType == NoteType.pureRenote) {
+      return note.renote?.id ?? note.id;
+    }
+    return note.id;
+  }
+
+  static Future<void> _onNoteTap(BuildContext context, Note note) async {
+    final noteId = _noteDetailId(note);
+    if (noteId.isEmpty) {
+      _showComingSoonSnackBar(context, 'ノート詳細');
+      return;
+    }
+    await NoteDetailRoute(noteId: noteId).push<void>(context);
   }
 
   static void _showComingSoonSnackBar(BuildContext context, String label) {
@@ -429,7 +468,9 @@ class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
 
     switch (action) {
       case RenoteAction.renote:
-        final message = await context.read<ProfileProvider>().createRenote(note);
+        final message = await context.read<ProfileProvider>().createRenote(
+          note,
+        );
         if (!context.mounted) return;
         final messenger = ScaffoldMessenger.maybeOf(context);
         if (messenger == null) return;
