@@ -586,29 +586,30 @@ class _ReplyPreviewCwBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          EmojiText(
-            cwText,
-            emojis: emojis,
-            host: host,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: textColor,
+    return GestureDetector(
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            EmojiText(
+              cwText,
+              emojis: emojis,
+              host: host,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: textColor,
+              ),
+              emojiSize: 14,
             ),
-            emojiSize: 14,
-          ),
-          const SizedBox(height: 2),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: onToggle,
+            const SizedBox(height: 2),
+            Align(
+              alignment: Alignment.centerRight,
               child: Text(
                 expanded ? '隠す' : 'もっと見る',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -617,8 +618,8 @@ class _ReplyPreviewCwBar extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -720,29 +721,30 @@ class _CwBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          EmojiText(
-            cwText,
-            emojis: emojis,
-            host: host,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+    return GestureDetector(
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            EmojiText(
+              cwText,
+              emojis: emojis,
+              host: host,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              emojiSize: 16,
             ),
-            emojiSize: 16,
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: onToggle,
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
               child: Text(
                 expanded ? '隠す' : 'もっと見る',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -751,8 +753,8 @@ class _CwBar extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
