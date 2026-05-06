@@ -16,6 +16,9 @@ class AppTheme {
       colorScheme: colorScheme,
       useMaterial3: true,
       brightness: Brightness.light,
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -30,6 +33,9 @@ class AppTheme {
       colorScheme: colorScheme,
       useMaterial3: true,
       brightness: Brightness.dark,
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 }

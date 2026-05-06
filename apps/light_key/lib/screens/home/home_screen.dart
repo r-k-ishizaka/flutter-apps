@@ -261,53 +261,54 @@ class _HomeScreenBody extends HookWidget {
       return lifecycleListener.dispose;
     }, [homeProvider]);
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Scaffold(
-            appBar: AppBar(title: Text(title), actions: actions),
-            floatingActionButton: FloatingActionButton(
-              onPressed: onPostTap,
-              child: const Icon(Icons.edit_note),
-            ),
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: currentIndex,
-              onDestinationSelected: onDestinationSelected,
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.dynamic_feed),
-                  label: 'Timeline',
-                ),
-                NavigationDestination(
-                  icon: KeyedSubtree(
-                    key: notificationsTabKey,
-                    child: const Icon(Icons.notifications_none),
-                  ),
-                  label: 'Notifications',
-                ),
-              ],
-            ),
-            body: child,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Scaffold(
+          appBar: AppBar(title: Text(title), actions: actions),
+          floatingActionButton: FloatingActionButton(
+            onPressed: onPostTap,
+            child: const Icon(Icons.edit_note),
           ),
-          IgnorePointer(
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: currentIndex,
+            onDestinationSelected: onDestinationSelected,
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.dynamic_feed),
+                label: 'Timeline',
+              ),
+              NavigationDestination(
+                icon: KeyedSubtree(
+                  key: notificationsTabKey,
+                  child: const Icon(Icons.notifications_none),
+                ),
+                label: 'Notifications',
+              ),
+            ],
+          ),
+          body: child,
+        ),
+        IgnorePointer(
+          child: Material(
+            type: MaterialType.transparency,
             child: Stack(
-              key: particleLayerKey,
-              fit: StackFit.expand,
-              children: particles
-                  .map(
-                    (particle) => HomeReactionParticleItem(
-                      key: ValueKey<int>(particle.id),
-                      particle: particle,
-                      emojis: emojiCache,
-                      duration: HomeScreen._particleDuration,
-                    ),
-                  )
-                  .toList(growable: false),
+            key: particleLayerKey,
+            fit: StackFit.expand,
+            children: particles
+                .map(
+                  (particle) => HomeReactionParticleItem(
+                    key: ValueKey<int>(particle.id),
+                    particle: particle,
+                    emojis: emojiCache,
+                    duration: HomeScreen._particleDuration,
+                  ),
+                )
+                .toList(growable: false),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
