@@ -28,7 +28,7 @@ class NoteMediaList extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(_kRadius),
       child: SizedBox(
-        height: imageFiles.length == 1 ? null : _kGridHeight,
+        height: (showAll || imageFiles.length == 1) ? null : _kGridHeight,
         child: showAll
             ? _all(imageFiles)
             : switch (imageFiles.length) {
