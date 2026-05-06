@@ -15,9 +15,10 @@ ValueKey<String> _tileKeyFor(NoteFile file) => ValueKey(
 );
 
 class NoteMediaList extends StatelessWidget {
-  const NoteMediaList({required this.files, super.key});
+  const NoteMediaList({required this.files, this.showAll = false, super.key});
 
   final List<NoteFile> files;
+  final bool showAll;
 
   @override
   Widget build(BuildContext context) {
@@ -28,13 +29,36 @@ class NoteMediaList extends StatelessWidget {
       borderRadius: BorderRadius.circular(_kRadius),
       child: SizedBox(
         height: imageFiles.length == 1 ? null : _kGridHeight,
-        child: switch (imageFiles.length) {
-          1 => _SingleImageAspectRatioTile(file: imageFiles[0]),
-          2 => _two(imageFiles),
-          3 => _three(imageFiles),
-          _ => _four(imageFiles),
-        },
+        child: showAll
+            ? _all(imageFiles)
+            : switch (imageFiles.length) {
+                1 => _SingleImageAspectRatioTile(file: imageFiles[0]),
+                2 => _two(imageFiles),
+                3 => _three(imageFiles),
+                _ => _four(imageFiles),
+              },
       ),
+    );
+  }
+
+  Widget _all(List<NoteFile> files) {
+    if (files.length == 1) {
+      return _SingleImageAspectRatioTile(file: files[0]);
+    }
+
+    return GridView.builder(
+      itemCount: files.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: _kSpacing,
+        crossAxisSpacing: _kSpacing,
+      ),
+      itemBuilder: (context, index) {
+        final file = files[index];
+        return _Tile(key: _tileKeyFor(file), file: file);
+      },
     );
   }
 

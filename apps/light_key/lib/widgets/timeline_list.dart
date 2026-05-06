@@ -22,6 +22,7 @@ class TimelineList extends HookWidget {
     this.onNoteReactionChipTap,
     this.onNoteUserTap,
     this.onNoteBodyEmojiTap,
+    this.onNoteTap,
     super.key,
   });
 
@@ -36,6 +37,7 @@ class TimelineList extends HookWidget {
   final void Function(Note note, String reaction)? onNoteReactionChipTap;
   final void Function(Note note, User user)? onNoteUserTap;
   final void Function(Note note, String emoji)? onNoteBodyEmojiTap;
+  final void Function(Note note)? onNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -67,12 +69,7 @@ class TimelineList extends HookWidget {
         isAtTop.value = atTop;
 
         if (atTop && pendingNotes.value.isNotEmpty) {
-          _applyNoteUpdates(
-            listKey,
-            visibleNotes,
-            pendingNotes.value,
-            emojis,
-          );
+          _applyNoteUpdates(listKey, visibleNotes, pendingNotes.value, emojis);
           pendingNotes.value = [];
         }
       }
@@ -147,6 +144,7 @@ class TimelineList extends HookWidget {
                 note: note,
                 emojis: emojis,
                 animation: animation,
+                onTap: onNoteTap != null ? () => onNoteTap!(note) : null,
                 onReply: onNoteReply != null ? () => onNoteReply!(note) : null,
                 onRenote: onNoteRenote != null
                     ? () => onNoteRenote!(note)
@@ -185,12 +183,7 @@ class TimelineList extends HookWidget {
                   curve: Curves.easeOut,
                 );
                 Future.delayed(const Duration(milliseconds: 300), () {
-                  _applyNoteUpdates(
-                    listKey,
-                    visibleNotes,
-                    captured,
-                    emojis,
-                  );
+                  _applyNoteUpdates(listKey, visibleNotes, captured, emojis);
                 });
               },
             ),

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
+import '../../models/note_type.dart';
 import '../../models/user.dart';
 import '../../route/app_routes.dart';
 import '../../services/emoji_cache.dart';
@@ -106,6 +107,22 @@ class TimelineScreen extends HookWidget {
     await UserProfileRoute(userId: user.id).push<void>(context);
   }
 
+  String _noteDetailId(Note note) {
+    if (note.noteType == NoteType.pureRenote) {
+      return note.renote?.id ?? note.id;
+    }
+    return note.id;
+  }
+
+  Future<void> _onNoteTap(BuildContext context, Note note) async {
+    final noteId = _noteDetailId(note);
+    if (noteId.isEmpty) {
+      _showComingSoonSnackBar(context, 'ノート詳細');
+      return;
+    }
+    await NoteDetailRoute(noteId: noteId).push<void>(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final emojiCache = context.read<EmojiCache>().entries;
@@ -153,6 +170,7 @@ class TimelineScreen extends HookWidget {
         onNoteUserTap: (_, user) => _onUserTap(context, user),
         onNoteBodyEmojiTap: (note, emoji) =>
             _onNoteBodyEmojiTap(context, note, emoji),
+        onNoteTap: (note) => _onNoteTap(context, note),
       );
     }
 

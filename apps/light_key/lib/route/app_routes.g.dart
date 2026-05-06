@@ -16,6 +16,7 @@ List<RouteBase> get $appRoutes => [
   $postRoute,
   $settingsRoute,
   $userProfileRoute,
+  $noteDetailRoute,
 ];
 
 RouteBase get $splashRoute =>
@@ -259,6 +260,35 @@ mixin $UserProfileRoute on GoRouteData {
   @override
   String get location =>
       GoRouteData.$location('/users/${Uri.encodeComponent(_self.userId)}');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $noteDetailRoute => GoRouteData.$route(
+  path: '/notes/:noteId',
+  factory: $NoteDetailRoute._fromState,
+);
+
+mixin $NoteDetailRoute on GoRouteData {
+  static NoteDetailRoute _fromState(GoRouterState state) =>
+      NoteDetailRoute(noteId: state.pathParameters['noteId']!);
+
+  NoteDetailRoute get _self => this as NoteDetailRoute;
+
+  @override
+  String get location =>
+      GoRouteData.$location('/notes/${Uri.encodeComponent(_self.noteId)}');
 
   @override
   void go(BuildContext context) => context.go(location);

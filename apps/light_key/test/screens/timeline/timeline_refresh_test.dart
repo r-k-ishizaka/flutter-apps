@@ -174,10 +174,9 @@ void main() {
       final timelineDataSource = _FakeTimelineDataSource(
         fetchHandlers: [
           () async => [
-            _note(id: 'note-1').copyWith(
-              reactions: const {':old:': 3},
-              myReaction: ':old:',
-            ),
+            _note(
+              id: 'note-1',
+            ).copyWith(reactions: const {':old:': 3}, myReaction: ':old:'),
           ],
         ],
       );
@@ -188,7 +187,10 @@ void main() {
 
       await provider.fetch();
 
-      final message = await provider.createReaction(_note(id: 'note-1'), ':new:');
+      final message = await provider.createReaction(
+        _note(id: 'note-1'),
+        ':new:',
+      );
 
       expect(message, isNull);
       final loadedState = provider.state as TimelineScreenStateLoaded;
@@ -285,16 +287,14 @@ void main() {
       final timelineDataSource = _FakeTimelineDataSource(
         fetchHandlers: [
           () async => [
-            _note(id: 'note-1').copyWith(
-              reactions: const {':old@.:': 3},
-              myReaction: ':old@.:',
-            ),
+            _note(
+              id: 'note-1',
+            ).copyWith(reactions: const {':old@.:': 3}, myReaction: ':old@.:'),
           ],
           () async => [
-            _note(id: 'note-1').copyWith(
-              reactions: const {':new@.:': 1},
-              myReaction: ':old@.:',
-            ),
+            _note(
+              id: 'note-1',
+            ).copyWith(reactions: const {':new@.:': 1}, myReaction: ':old@.:'),
           ],
         ],
       );
@@ -450,9 +450,7 @@ void main() {
       );
 
       await tester.tap(
-        find.byKey(
-          const ValueKey('${EmojiText.emojiTapKeyPrefix}:custom:'),
-        ),
+        find.byKey(const ValueKey('${EmojiText.emojiTapKeyPrefix}:custom:')),
       );
       await tester.pump();
 
@@ -488,6 +486,25 @@ void main() {
       expect(tappedReaction, '👍');
     });
 
+    testWidgets('ノート本体タップでコールバックが呼ばれる', (tester) async {
+      Note? tappedNote;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TimelineList(
+            notes: [_note(id: 'note-1', text: 'note body')],
+            emojis: getIt<EmojiCache>().entries,
+            onNoteTap: (note) => tappedNote = note,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('note body'));
+      await tester.pump();
+
+      expect(tappedNote?.id, 'note-1');
+    });
+
     testWidgets('他サーバー絵文字のリアクションチップはタップできない', (tester) async {
       var tapped = false;
 
@@ -503,13 +520,17 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(const ValueKey('reaction-chip-:custom@example.com:')));
+      await tester.tap(
+        find.byKey(const ValueKey('reaction-chip-:custom@example.com:')),
+      );
       await tester.pump();
 
       final decoratedBox = tester.widget<DecoratedBox>(
         find
             .ancestor(
-              of: find.byKey(const ValueKey('reaction-chip-:custom@example.com:')),
+              of: find.byKey(
+                const ValueKey('reaction-chip-:custom@example.com:'),
+              ),
               matching: find.byType(DecoratedBox),
             )
             .first,
@@ -546,10 +567,9 @@ void main() {
           text: '',
           createdAt: DateTime(2026, 4, 28, 12),
           user: const User(id: 'user-2', username: 'bob', name: 'Bob'),
-          renote: _note(id: 'note-1').copyWith(
-            reactions: const {reactionKey: 1},
-            myReaction: myReaction,
-          ),
+          renote: _note(
+            id: 'note-1',
+          ).copyWith(reactions: const {reactionKey: 1}, myReaction: myReaction),
         );
       }
 
@@ -800,14 +820,9 @@ class _FakeAuthDataSource implements AuthDataSource {
   Future<ResponseWithCacheHints<User>> verify(
     String baseUrl,
     String accessToken,
-  ) async =>
-      const ResponseWithCacheHints(
-        data: User(
-          id: 'user-1',
-          username: 'sample_user',
-          name: 'Sample User',
-        ),
-      );
+  ) async => const ResponseWithCacheHints(
+    data: User(id: 'user-1', username: 'sample_user', name: 'Sample User'),
+  );
 }
 
 class _FakeTimelineDataSource implements TimelineDataSource {
@@ -839,8 +854,7 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   Future<ResponseWithCacheHints<Note>> fetchNote(
     AuthSession session,
     String noteId,
-  ) async =>
-      ResponseWithCacheHints(data: _note(id: noteId));
+  ) async => ResponseWithCacheHints(data: _note(id: noteId));
 
   @override
   Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(

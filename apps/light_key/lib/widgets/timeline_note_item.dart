@@ -18,24 +18,30 @@ class TimelineNoteItem extends HookWidget {
     required this.note,
     required this.animation,
     required this.emojis,
+    this.onTap,
     this.onReply,
     this.onRenote,
     this.onReaction,
     this.onReactionChipTap,
     this.onUserTap,
     this.onBodyEmojiTap,
+    this.showAllMedia = false,
+    this.showAllReactions = false,
     super.key,
   });
 
   final Note note;
   final Animation<double> animation;
   final Map<String, EmojiCacheEntry> emojis;
+  final VoidCallback? onTap;
   final VoidCallback? onReply;
   final VoidCallback? onRenote;
   final VoidCallback? onReaction;
   final ValueChanged<String>? onReactionChipTap;
   final ValueChanged<User>? onUserTap;
   final ValueChanged<String>? onBodyEmojiTap;
+  final bool showAllMedia;
+  final bool showAllReactions;
 
   String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
@@ -85,190 +91,204 @@ class TimelineNoteItem extends HookWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 純粋リノートのヘッダー
-                  if (note.noteType == NoteType.pureRenote)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.repeat, size: 14),
-                          const SizedBox(width: 4),
-                          GestureDetector(
-                            onTap: onRenoteUserTap,
-                            child: UserAvatar(
-                              avatarUrl: note.user.avatarUrl,
-                              avatarBlurHash: note.user.avatarBlurHash,
-                              size: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: onRenoteUserTap,
-                              behavior: HitTestBehavior.opaque,
-                              child: EmojiText(
-                                '$renoteUserName がリノート',
-                                emojis: emojis,
-                                host: note.user.host,
-                                style: Theme.of(context).textTheme.bodySmall,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                emojiSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GestureDetector(
-                        onTap: onDisplayUserTap,
-                        child: UserAvatar(
-                          avatarUrl: displayNote.user.avatarUrl,
-                          avatarBlurHash: displayNote.user.avatarBlurHash,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+            GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (note.noteType == NoteType.pureRenote)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: onDisplayUserTap,
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                          EmojiText(
-                                            displayUserName,
-                                            emojis: emojis,
-                                          host: displayNote.user.host,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          emojiSize: 18,
-                                        ),
-                                        Text(
-                                          '@${displayNote.user.username}',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _NoteStatusIcons(note: displayNote),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _createdAtLabel(displayNote.createdAt),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                             // CW バー
-                             if (hasCw) ...[
-                                _CwBar(
-                                 cwText: cw,
-                                 expanded: cwExpanded.value,
-                                 onToggle: () =>
-                                     cwExpanded.value = !cwExpanded.value,
-                                   host: displayNote.user.host,
-                                 emojis: emojis,
-                               ),
-                               const SizedBox(height: 4),
-                             ],
-                            // 本文・メディア（CW がある場合は展開時のみ表示）
-                            if (!hasCw || cwExpanded.value) ...[
-                               switch (note.noteType) {
-                               NoteType.normal => EmojiText(
-                                 note.text.isEmpty ? '(本文なし)' : note.text,
-                                 emojis: emojis,
-                                 host: note.user.host,
-                                 onEmojiTap: onBodyEmojiTap,
-                               ),
-                               NoteType.pureRenote => EmojiText(
-                                 displayNote.text.isEmpty
-                                     ? '(本文なし)'
-                                     : displayNote.text,
-                                 emojis: emojis,
-                                 host: displayNote.user.host,
-                                 onEmojiTap: onBodyEmojiTap,
-                               ),
-                               NoteType.quoteRenote => Column(
-                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                 children: [
-                                   EmojiText(
-                                     note.text.isEmpty ? '(本文なし)' : note.text,
-                                     emojis: emojis,
-                                     host: note.user.host,
-                                     onEmojiTap: onBodyEmojiTap,
-                                   ),
-                                    if (note.files.isNotEmpty) ...[
-                                      const SizedBox(height: 8),
-                                      NoteMediaList(files: note.files),
-                                    ],
-                                     const SizedBox(height: 8),
-                                     RenoteCard(
-                                       renote: note.renote!,
-                                       emojis: emojis,
-                                       onBodyEmojiTap: onBodyEmojiTap,
-                                     ),
-                                   ],
-                                ),
-                              },
-                              if (note.noteType == NoteType.normal &&
-                                  note.files.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                NoteMediaList(files: note.files),
-                              ],
-                              if (note.noteType == NoteType.pureRenote &&
-                                  displayNote.files.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                NoteMediaList(files: displayNote.files),
-                              ],
-                            ],
-                            const SizedBox(height: 8),
-                            _TimelineNoteActionRow(
-                              onReply: onReply,
-                              onRenote: renoteAction,
-                              onReaction: onReaction,
-                            ),
-                            if (displayReactions.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                             NoteReactionList(
-                               reactions: displayReactions,
-                               emojis: emojis,
-                                myReaction: displayMyReaction,
-                                onReactionTap: onReactionChipTap,
+                            const Icon(Icons.repeat, size: 14),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: onRenoteUserTap,
+                              child: UserAvatar(
+                                avatarUrl: note.user.avatarUrl,
+                                avatarBlurHash: note.user.avatarBlurHash,
+                                size: 16,
                               ),
-                            ],
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: onRenoteUserTap,
+                                behavior: HitTestBehavior.opaque,
+                                child: EmojiText(
+                                  '$renoteUserName がリノート',
+                                  emojis: emojis,
+                                  host: note.user.host,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  emojiSize: 16,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: onDisplayUserTap,
+                          child: UserAvatar(
+                            avatarUrl: displayNote.user.avatarUrl,
+                            avatarBlurHash: displayNote.user.avatarBlurHash,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: onDisplayUserTap,
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          EmojiText(
+                                            displayUserName,
+                                            emojis: emojis,
+                                            host: displayNote.user.host,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            emojiSize: 18,
+                                          ),
+                                          Text(
+                                            '@${displayNote.user.username}',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _NoteStatusIcons(note: displayNote),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _createdAtLabel(displayNote.createdAt),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              if (hasCw) ...[
+                                _CwBar(
+                                  cwText: cw,
+                                  expanded: cwExpanded.value,
+                                  onToggle: () =>
+                                      cwExpanded.value = !cwExpanded.value,
+                                  host: displayNote.user.host,
+                                  emojis: emojis,
+                                ),
+                                const SizedBox(height: 4),
+                              ],
+                              if (!hasCw || cwExpanded.value) ...[
+                                switch (note.noteType) {
+                                  NoteType.normal => EmojiText(
+                                    note.text.isEmpty ? '(本文なし)' : note.text,
+                                    emojis: emojis,
+                                    host: note.user.host,
+                                    onEmojiTap: onBodyEmojiTap,
+                                  ),
+                                  NoteType.pureRenote => EmojiText(
+                                    displayNote.text.isEmpty
+                                        ? '(本文なし)'
+                                        : displayNote.text,
+                                    emojis: emojis,
+                                    host: displayNote.user.host,
+                                    onEmojiTap: onBodyEmojiTap,
+                                  ),
+                                  NoteType.quoteRenote => Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      EmojiText(
+                                        note.text.isEmpty
+                                            ? '(本文なし)'
+                                            : note.text,
+                                        emojis: emojis,
+                                        host: note.user.host,
+                                        onEmojiTap: onBodyEmojiTap,
+                                      ),
+                                      if (note.files.isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        NoteMediaList(
+                                          files: note.files,
+                                          showAll: showAllMedia,
+                                        ),
+                                      ],
+                                      const SizedBox(height: 8),
+                                      RenoteCard(
+                                        renote: note.renote!,
+                                        emojis: emojis,
+                                        onBodyEmojiTap: onBodyEmojiTap,
+                                      ),
+                                    ],
+                                  ),
+                                },
+                                if (note.noteType == NoteType.normal &&
+                                    note.files.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  NoteMediaList(
+                                    files: note.files,
+                                    showAll: showAllMedia,
+                                  ),
+                                ],
+                                if (note.noteType == NoteType.pureRenote &&
+                                    displayNote.files.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  NoteMediaList(
+                                    files: displayNote.files,
+                                    showAll: showAllMedia,
+                                  ),
+                                ],
+                              ],
+                              const SizedBox(height: 8),
+                              _TimelineNoteActionRow(
+                                onReply: onReply,
+                                onRenote: renoteAction,
+                                onReaction: onReaction,
+                              ),
+                              if (displayReactions.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                NoteReactionList(
+                                  reactions: displayReactions,
+                                  emojis: emojis,
+                                  myReaction: displayMyReaction,
+                                  showAll: showAllReactions,
+                                  onReactionTap: onReactionChipTap,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             const Divider(height: 1),

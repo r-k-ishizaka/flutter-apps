@@ -11,6 +11,7 @@ class NoteReactionList extends StatelessWidget {
     required this.reactions,
     required this.emojis,
     this.myReaction,
+    this.showAll = false,
     this.onReactionTap,
     super.key,
   });
@@ -20,6 +21,7 @@ class NoteReactionList extends StatelessWidget {
 
   /// 自分がつけたリアクション。該当するチップにアクセントが付く。
   final String? myReaction;
+  final bool showAll;
   final ValueChanged<String>? onReactionTap;
 
   static const int _maxVisibleReactions = NoteEmojiFilter.maxVisibleReactions;
@@ -65,7 +67,8 @@ class NoteReactionList extends StatelessWidget {
     for (final entry in reactions.entries) {
       if (entry.value <= 0) continue;
       final normalized = _normalizeReaction(entry.key);
-      mergedReactions[normalized] = (mergedReactions[normalized] ?? 0) + entry.value;
+      mergedReactions[normalized] =
+          (mergedReactions[normalized] ?? 0) + entry.value;
     }
 
     final sortedEntries =
@@ -78,7 +81,7 @@ class NoteReactionList extends StatelessWidget {
             return a.key.compareTo(b.key);
           });
 
-    final hasMore = sortedEntries.length > _maxVisibleReactions;
+    final hasMore = !showAll && sortedEntries.length > _maxVisibleReactions;
 
     // 上位16件を基本とし、自分のリアクションが16件目以降にある場合も必ず含める
     List<MapEntry<String, int>> visibleEntries;
@@ -102,7 +105,9 @@ class NoteReactionList extends StatelessWidget {
       }
     }
 
-    final hiddenCount = sortedEntries.length - visibleEntries.length;
+    final hiddenCount = showAll
+        ? 0
+        : sortedEntries.length - visibleEntries.length;
     final animationSignature = _buildAnimationSignature(
       visibleEntries,
       hiddenCount,
@@ -169,9 +174,9 @@ class _MoreReactionsChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Text(
           'もっと見る',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
         ),
       ),
     );

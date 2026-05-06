@@ -14,7 +14,7 @@ import 'emoji_repository.dart';
 
 class TimelineRepository {
   TimelineRepository(this._dataSource, {EmojiRepository? emojiRepository})
-      : _emojiRepository = emojiRepository;
+    : _emojiRepository = emojiRepository;
 
   final TimelineDataSource _dataSource;
   final EmojiRepository? _emojiRepository;
@@ -55,6 +55,21 @@ class TimelineRepository {
   }) async {
     try {
       final response = await _dataSource.fetchTimeline(session, limit: limit);
+      if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
+        await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+      }
+      return Success(response.data);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
+  Future<Result<Note>> fetchNote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    try {
+      final response = await _dataSource.fetchNote(session, noteId);
       if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
         await _emojiRepository.cacheEmojiHints(response.emojisToCache);
       }
@@ -250,9 +265,7 @@ class TimelineRepository {
     if (name.isEmpty || url.isEmpty) return;
 
     try {
-      await repository.cacheEmojiHints([
-        EmojiToCache(name: name, url: url),
-      ]);
+      await repository.cacheEmojiHints([EmojiToCache(name: name, url: url)]);
     } on Exception {
       // Realtime 反映を優先し、絵文字キャッシュ失敗は非致命として扱う。
     }

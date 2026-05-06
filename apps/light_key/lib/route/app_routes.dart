@@ -9,6 +9,8 @@ import '../repositories/timeline_repository.dart';
 import '../repositories/user_profile_repository.dart';
 import '../screens/auth/auth_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/note_detail/note_detail_provider.dart';
+import '../screens/note_detail/note_detail_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/post/post_screen.dart';
 import '../screens/profile/profile_provider.dart';
@@ -202,6 +204,25 @@ class UserProfileRoute extends GoRouteData with $UserProfileRoute {
         timelineRepository: getIt<TimelineRepository>(),
       )..load(userId),
       child: ProfileScreen(userId: userId),
+    );
+  }
+}
+
+@TypedGoRoute<NoteDetailRoute>(path: '/notes/:noteId')
+@immutable
+class NoteDetailRoute extends GoRouteData with $NoteDetailRoute {
+  const NoteDetailRoute({required this.noteId});
+
+  final String noteId;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return ChangeNotifierProvider(
+      create: (_) => NoteDetailProvider(
+        authRepository: getIt<AuthRepository>(),
+        timelineRepository: getIt<TimelineRepository>(),
+      ),
+      child: NoteDetailScreen(noteId: noteId),
     );
   }
 }
