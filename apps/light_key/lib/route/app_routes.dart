@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../di/di.dart';
+import '../providers/theme_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/timeline_repository.dart';
 import '../repositories/user_profile_repository.dart';
@@ -12,9 +13,10 @@ import '../screens/notifications/notifications_screen.dart';
 import '../screens/post/post_screen.dart';
 import '../screens/profile/profile_provider.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/settings/settings_provider.dart';
+import '../screens/settings/settings_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
-import '../widgets/theme_switch_button.dart';
 
 part 'app_routes.g.dart';
 
@@ -66,7 +68,13 @@ class HomeShellRouteData extends ShellRouteData {
     return HomeScreen(
       currentPath: currentPath,
       selectedIndex: selectedIndex,
-      actions: const [ThemeSwitchButton()],
+      actions: [
+        IconButton(
+          onPressed: () => const SettingsRoute().push<void>(context),
+          icon: const Icon(Icons.settings),
+          tooltip: '設定',
+        ),
+      ],
       onPostTap: () {
         const PostRoute().push<String>(context).then((message) {
           if (!context.mounted || message == null || message.isEmpty) return;
@@ -159,6 +167,23 @@ class PostRoute extends GoRouteData with $PostRoute {
           );
         },
       );
+}
+
+@TypedGoRoute<SettingsRoute>(path: '/settings')
+@immutable
+class SettingsRoute extends GoRouteData with $SettingsRoute {
+  const SettingsRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return ChangeNotifierProvider(
+      create: (_) => SettingsProvider(
+        authRepository: getIt<AuthRepository>(),
+        themeProvider: context.read<ThemeProvider>(),
+      ),
+      child: const SettingsScreen(),
+    );
+  }
 }
 
 @TypedGoRoute<UserProfileRoute>(path: '/users/:userId')
