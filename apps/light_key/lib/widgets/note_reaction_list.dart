@@ -22,6 +22,9 @@ class NoteReactionList extends StatelessWidget {
   final String? myReaction;
   final ValueChanged<String>? onReactionTap;
 
+  static const int _maxVisibleReactions = NoteEmojiFilter.maxVisibleReactions;
+  static const _animationDuration = Duration(milliseconds: 220);
+
   // `:name@.:` は同一サーバ絵文字なので `:name:` に正規化する。
   static String _normalizeReaction(String reaction) {
     final match = RegExp(r'^:([a-zA-Z0-9_]+)@\.:$').firstMatch(reaction);
@@ -39,7 +42,15 @@ class NoteReactionList extends StatelessWidget {
     return isCrossServer;
   }
 
-  static const int _maxVisibleReactions = NoteEmojiFilter.maxVisibleReactions;
+  static String _buildAnimationSignature(
+    List<MapEntry<String, int>> visibleEntries,
+    int hiddenCount,
+  ) {
+    final entriesSignature = visibleEntries
+        .map((entry) => '${entry.key}:${entry.value}')
+        .join('|');
+    return '$entriesSignature#$hiddenCount';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,29 +103,51 @@ class NoteReactionList extends StatelessWidget {
     }
 
     final hiddenCount = sortedEntries.length - visibleEntries.length;
+    final animationSignature = _buildAnimationSignature(
+      visibleEntries,
+      hiddenCount,
+    );
 
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        ...visibleEntries.map((entry) {
-          // マージ後のキーはすでに正規化済み
-          final normalizedReaction = entry.key;
-          final canTap = !_isCrossServerReaction(entry.key);
-          return _ReactionChip(
-            reactionKey: entry.key,
-            reaction: normalizedReaction,
-            count: entry.value,
-            emojis: emojis,
-            isEnabled: canTap,
-            isMyReaction:
-                normalizedMyReaction != null &&
-                normalizedMyReaction == normalizedReaction,
-            onTap: canTap ? onReactionTap : null,
+    return AnimatedSize(
+      duration: _animationDuration,
+      curve: Curves.easeInOutCubic,
+      alignment: Alignment.topLeft,
+      child: AnimatedSwitcher(
+        duration: _animationDuration,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final fadeAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
           );
-        }),
-        if (hiddenCount > 0) _MoreReactionsChip(hiddenCount: hiddenCount),
-      ],
+          return FadeTransition(opacity: fadeAnimation, child: child);
+        },
+        child: Wrap(
+          key: ValueKey('reaction-wrap-$animationSignature'),
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            ...visibleEntries.map((entry) {
+              // マージ後のキーはすでに正規化済み
+              final normalizedReaction = entry.key;
+              final canTap = !_isCrossServerReaction(entry.key);
+              return _ReactionChip(
+                reactionKey: entry.key,
+                reaction: normalizedReaction,
+                count: entry.value,
+                emojis: emojis,
+                isEnabled: canTap,
+                isMyReaction:
+                    normalizedMyReaction != null &&
+                    normalizedMyReaction == normalizedReaction,
+                onTap: canTap ? onReactionTap : null,
+              );
+            }),
+            if (hiddenCount > 0) _MoreReactionsChip(hiddenCount: hiddenCount),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -177,26 +210,37 @@ class _ReactionChip extends StatelessWidget {
         : isMyReaction
         ? colorScheme.onPrimaryContainer
         : null;
+    final borderColor = isMyReaction && isEnabled
+        ? colorScheme.primary
+        : Colors.transparent;
 
     final content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-           EmojiText(
-             reaction,
-             emojis: emojis,
-             emojiSize: 18,
-             maxLines: 1,
-             overflow: TextOverflow.ellipsis,
-             showCrossServerCacheMissAsError: true,
-           ),
+          EmojiText(
+            reaction,
+            emojis: emojis,
+            emojiSize: 18,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            showCrossServerCacheMissAsError: true,
+          ),
           const SizedBox(width: 4),
-          Text(
-            '$count',
-            style: textColor != null
-                ? TextStyle(color: textColor, fontWeight: FontWeight.bold)
-                : null,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 160),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: Text(
+              '$count',
+              key: ValueKey('reaction-count-$reactionKey-$count'),
+              style: textColor != null
+                  ? TextStyle(color: textColor, fontWeight: FontWeight.bold)
+                  : null,
+            ),
           ),
         ],
       ),
@@ -213,13 +257,14 @@ class _ReactionChip extends StatelessWidget {
       ),
     );
 
-    return DecoratedBox(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: isMyReaction && isEnabled
-            ? Border.all(color: colorScheme.primary, width: 1.5)
-            : null,
+        // 枠線の太さを固定して、選択状態の切替時もチップ外形を変えない。
+        border: Border.all(color: borderColor, width: 1.5),
       ),
       child: chipBody,
     );
