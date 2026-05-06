@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "bash .github/hooks/scripts/run_flutter_validation.sh",
+        "timeout": 1800
+      }
+    ]
+  }
+}

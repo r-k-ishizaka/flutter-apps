@@ -1,0 +1,14 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part '__SCREEN_NAME___effect_state.freezed.dart';
+
+@freezed
+sealed class __ScreenName__EffectState with _$__ScreenName__EffectState {
+  const factory __ScreenName__EffectState.showError({
+    required String message,
+  }) = __ScreenName__ShowErrorEffect;
+
+  const factory __ScreenName__EffectState.showSavedMessage({
+    required String message,
+  }) = __ScreenName__ShowSavedMessageEffect;
+}

@@ -1,0 +1,51 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:provider/provider.dart';
+
+import '__SCREEN_NAME___effect_state.dart';
+import '__SCREEN_NAME___provider.dart';
+import '__SCREEN_NAME___screen_state.dart';
+
+class __ScreenName__Screen extends HookWidget {
+  const __ScreenName__Screen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<__ScreenName__Provider>();
+
+    useEffect(() {
+      final effect = provider.effect;
+      if (effect is __ScreenName__ShowErrorEffect) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(effect.message)),
+        );
+        provider.consumeEffect();
+      }
+      return null;
+    }, [provider.effect]);
+
+    final state = provider.state;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('__ScreenName__'),
+      ),
+      body: switch (state) {
+        __ScreenName__InitialScreenState() => const SizedBox.shrink(),
+        __ScreenName__LoadingScreenState() => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        __ScreenName__LoadedScreenState(:final title) => Center(
+            child: Text(title),
+          ),
+        __ScreenName__ErrorScreenState(:final message) => Center(
+            child: Text(message),
+          ),
+      },
+      floatingActionButton: FloatingActionButton(
+        onPressed: provider.load,
+        child: const Icon(Icons.refresh),
+      ),
+    );
+  }
+}

@@ -1,0 +1,34 @@
+import 'package:flutter/foundation.dart';
+
+import '__SCREEN_NAME___effect_state.dart';
+import '__SCREEN_NAME___screen_state.dart';
+
+class __ScreenName__Provider extends ChangeNotifier {
+  __ScreenName__ScreenState _state = const __ScreenName__InitialScreenState();
+  __ScreenName__EffectState? _effect;
+
+  __ScreenName__ScreenState get state => _state;
+  __ScreenName__EffectState? get effect => _effect;
+
+  Future<void> load() async {
+    _state = const __ScreenName__LoadingScreenState();
+    notifyListeners();
+
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      _state = const __ScreenName__LoadedScreenState(
+        title: '__ScreenName__ loaded',
+      );
+    } catch (e) {
+      _state = __ScreenName__ErrorScreenState(message: e.toString());
+      _effect = __ScreenName__ShowErrorEffect(message: e.toString());
+    }
+
+    notifyListeners();
+  }
+
+  void consumeEffect() {
+    _effect = null;
+    notifyListeners();
+  }
+}
