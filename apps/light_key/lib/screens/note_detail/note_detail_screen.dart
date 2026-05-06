@@ -120,31 +120,34 @@ class NoteDetailScreen extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('ノート詳細')),
-      body: switch (state) {
-        NoteDetailScreenStateIdle() ||
-        NoteDetailScreenStateLoading() => const LoadingContent(),
-        NoteDetailScreenStateLoaded(:final note) => SingleChildScrollView(
-          child: TimelineNoteItem(
-            note: note,
-            animation: kAlwaysCompleteAnimation,
-            emojis: emojiCache,
-            showAllMedia: true,
-            showAllReactions: true,
-            onReply: () => _showComingSoonSnackBar(context, 'リプライ'),
-            onRenote: () => _onNoteRenote(context, note),
-            onReaction: () => _onNoteReaction(context, note),
-            onReactionChipTap: (reaction) =>
-                _sendReaction(context, note, reaction),
-            onUserTap: (user) => _onUserTap(context, user),
-            onBodyEmojiTap: (emoji) =>
-                _onNoteBodyEmojiTap(context, note, emoji),
+      body: SafeArea(
+        top: false,
+        child: switch (state) {
+          NoteDetailScreenStateIdle() ||
+          NoteDetailScreenStateLoading() => const LoadingContent(),
+          NoteDetailScreenStateLoaded(:final note) => SingleChildScrollView(
+            child: TimelineNoteItem(
+              note: note,
+              animation: kAlwaysCompleteAnimation,
+              emojis: emojiCache,
+              showAllMedia: true,
+              showAllReactions: true,
+              onReply: () => _showComingSoonSnackBar(context, 'リプライ'),
+              onRenote: () => _onNoteRenote(context, note),
+              onReaction: () => _onNoteReaction(context, note),
+              onReactionChipTap: (reaction) =>
+                  _sendReaction(context, note, reaction),
+              onUserTap: (user) => _onUserTap(context, user),
+              onBodyEmojiTap: (emoji) =>
+                  _onNoteBodyEmojiTap(context, note, emoji),
+            ),
           ),
-        ),
-        NoteDetailScreenStateError(:final message) => ErrorContent(
-          message: message ?? 'ノート詳細の取得に失敗しました。',
-          onRetry: () => context.read<NoteDetailProvider>().load(noteId),
-        ),
-      },
+          NoteDetailScreenStateError(:final message) => ErrorContent(
+            message: message ?? 'ノート詳細の取得に失敗しました。',
+            onRetry: () => context.read<NoteDetailProvider>().load(noteId),
+          ),
+        },
+      ),
     );
   }
 }
