@@ -83,19 +83,17 @@ class EmojiText extends StatelessWidget {
       );
 
       if (entry != null && entry.url.isNotEmpty) {
-        // アスペクト比から表示幅を計算（最大 emojiSize * 11 に制限）
+        // アスペクト比から表示幅を計算（最大 emojiSize * 8 に制限）
         final displayWidth = (emojiSize * entry.aspectRatio).clamp(
           0.0,
-          emojiSize * 11,
+          emojiSize * 6,
         );
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: GestureDetector(
               key: ValueKey('$emojiTapKeyPrefix$shortcode'),
-              onTap: onEmojiTap != null
-                  ? () => onEmojiTap!(shortcode)
-                  : null,
+              onTap: onEmojiTap != null ? () => onEmojiTap!(shortcode) : null,
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 2),
@@ -103,7 +101,8 @@ class EmojiText extends StatelessWidget {
                   imageUrl: entry.url,
                   width: displayWidth,
                   height: emojiSize,
-                  fit: BoxFit.fill,
+                  // 横長画像は幅上限内に収め、比率を維持して全体表示する。
+                  fit: BoxFit.contain,
                   placeholder: (_, _) =>
                       SizedBox(width: displayWidth, height: emojiSize),
                   errorWidget: (_, _, _) => Text(':$name:'),
@@ -175,7 +174,9 @@ class EmojiText extends StatelessWidget {
     String? explicitHost,
   }) {
     // 明示的な host がある場合（:name@host:）は最優先。
-    if (explicitHost != null && explicitHost.isNotEmpty && explicitHost != '.') {
+    if (explicitHost != null &&
+        explicitHost.isNotEmpty &&
+        explicitHost != '.') {
       final keyWithHost = '$name@$explicitHost';
       final entryWithHost = cache[keyWithHost];
       if (entryWithHost != null) {
