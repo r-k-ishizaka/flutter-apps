@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/auth_session.dart';
@@ -11,6 +13,7 @@ class MisskeyAuthDataSource implements AuthDataSource {
 
   static const _baseUrlKey = 'base_url';
   static const _accessTokenKey = 'access_token';
+  static const _userDataKey = 'user_data';
 
   final MisskeyHttpClient client;
   final SharedPreferences prefs;
@@ -33,8 +36,15 @@ class MisskeyAuthDataSource implements AuthDataSource {
 
   @override
   Future<void> saveSession(AuthSession session) async {
-    await prefs.setString(_baseUrlKey, session.baseUrl);
-    await prefs.setString(_accessTokenKey, session.accessToken);
+    await Future.wait<void>([
+      prefs.setString(_baseUrlKey, session.baseUrl),
+      prefs.setString(_accessTokenKey, session.accessToken),
+      if (session.user != null)
+        prefs.setString(
+          _userDataKey,
+          jsonEncode(session.user!.toJson()),
+        ),
+    ]);
   }
 
   @override
@@ -44,13 +54,32 @@ class MisskeyAuthDataSource implements AuthDataSource {
     if (baseUrl == null || accessToken == null) {
       return null;
     }
-    return AuthSession(baseUrl: baseUrl, accessToken: accessToken);
+
+    User? user;
+    final userDataJson = prefs.getString(_userDataKey);
+    if (userDataJson != null) {
+      try {
+        final userMap = jsonDecode(userDataJson) as Map<String, dynamic>;
+        user = User.fromJson(userMap);
+      } catch (_) {
+        // ユーザーデータの復元に失敗した場合はスキップ
+      }
+    }
+
+    return AuthSession(
+      baseUrl: baseUrl,
+      accessToken: accessToken,
+      user: user,
+    );
   }
 
   @override
   Future<void> clearSession() async {
-    await prefs.remove(_baseUrlKey);
-    await prefs.remove(_accessTokenKey);
+    await Future.wait<void>([
+      prefs.remove(_baseUrlKey),
+      prefs.remove(_accessTokenKey),
+      prefs.remove(_userDataKey),
+    ]);
   }
 
   @override

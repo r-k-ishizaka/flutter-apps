@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
 import '../../models/auth_session.dart';
+import '../../models/user.dart';
 import '../../repositories/auth_repository.dart';
 import 'auth_screen_state.dart';
 
@@ -14,6 +15,9 @@ class AuthProvider extends ChangeNotifier {
   AuthScreenState _state = const AuthScreenState.idle();
 
   AuthScreenState get state => _state;
+
+  /// ログイン中のユーザー情報（セッションから取得）
+  User? get currentUser => _state.session?.user;
 
   Future<void> signInWithOAuth({
     required String baseUrl,
@@ -91,8 +95,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> restoreSession() async {
-    final result = await _authRepository.restoreSession();
+  Future<void> restoreSession({bool refreshUser = false}) async {
+    final result = refreshUser
+        ? await _authRepository.restoreSessionWithUserRefresh()
+        : await _authRepository.restoreSession();
     result.when(
       success: (session) {
         if (session == null) {
@@ -100,8 +106,11 @@ class AuthProvider extends ChangeNotifier {
         } else {
           _state = _state.copyWith(
             status: AuthStatus.authenticated,
+            user: session.user,
             session: session,
-            message: '保存済みセッションを復元しました。',
+            message: refreshUser
+                ? 'セッションを復元し、ユーザー情報を更新しました。'
+                : '保存済みセッションを復元しました。',
             clearEmojiSyncProgress: true,
           );
         }

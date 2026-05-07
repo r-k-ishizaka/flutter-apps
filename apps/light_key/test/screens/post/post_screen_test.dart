@@ -9,6 +9,7 @@ import 'package:light_key/models/response_with_cache_hints.dart';
 import 'package:light_key/models/user.dart';
 import 'package:light_key/repositories/auth_repository.dart';
 import 'package:light_key/repositories/post_repository.dart';
+import 'package:light_key/screens/auth/auth_provider.dart';
 import 'package:light_key/screens/post/post_provider.dart';
 import 'package:light_key/screens/post/post_screen.dart';
 import 'package:light_key/screens/post/post_screen_state.dart';
@@ -41,14 +42,15 @@ void main() {
     String? replyToText,
     String? replyToAvatarUrl,
   }) {
+    final authRepository = AuthRepository(authDataSource ?? _FakeAuthDataSource());
+
     return MultiProvider(
       providers: [
         Provider<EmojiCache>.value(value: getIt<EmojiCache>()),
+        ChangeNotifierProvider(create: (_) => AuthProvider(authRepository)),
         ChangeNotifierProvider(
           create: (_) => PostProvider(
-            authRepository: AuthRepository(
-              authDataSource ?? _FakeAuthDataSource(),
-            ),
+            authRepository: authRepository,
             postRepository: PostRepository(
               postDataSource ?? _FakePostDataSource(),
             ),

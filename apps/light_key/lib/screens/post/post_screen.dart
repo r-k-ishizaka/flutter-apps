@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../models/user.dart';
+import '../../screens/auth/auth_provider.dart';
 import '../../services/emoji_cache.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../widgets/timeline_note_item.dart';
@@ -681,12 +682,17 @@ class PostScreen extends HookWidget {
       ],
     );
 
+    // ログイン中のユーザー情報を取得してプレビューに使用
+    final authProvider = context.watch<AuthProvider>();
+    final currentUser = authProvider.currentUser ??
+        const User(id: 'post-preview-user', username: 'you', name: 'あなた');
+
     final previewNote = Note(
       id: 'post-preview',
       text: bodyTextValue.text,
       cw: isCwEnabled.value ? cwTextValue.text : null,
       createdAt: previewCreatedAt,
-      user: const User(id: 'post-preview-user', username: 'you', name: 'あなた'),
+      user: currentUser,
       reply: hasReplyContext
           ? Note(
               id: 'post-preview-reply',

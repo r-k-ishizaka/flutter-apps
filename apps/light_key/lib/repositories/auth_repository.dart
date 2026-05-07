@@ -31,10 +31,15 @@ class AuthRepository {
       if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
         await _emojiRepository.cacheEmojiHints(response.emojisToCache);
       }
-       final session = AuthSession(baseUrl: baseUrl, accessToken: accessToken);
-       await _dataSource.saveSession(session);
+      final user = response.data;
+      final session = AuthSession(
+        baseUrl: baseUrl,
+        accessToken: accessToken,
+        user: user,
+      );
+      await _dataSource.saveSession(session);
 
-       return Success(response.data);
+      return Success(user);
     } on Exception catch (e, st) {
       return Failure(e, st);
     }
@@ -44,6 +49,38 @@ class AuthRepository {
     try {
       final session = await _dataSource.loadSession();
       return Success(session);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
+  Future<Result<AuthSession?>> restoreSessionWithUserRefresh() async {
+    try {
+      final restoredSession = await _dataSource.loadSession();
+      if (restoredSession == null) {
+        return const Success(null);
+      }
+
+      try {
+        final response = await _dataSource.verify(
+          restoredSession.baseUrl,
+          restoredSession.accessToken,
+        );
+        if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
+          await _emojiRepository.cacheEmojiHints(response.emojisToCache);
+        }
+
+        final refreshedSession = AuthSession(
+          baseUrl: restoredSession.baseUrl,
+          accessToken: restoredSession.accessToken,
+          user: response.data,
+        );
+        await _dataSource.saveSession(refreshedSession);
+        return Success(refreshedSession);
+      } on Exception {
+        // ネットワーク不調時は保存済みセッションで継続する。
+        return Success(restoredSession);
+      }
     } on Exception catch (e, st) {
       return Failure(e, st);
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../models/user.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/post_repository.dart';
 import 'post_effect_state.dart';
@@ -24,6 +25,15 @@ class PostProvider extends ChangeNotifier {
   PostEffectState get effectState => _effectState;
   PostVisibility get visibility => _visibility;
   bool get isFederated => _isFederated;
+
+  /// ログイン中のユーザー情報を取得
+  Future<User?> getCurrentUser() async {
+    final result = await _authRepository.restoreSession();
+    return result.when(
+      success: (session) => session?.user,
+      failure: (_, __) => null,
+    );
+  }
 
   void setVisibility(PostVisibility visibility) {
     if (_visibility == visibility) return;

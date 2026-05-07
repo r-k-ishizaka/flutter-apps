@@ -78,6 +78,11 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Result<AuthSession?>> restoreSessionWithUserRefresh() async {
+    return restoreSessionResult;
+  }
+
+  @override
   Future<Result<void>> signOut() async {
     return const Success(null);
   }

@@ -26,7 +26,7 @@ class SplashScreen extends HookWidget {
         final authProvider = context.read<AuthProvider>();
         await Future.wait<void>([
           Future<void>.delayed(const Duration(milliseconds: 500)),
-          authProvider.restoreSession(),
+          authProvider.restoreSession(refreshUser: true),
           GoogleFonts.pendingFonts([
             GoogleFonts.notoSansJp(),
             GoogleFonts.roboto(),
