@@ -17,6 +17,7 @@ List<RouteBase> get $appRoutes => [
   $settingsRoute,
   $userProfileRoute,
   $noteDetailRoute,
+  $imageViewerRoute,
 ];
 
 RouteBase get $splashRoute =>
@@ -289,6 +290,37 @@ mixin $NoteDetailRoute on GoRouteData {
   @override
   String get location =>
       GoRouteData.$location('/notes/${Uri.encodeComponent(_self.noteId)}');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $imageViewerRoute => GoRouteData.$route(
+  path: '/image-viewer/:initialIndex',
+  factory: $ImageViewerRoute._fromState,
+);
+
+mixin $ImageViewerRoute on GoRouteData {
+  static ImageViewerRoute _fromState(GoRouterState state) => ImageViewerRoute(
+    initialIndex: int.parse(state.pathParameters['initialIndex']!),
+  );
+
+  ImageViewerRoute get _self => this as ImageViewerRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/image-viewer/${Uri.encodeComponent(_self.initialIndex.toString())}',
+  );
 
   @override
   void go(BuildContext context) => context.go(location);

@@ -2,8 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/note_file.dart';
+import '../route/app_routes.dart';
+import '../utils/image_hero_tag.dart';
 
 const _kGridHeight = 240.0;
 const _kRadius = 10.0;
@@ -30,20 +33,28 @@ class NoteMediaList extends StatelessWidget {
       child: SizedBox(
         height: (showAll || imageFiles.length == 1) ? null : _kGridHeight,
         child: showAll
-            ? _all(imageFiles)
+            ? _all(context, imageFiles)
             : switch (imageFiles.length) {
-                1 => _SingleImageAspectRatioTile(file: imageFiles[0]),
-                2 => _two(imageFiles),
-                3 => _three(imageFiles),
-                _ => _four(imageFiles),
+                1 => _SingleImageAspectRatioTile(
+                  file: imageFiles[0],
+                  allFiles: imageFiles,
+                  currentIndex: 0,
+                ),
+                2 => _two(context, imageFiles),
+                3 => _three(context, imageFiles),
+                _ => _four(context, imageFiles),
               },
       ),
     );
   }
 
-  Widget _all(List<NoteFile> files) {
+  Widget _all(BuildContext context, List<NoteFile> files) {
     if (files.length == 1) {
-      return _SingleImageAspectRatioTile(file: files[0]);
+      return _SingleImageAspectRatioTile(
+        file: files[0],
+        allFiles: files,
+        currentIndex: 0,
+      );
     }
 
     return GridView.builder(
@@ -57,38 +68,68 @@ class NoteMediaList extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         final file = files[index];
-        return _Tile(key: _tileKeyFor(file), file: file);
+        return _Tile(
+          key: _tileKeyFor(file),
+          file: file,
+          allFiles: files,
+          currentIndex: index,
+        );
       },
     );
   }
 
-  Widget _two(List<NoteFile> files) => Row(
+  Widget _two(BuildContext context, List<NoteFile> files) => Row(
     spacing: _kSpacing,
     children: [
       Expanded(
-        child: _Tile(key: _tileKeyFor(files[0]), file: files[0]),
+        child: _Tile(
+          key: _tileKeyFor(files[0]),
+          file: files[0],
+          allFiles: files,
+          currentIndex: 0,
+        ),
       ),
       Expanded(
-        child: _Tile(key: _tileKeyFor(files[1]), file: files[1]),
+        child: _Tile(
+          key: _tileKeyFor(files[1]),
+          file: files[1],
+          allFiles: files,
+          currentIndex: 1,
+        ),
       ),
     ],
   );
 
-  Widget _three(List<NoteFile> files) => Row(
+  Widget _three(BuildContext context, List<NoteFile> files) => Row(
     spacing: _kSpacing,
     children: [
       Expanded(
-        child: _Tile(key: _tileKeyFor(files[0]), file: files[0]),
+        child: _Tile(
+          key: _tileKeyFor(files[0]),
+          file: files[0],
+          allFiles: files,
+          currentIndex: 0,
+        ),
       ),
       Expanded(
         child: Column(
           spacing: _kSpacing,
           children: [
             Expanded(
-              child: _Tile(key: _tileKeyFor(files[1]), file: files[1]),
+              child: _Tile(
+                key: _tileKeyFor(files[1]),
+                file: files[1],
+                allFiles: files,
+                currentIndex: 1,
+              ),
             ),
             Expanded(
-              child: _Tile(key: _tileKeyFor(files[2]), file: files[2]),
+              child: _Tile(
+                key: _tileKeyFor(files[2]),
+                file: files[2],
+                allFiles: files,
+                currentIndex: 2,
+              ),
             ),
           ],
         ),
@@ -96,7 +137,7 @@ class NoteMediaList extends StatelessWidget {
     ],
   );
 
-  Widget _four(List<NoteFile> files) {
+  Widget _four(BuildContext context, List<NoteFile> files) {
     final extra = files.length - 4;
     return Column(
       spacing: _kSpacing,
@@ -106,10 +147,20 @@ class NoteMediaList extends StatelessWidget {
             spacing: _kSpacing,
             children: [
               Expanded(
-                child: _Tile(key: _tileKeyFor(files[0]), file: files[0]),
+                child: _Tile(
+                  key: _tileKeyFor(files[0]),
+                  file: files[0],
+                  allFiles: files,
+                  currentIndex: 0,
+                ),
               ),
               Expanded(
-                child: _Tile(key: _tileKeyFor(files[1]), file: files[1]),
+                child: _Tile(
+                  key: _tileKeyFor(files[1]),
+                  file: files[1],
+                  allFiles: files,
+                  currentIndex: 1,
+                ),
               ),
             ],
           ),
@@ -119,12 +170,27 @@ class NoteMediaList extends StatelessWidget {
             spacing: _kSpacing,
             children: [
               Expanded(
-                child: _Tile(key: _tileKeyFor(files[2]), file: files[2]),
+                child: _Tile(
+                  key: _tileKeyFor(files[2]),
+                  file: files[2],
+                  allFiles: files,
+                  currentIndex: 2,
+                ),
               ),
               Expanded(
                 child: extra > 0
-                    ? _OverlayTile(file: files[3], extra: extra)
-                    : _Tile(key: _tileKeyFor(files[3]), file: files[3]),
+                    ? _OverlayTile(
+                      file: files[3],
+                      allFiles: files,
+                      currentIndex: 3,
+                      extra: extra,
+                    )
+                    : _Tile(
+                      key: _tileKeyFor(files[3]),
+                      file: files[3],
+                      allFiles: files,
+                      currentIndex: 3,
+                    ),
               ),
             ],
           ),
@@ -135,29 +201,58 @@ class NoteMediaList extends StatelessWidget {
 }
 
 class _Tile extends HookWidget {
-  const _Tile({required this.file, super.key});
+  const _Tile({
+    required this.file,
+    required this.allFiles,
+    required this.currentIndex,
+    super.key,
+  });
 
   final NoteFile file;
+  final List<NoteFile> allFiles;
+  final int currentIndex;
 
   @override
   Widget build(BuildContext context) {
     final revealed = useState(!file.isSensitive);
     final imageWidget = _MediaImage(file: file);
+    final heroImageWidget = Hero(
+      tag: buildImageHeroTag(file: file, index: currentIndex),
+      createRectTween: (begin, end) => RectTween(begin: begin, end: end),
+      child: imageWidget,
+    );
+
+    void openImageViewer() {
+      context.push(
+        ImageViewerRoute(initialIndex: currentIndex).location,
+        extra: allFiles,
+      );
+    }
 
     if (!file.isSensitive) {
-      return SizedBox.expand(key: const ValueKey('normal'), child: imageWidget);
+      return GestureDetector(
+        onTap: openImageViewer,
+        child: SizedBox.expand(
+          key: const ValueKey('normal'),
+          child: heroImageWidget,
+        ),
+      );
     }
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        Offstage(offstage: !revealed.value, child: imageWidget),
+        Offstage(
+          offstage: !revealed.value,
+          child: GestureDetector(onTap: openImageViewer, child: heroImageWidget),
+        ),
         _SensitiveOverlay(
           blurhash: file.blurhash,
           revealed: revealed.value,
           onReveal: () {
             revealed.value = true;
           },
+          onImageTap: openImageViewer,
         ),
         if (revealed.value)
           Positioned(
@@ -203,11 +298,13 @@ class _SensitiveOverlay extends StatelessWidget {
     required this.blurhash,
     required this.revealed,
     required this.onReveal,
+    required this.onImageTap,
   });
 
   final String? blurhash;
   final bool revealed;
   final VoidCallback onReveal;
+  final VoidCallback onImageTap;
 
   @override
   Widget build(BuildContext context) {
@@ -219,8 +316,14 @@ class _SensitiveOverlay extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const ColoredBox(color: Colors.black),
-            _BlurHashOrFallback(blurhash: blurhash),
+            GestureDetector(
+              onTap: onImageTap,
+              child: const ColoredBox(color: Colors.black),
+            ),
+            GestureDetector(
+              onTap: onImageTap,
+              child: _BlurHashOrFallback(blurhash: blurhash),
+            ),
             ColoredBox(
               color: Colors.black54,
               child: LayoutBuilder(
@@ -303,12 +406,18 @@ class _HideSensitiveButton extends StatelessWidget {
 }
 
 class _SingleImageAspectRatioTile extends StatelessWidget {
-  const _SingleImageAspectRatioTile({required this.file});
+  const _SingleImageAspectRatioTile({
+    required this.file,
+    required this.allFiles,
+    required this.currentIndex,
+  });
 
   static const _maxLandscapeRatio = 16 / 9;
   static const _maxPortraitRatio = 9 / 16;
 
   final NoteFile file;
+  final List<NoteFile> allFiles;
+  final int currentIndex;
 
   double _aspectRatio() {
     final props = file.properties;
@@ -324,15 +433,27 @@ class _SingleImageAspectRatioTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return AspectRatio(
       aspectRatio: _aspectRatio(),
-      child: _Tile(key: _tileKeyFor(file), file: file),
+      child: _Tile(
+        key: _tileKeyFor(file),
+        file: file,
+        allFiles: allFiles,
+        currentIndex: currentIndex,
+      ),
     );
   }
 }
 
 class _OverlayTile extends StatelessWidget {
-  const _OverlayTile({required this.file, required this.extra});
+  const _OverlayTile({
+    required this.file,
+    required this.allFiles,
+    required this.currentIndex,
+    required this.extra,
+  });
 
   final NoteFile file;
+  final List<NoteFile> allFiles;
+  final int currentIndex;
   final int extra;
 
   @override
@@ -340,7 +461,12 @@ class _OverlayTile extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _Tile(key: _tileKeyFor(file), file: file),
+        _Tile(
+          key: _tileKeyFor(file),
+          file: file,
+          allFiles: allFiles,
+          currentIndex: currentIndex,
+        ),
         ColoredBox(
           color: Colors.black54,
           child: Center(

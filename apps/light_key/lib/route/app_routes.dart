@@ -3,12 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../di/di.dart';
+import '../models/note_file.dart';
 import '../providers/theme_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/timeline_repository.dart';
 import '../repositories/user_profile_repository.dart';
 import '../screens/auth/auth_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/image_viewer/image_viewer_screen.dart';
 import '../screens/note_detail/note_detail_provider.dart';
 import '../screens/note_detail/note_detail_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
@@ -223,6 +225,36 @@ class NoteDetailRoute extends GoRouteData with $NoteDetailRoute {
         timelineRepository: getIt<TimelineRepository>(),
       ),
       child: NoteDetailScreen(noteId: noteId),
+    );
+  }
+}
+
+@TypedGoRoute<ImageViewerRoute>(path: '/image-viewer/:initialIndex')
+@immutable
+class ImageViewerRoute extends GoRouteData with $ImageViewerRoute {
+  const ImageViewerRoute({
+    required this.initialIndex,
+  });
+
+  final int initialIndex;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final files = state.extra as List<NoteFile>? ?? [];
+    final safeInitialIndex = files.isEmpty
+        ? 0
+        : initialIndex.clamp(0, files.length - 1);
+    return CustomTransitionPage<void>(
+      key: state.pageKey,
+      fullscreenDialog: true,
+      opaque: false,
+      barrierColor: Colors.black38,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          child,
+      child: ImageViewerScreen(
+        files: files,
+        initialIndex: safeInitialIndex,
+      ),
     );
   }
 }
