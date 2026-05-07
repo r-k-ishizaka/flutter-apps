@@ -26,10 +26,8 @@ class ImageViewerScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ImageViewerProvider(
-        files: files,
-        initialIndex: initialIndex,
-      ),
+      create: (_) =>
+          ImageViewerProvider(files: files, initialIndex: initialIndex),
       child: const _ImageViewerContent(),
     );
   }
@@ -41,12 +39,13 @@ class _ImageViewerContent extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ImageViewerProvider>();
-    final pageController = usePageController(initialPage: provider.currentIndex);
+    final pageController = usePageController(
+      initialPage: provider.currentIndex,
+    );
     final verticalDragDistance = useState(0.0);
     final activePointerCount = useState(0);
     final isImageInteracting = useState(false);
     final currentImageScale = useState(1.0);
-
 
     final dragOffset = (verticalDragDistance.value / 400).clamp(0.0, 0.2);
     final isZoomed = currentImageScale.value > 1.01;
@@ -55,8 +54,10 @@ class _ImageViewerContent extends HookWidget {
         activePointerCount.value <= 1 && !isImageInteracting.value && !isZoomed;
 
     void updateDismissDrag(double delta) {
-      final next =
-          (verticalDragDistance.value + delta).clamp(0.0, _kDragFollowMax);
+      final next = (verticalDragDistance.value + delta).clamp(
+        0.0,
+        _kDragFollowMax,
+      );
       verticalDragDistance.value = next.toDouble();
     }
 
@@ -112,12 +113,14 @@ class _ImageViewerContent extends HookWidget {
           }
         },
         onPointerUp: (_) {
-          activePointerCount.value =
-              activePointerCount.value > 0 ? activePointerCount.value - 1 : 0;
+          activePointerCount.value = activePointerCount.value > 0
+              ? activePointerCount.value - 1
+              : 0;
         },
         onPointerCancel: (_) {
-          activePointerCount.value =
-              activePointerCount.value > 0 ? activePointerCount.value - 1 : 0;
+          activePointerCount.value = activePointerCount.value > 0
+              ? activePointerCount.value - 1
+              : 0;
           cancelDismissDrag();
         },
         child: AnimatedSlide(
@@ -144,7 +147,8 @@ class _ImageViewerContent extends HookWidget {
                   return _ImageViewerPage(
                     file: file,
                     index: index,
-                    backgroundTapEnabled: !isImageInteracting.value && !isZoomed,
+                    backgroundTapEnabled:
+                        !isImageInteracting.value && !isZoomed,
                     dismissDragEnabled: canSwipeDismiss,
                     onInteractionChanged: (isInteracting) {
                       isImageInteracting.value = isInteracting;
@@ -220,6 +224,7 @@ class _ImageViewerPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fullUrl = file.url;
     final thumbnailUrl = file.thumbnailUrl;
     final transformationController = useMemoized(TransformationController.new);
     final isDismissGestureActive = useRef(false);
@@ -228,15 +233,14 @@ class _ImageViewerPage extends HookWidget {
       return transformationController.dispose;
     }, [transformationController]);
 
-    if (thumbnailUrl == null || thumbnailUrl.isEmpty) {
+    if (fullUrl.isEmpty && (thumbnailUrl == null || thumbnailUrl.isEmpty)) {
       return const Center(
-        child: Icon(
-          Icons.image_not_supported,
-          color: Colors.white54,
-          size: 48,
-        ),
+        child: Icon(Icons.image_not_supported, color: Colors.white54, size: 48),
       );
     }
+
+    // 表示するURL: フル解像度があればそれを使い、なければサムネイル
+    final displayUrl = fullUrl.isNotEmpty ? fullUrl : thumbnailUrl!;
 
     void updateScale() {
       onScaleChanged(transformationController.value.getMaxScaleOnAxis());
@@ -291,15 +295,28 @@ class _ImageViewerPage extends HookWidget {
               },
               child: Hero(
                 tag: buildImageHeroTag(file: file, index: index),
-                createRectTween: (begin, end) => RectTween(begin: begin, end: end),
+                createRectTween: (begin, end) =>
+                    RectTween(begin: begin, end: end),
                 child: CachedNetworkImage(
-                  imageUrl: thumbnailUrl,
+                  imageUrl: displayUrl,
                   fit: BoxFit.contain,
-                  placeholder: (context, url) => const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white54),
-                    ),
-                  ),
+                  placeholder: (context, url) {
+                    // フル解像度の読み込み中はサムネイルを表示
+                    if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
+                      return CachedNetworkImage(
+                        imageUrl: thumbnailUrl,
+                        fit: BoxFit.contain,
+                        errorWidget: (_, _, _) => const SizedBox.shrink(),
+                      );
+                    }
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.white54,
+                        ),
+                      ),
+                    );
+                  },
                   errorWidget: (context, url, error) => const Center(
                     child: Icon(
                       Icons.error_outline,
