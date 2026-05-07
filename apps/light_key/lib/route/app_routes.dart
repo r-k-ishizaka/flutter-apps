@@ -148,12 +148,14 @@ class PostRoute extends GoRouteData with $PostRoute {
   const PostRoute({
     this.replyToId,
     this.replyToUserName,
+    this.replyToDisplayName,
     this.replyToText,
     this.replyToAvatarUrl,
   });
 
   final String? replyToId;
   final String? replyToUserName;
+  final String? replyToDisplayName;
   final String? replyToText;
   final String? replyToAvatarUrl;
 
@@ -167,6 +169,7 @@ class PostRoute extends GoRouteData with $PostRoute {
         child: PostScreen(
           replyToId: replyToId,
           replyToUserName: replyToUserName,
+          replyToDisplayName: replyToDisplayName,
           replyToText: replyToText,
           replyToAvatarUrl: replyToAvatarUrl,
         ),

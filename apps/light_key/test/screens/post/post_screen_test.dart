@@ -37,6 +37,7 @@ void main() {
     PostDataSource? postDataSource,
     String? replyToId,
     String? replyToUserName,
+    String? replyToDisplayName,
     String? replyToText,
     String? replyToAvatarUrl,
   }) {
@@ -59,6 +60,7 @@ void main() {
           pickReaction: pickReaction,
           replyToId: replyToId,
           replyToUserName: replyToUserName,
+          replyToDisplayName: replyToDisplayName,
           replyToText: replyToText,
           replyToAvatarUrl: replyToAvatarUrl,
         ),
@@ -213,6 +215,7 @@ void main() {
         postDataSource: postDataSource,
         replyToId: 'note-42',
         replyToUserName: 'alice',
+        replyToDisplayName: 'Alice',
         replyToText: '返信元ノートです',
         replyToAvatarUrl: 'https://example.com/alice.png',
       ),
@@ -221,6 +224,13 @@ void main() {
     expect(find.byKey(const ValueKey('post-reply-target-card')), findsOneWidget);
     expect(find.text('返信先: @alice'), findsOneWidget);
     expect(find.text('返信元ノートです'), findsNWidgets(2));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('post-note-preview')),
+        matching: find.text('Alice'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('post-note-preview')),

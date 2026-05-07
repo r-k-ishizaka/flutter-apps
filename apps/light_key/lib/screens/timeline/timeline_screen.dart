@@ -154,7 +154,8 @@ class TimelineScreen extends HookWidget {
 
     final message = await PostRoute(
       replyToId: replyToId,
-      replyToUserName: targetNote.user.name,
+      replyToUserName: targetNote.user.username,
+      replyToDisplayName: targetNote.user.name,
       replyToText: _replyPreviewText(targetNote),
       replyToAvatarUrl: targetNote.user.avatarUrl,
     ).push<String>(context);

@@ -208,6 +208,7 @@ mixin $PostRoute on GoRouteData {
   static PostRoute _fromState(GoRouterState state) => PostRoute(
     replyToId: state.uri.queryParameters['reply-to-id'],
     replyToUserName: state.uri.queryParameters['reply-to-user-name'],
+    replyToDisplayName: state.uri.queryParameters['reply-to-display-name'],
     replyToText: state.uri.queryParameters['reply-to-text'],
     replyToAvatarUrl: state.uri.queryParameters['reply-to-avatar-url'],
   );
@@ -221,6 +222,8 @@ mixin $PostRoute on GoRouteData {
       if (_self.replyToId != null) 'reply-to-id': _self.replyToId,
       if (_self.replyToUserName != null)
         'reply-to-user-name': _self.replyToUserName,
+      if (_self.replyToDisplayName != null)
+        'reply-to-display-name': _self.replyToDisplayName,
       if (_self.replyToText != null) 'reply-to-text': _self.replyToText,
       if (_self.replyToAvatarUrl != null)
         'reply-to-avatar-url': _self.replyToAvatarUrl,

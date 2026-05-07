@@ -71,6 +71,7 @@ class PostScreen extends HookWidget {
     this.pickReaction = showReactionPickerSheet,
     this.replyToId,
     this.replyToUserName,
+    this.replyToDisplayName,
     this.replyToText,
     this.replyToAvatarUrl,
   });
@@ -78,6 +79,7 @@ class PostScreen extends HookWidget {
   final ReactionPickerLauncher pickReaction;
   final String? replyToId;
   final String? replyToUserName;
+  final String? replyToDisplayName;
   final String? replyToText;
   final String? replyToAvatarUrl;
   static final RegExp _emojiQueryPattern = RegExp(r'^[a-zA-Z0-9_.-]*$');
@@ -361,6 +363,10 @@ class PostScreen extends HookWidget {
         replyToUserName == null || replyToUserName!.trim().isEmpty
         ? 'unknown'
         : replyToUserName!.trim();
+    final normalizedReplyDisplayName =
+        replyToDisplayName == null || replyToDisplayName!.trim().isEmpty
+        ? normalizedReplyUserName
+        : replyToDisplayName!.trim();
     final normalizedReplyText =
         replyToText == null || replyToText!.trim().isEmpty
         ? ''
@@ -689,7 +695,7 @@ class PostScreen extends HookWidget {
               user: User(
                 id: 'post-preview-reply-user',
                 username: normalizedReplyUserName,
-                name: normalizedReplyUserName,
+                name: normalizedReplyDisplayName,
                 avatarUrl: replyToAvatarUrl ?? '',
               ),
             )
