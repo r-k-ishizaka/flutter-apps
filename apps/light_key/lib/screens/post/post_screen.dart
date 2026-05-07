@@ -66,9 +66,20 @@ extension on PostVisibility {
 }
 
 class PostScreen extends HookWidget {
-  const PostScreen({super.key, this.pickReaction = showReactionPickerSheet});
+  const PostScreen({
+    super.key,
+    this.pickReaction = showReactionPickerSheet,
+    this.replyToId,
+    this.replyToUserName,
+    this.replyToText,
+    this.replyToAvatarUrl,
+  });
 
   final ReactionPickerLauncher pickReaction;
+  final String? replyToId;
+  final String? replyToUserName;
+  final String? replyToText;
+  final String? replyToAvatarUrl;
   static final RegExp _emojiQueryPattern = RegExp(r'^[a-zA-Z0-9_.-]*$');
   static const EdgeInsets _textFieldContentPadding = EdgeInsets.symmetric(
     horizontal: 12,
@@ -251,10 +262,11 @@ class PostScreen extends HookWidget {
     BuildContext context,
     TextEditingController bodyTextController,
     String? cw,
+    String? replyId,
   ) async {
     await context
         .read<PostProvider>()
-        .submit(text: bodyTextController.text, cw: cw);
+        .submit(text: bodyTextController.text, cw: cw, replyId: replyId);
   }
 
   Future<void> _showVisibilityPicker(BuildContext context) async {
@@ -344,6 +356,15 @@ class PostScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasReplyContext = replyToId != null && replyToId!.isNotEmpty;
+    final normalizedReplyUserName =
+        replyToUserName == null || replyToUserName!.trim().isEmpty
+        ? 'unknown'
+        : replyToUserName!.trim();
+    final normalizedReplyText =
+        replyToText == null || replyToText!.trim().isEmpty
+        ? ''
+        : replyToText!.trim();
     final bodyTextController = useTextEditingController();
     final cwTextController = useTextEditingController();
     final bodyTextValue = useValueListenable(bodyTextController);
@@ -660,6 +681,19 @@ class PostScreen extends HookWidget {
       cw: isCwEnabled.value ? cwTextValue.text : null,
       createdAt: previewCreatedAt,
       user: const User(id: 'post-preview-user', username: 'you', name: 'あなた'),
+      reply: hasReplyContext
+          ? Note(
+              id: 'post-preview-reply',
+              text: normalizedReplyText,
+              createdAt: previewCreatedAt,
+              user: User(
+                id: 'post-preview-reply-user',
+                username: normalizedReplyUserName,
+                name: normalizedReplyUserName,
+                avatarUrl: replyToAvatarUrl ?? '',
+              ),
+            )
+          : null,
     );
 
     return Scaffold(
@@ -694,6 +728,7 @@ class PostScreen extends HookWidget {
                     context,
                     bodyTextController,
                     isCwEnabled.value ? cwTextController.text : null,
+                    hasReplyContext ? replyToId : null,
                   ),
             child: state is PostScreenStateSubmitting
                 ? const SizedBox(
@@ -708,6 +743,12 @@ class PostScreen extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (hasReplyContext)
+            _ReplyTargetCard(
+              userName: replyToUserName,
+              text: replyToText,
+            ),
+          if (hasReplyContext) const SizedBox(height: 12),
           if (isCwEnabled.value)
             Container(
               key: cwTextFieldAnchorKey,
@@ -786,6 +827,65 @@ class PostScreen extends HookWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(message),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplyTargetCard extends StatelessWidget {
+  const _ReplyTargetCard({this.userName, this.text});
+
+  final String? userName;
+  final String? text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final normalizedUserName = (userName == null || userName!.trim().isEmpty)
+        ? null
+        : userName!.trim();
+    final normalizedText = (text == null || text!.trim().isEmpty)
+        ? '(本文なし)'
+        : text!.trim();
+
+    return Container(
+      key: const ValueKey('post-reply-target-card'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.reply, size: 18),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  normalizedUserName == null
+                      ? '返信先'
+                      : '返信先: @$normalizedUserName',
+                  key: const ValueKey('post-reply-target-user'),
+                  style: theme.textTheme.labelLarge,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  normalizedText,
+                  key: const ValueKey('post-reply-target-text'),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

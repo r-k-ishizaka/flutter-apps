@@ -17,8 +17,9 @@ class PostRepository {
     String text,
     String? cw,
     PostVisibility visibility,
-    bool isFederated,
-  ) async {
+    bool isFederated, {
+    String? replyId,
+  }) async {
     try {
       final response = await _dataSource.createPost(
         session,
@@ -26,6 +27,7 @@ class PostRepository {
         cw,
         visibility,
         isFederated,
+        replyId: replyId,
       );
       if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
         await _emojiRepository.cacheEmojiHints(response.emojisToCache);

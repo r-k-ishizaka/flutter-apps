@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:light_key/datasources/auth_data_source.dart';
 import 'package:light_key/datasources/post_data_source.dart';
 import 'package:light_key/di/di.dart';
@@ -34,6 +35,10 @@ void main() {
     required ReactionPickerLauncher pickReaction,
     AuthDataSource? authDataSource,
     PostDataSource? postDataSource,
+    String? replyToId,
+    String? replyToUserName,
+    String? replyToText,
+    String? replyToAvatarUrl,
   }) {
     return MultiProvider(
       providers: [
@@ -49,7 +54,15 @@ void main() {
           ),
         ),
       ],
-      child: MaterialApp(home: PostScreen(pickReaction: pickReaction)),
+      child: MaterialApp(
+        home: PostScreen(
+          pickReaction: pickReaction,
+          replyToId: replyToId,
+          replyToUserName: replyToUserName,
+          replyToText: replyToText,
+          replyToAvatarUrl: replyToAvatarUrl,
+        ),
+      ),
     );
   }
 
@@ -182,6 +195,60 @@ void main() {
     expect(postDataSource.lastCw, isNull);
     expect(postDataSource.lastVisibility, PostVisibility.home);
     expect(postDataSource.lastIsFederated, isFalse);
+    expect(postDataSource.lastReplyId, isNull);
+  });
+
+  testWidgets('返信コンテキストがある場合は簡易カードを表示して replyId を送信する', (tester) async {
+    final postDataSource = _RecordingPostDataSource();
+
+    await tester.pumpWidget(
+      buildTestApp(
+        pickReaction: (_) async => null,
+        authDataSource: _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+        postDataSource: postDataSource,
+        replyToId: 'note-42',
+        replyToUserName: 'alice',
+        replyToText: '返信元ノートです',
+        replyToAvatarUrl: 'https://example.com/alice.png',
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('post-reply-target-card')), findsOneWidget);
+    expect(find.text('返信先: @alice'), findsOneWidget);
+    expect(find.text('返信元ノートです'), findsNWidgets(2));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('post-note-preview')),
+        matching: find.text('@alice'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('post-note-preview')),
+        matching: find.text('返信元ノートです'),
+      ),
+      findsOneWidget,
+    );
+    final cachedImages = tester
+        .widgetList<CachedNetworkImage>(find.byType(CachedNetworkImage))
+        .toList();
+    expect(
+      cachedImages.where((image) => image.imageUrl == 'https://example.com/alice.png').length,
+      1,
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'リプライ本文');
+    await tester.tap(find.byKey(const ValueKey('post-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(postDataSource.lastText, 'リプライ本文');
+    expect(postDataSource.lastReplyId, 'note-42');
   });
 
   testWidgets('CWトグルでCW入力欄を表示し本文欄は維持される', (tester) async {
@@ -375,13 +442,15 @@ class _FakePostDataSource implements PostDataSource {
     String text,
     String? cw,
     PostVisibility visibility,
-    bool isFederated,
-  ) async => const ResponseWithCacheHints(data: <String, dynamic>{});
+    bool isFederated, {
+    String? replyId,
+  }) async => const ResponseWithCacheHints(data: <String, dynamic>{});
 }
 
 class _RecordingPostDataSource implements PostDataSource {
   String? lastText;
   String? lastCw;
+  String? lastReplyId;
   PostVisibility? lastVisibility;
   bool? lastIsFederated;
 
@@ -391,10 +460,12 @@ class _RecordingPostDataSource implements PostDataSource {
     String text,
     String? cw,
     PostVisibility visibility,
-    bool isFederated,
-  ) async {
+    bool isFederated, {
+    String? replyId,
+  }) async {
     lastText = text;
     lastCw = cw;
+    lastReplyId = replyId;
     lastVisibility = visibility;
     lastIsFederated = isFederated;
     return const ResponseWithCacheHints(data: <String, dynamic>{});

@@ -8,6 +8,7 @@ abstract interface class PostDataSource {
     String text,
     String? cw,
     PostVisibility visibility,
-    bool isFederated,
-  );
+    bool isFederated, {
+    String? replyId,
+  });
 }

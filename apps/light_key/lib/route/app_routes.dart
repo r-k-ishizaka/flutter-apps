@@ -145,7 +145,17 @@ class AuthRoute extends GoRouteData with $AuthRoute {
 @TypedGoRoute<PostRoute>(path: '/post')
 @immutable
 class PostRoute extends GoRouteData with $PostRoute {
-  const PostRoute();
+  const PostRoute({
+    this.replyToId,
+    this.replyToUserName,
+    this.replyToText,
+    this.replyToAvatarUrl,
+  });
+
+  final String? replyToId;
+  final String? replyToUserName;
+  final String? replyToText;
+  final String? replyToAvatarUrl;
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) =>
@@ -154,7 +164,12 @@ class PostRoute extends GoRouteData with $PostRoute {
         fullscreenDialog: true,
         transitionDuration: const Duration(milliseconds: 240),
         reverseTransitionDuration: const Duration(milliseconds: 200),
-        child: const PostScreen(),
+        child: PostScreen(
+          replyToId: replyToId,
+          replyToUserName: replyToUserName,
+          replyToText: replyToText,
+          replyToAvatarUrl: replyToAvatarUrl,
+        ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final curvedAnimation = CurvedAnimation(
             parent: animation,

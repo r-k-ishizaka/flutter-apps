@@ -23,8 +23,9 @@ class MisskeyPostDataSource implements PostDataSource {
     String text,
     String? cw,
     PostVisibility visibility,
-    bool isFederated,
-  ) async {
+    bool isFederated, {
+    String? replyId,
+  }) async {
     return client.postJsonWithCacheHints(
       baseUrl: session.baseUrl,
       path: '/api/notes/create',
@@ -32,6 +33,7 @@ class MisskeyPostDataSource implements PostDataSource {
         'i': session.accessToken,
         'text': text,
         if (cw != null && cw.isNotEmpty) 'cw': cw,
+        if (replyId != null && replyId.isNotEmpty) 'replyId': replyId,
         'visibility': _toMisskeyVisibility(visibility),
         'localOnly': !isFederated,
       },

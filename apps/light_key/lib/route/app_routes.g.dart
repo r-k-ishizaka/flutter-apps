@@ -205,10 +205,27 @@ RouteBase get $postRoute =>
     GoRouteData.$route(path: '/post', factory: $PostRoute._fromState);
 
 mixin $PostRoute on GoRouteData {
-  static PostRoute _fromState(GoRouterState state) => const PostRoute();
+  static PostRoute _fromState(GoRouterState state) => PostRoute(
+    replyToId: state.uri.queryParameters['reply-to-id'],
+    replyToUserName: state.uri.queryParameters['reply-to-user-name'],
+    replyToText: state.uri.queryParameters['reply-to-text'],
+    replyToAvatarUrl: state.uri.queryParameters['reply-to-avatar-url'],
+  );
+
+  PostRoute get _self => this as PostRoute;
 
   @override
-  String get location => GoRouteData.$location('/post');
+  String get location => GoRouteData.$location(
+    '/post',
+    queryParams: {
+      if (_self.replyToId != null) 'reply-to-id': _self.replyToId,
+      if (_self.replyToUserName != null)
+        'reply-to-user-name': _self.replyToUserName,
+      if (_self.replyToText != null) 'reply-to-text': _self.replyToText,
+      if (_self.replyToAvatarUrl != null)
+        'reply-to-avatar-url': _self.replyToAvatarUrl,
+    },
+  );
 
   @override
   void go(BuildContext context) => context.go(location);

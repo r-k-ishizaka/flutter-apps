@@ -123,6 +123,50 @@ class TimelineScreen extends HookWidget {
     await NoteDetailRoute(noteId: noteId).push<void>(context);
   }
 
+  String _replyTargetId(Note note) {
+    if (note.noteType == NoteType.pureRenote) {
+      return note.renote?.id ?? '';
+    }
+    return note.id;
+  }
+
+  Note _replyTargetNote(Note note) {
+    if (note.noteType == NoteType.pureRenote && note.renote != null) {
+      return note.renote!;
+    }
+    return note;
+  }
+
+  String _replyPreviewText(Note note) {
+    if (note.cw != null && note.cw!.isNotEmpty) {
+      return note.cw!;
+    }
+    return note.text;
+  }
+
+  Future<void> _onNoteReply(BuildContext context, Note note) async {
+    final targetNote = _replyTargetNote(note);
+    final replyToId = _replyTargetId(note);
+    if (replyToId.isEmpty) {
+      _showComingSoonSnackBar(context, 'リプライ');
+      return;
+    }
+
+    final message = await PostRoute(
+      replyToId: replyToId,
+      replyToUserName: targetNote.user.name,
+      replyToText: _replyPreviewText(targetNote),
+      replyToAvatarUrl: targetNote.user.avatarUrl,
+    ).push<String>(context);
+    if (!context.mounted || message == null || message.isEmpty) return;
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final emojiCache = context.read<EmojiCache>().entries;
@@ -162,7 +206,7 @@ class TimelineScreen extends HookWidget {
         message: message,
         onRefresh: () =>
             context.read<TimelineProvider>().fetch(showLoading: false),
-        onNoteReply: (note) => _showComingSoonSnackBar(context, 'リプライ'),
+        onNoteReply: (note) => _onNoteReply(context, note),
         onNoteRenote: (note) => _onNoteRenote(context, note),
         onNoteReaction: (note) => _onNoteReaction(context, note),
         onNoteReactionChipTap: (note, reaction) =>
