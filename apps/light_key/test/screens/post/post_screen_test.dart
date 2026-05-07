@@ -17,7 +17,13 @@ import 'package:provider/provider.dart';
 void main() {
   setUp(() async {
     await getIt.reset();
-    getIt.registerSingleton<EmojiCache>(EmojiCache());
+    final emojiCache = EmojiCache()
+      ..populate({
+        'smile': const EmojiCacheEntry(url: 'https://example.com/smile.png'),
+        'smirk': const EmojiCacheEntry(url: 'https://example.com/smirk.png'),
+        'wave': const EmojiCacheEntry(url: 'https://example.com/wave.png'),
+      });
+    getIt.registerSingleton<EmojiCache>(emojiCache);
   });
 
   tearDown(() async {
@@ -226,6 +232,56 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets(':入力で絵文字サジェストを表示し選択でショートコードに置換する', (tester) async {
+    await tester.pumpWidget(buildTestApp(pickReaction: (_) async => null));
+
+    await tester.enterText(find.byType(TextField), ':sm');
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('post-emoji-suggestion-menu')), findsOneWidget);
+    expect(find.byKey(const ValueKey('post-emoji-suggestion-item-smile')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('post-emoji-suggestion-item-smile')));
+    await tester.pumpAndSettle();
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    final controller = textField.controller!;
+    expect(controller.text, ':smile:');
+    expect(controller.selection, const TextSelection.collapsed(offset: 7));
+  });
+
+  testWidgets('範囲選択中は絵文字サジェストを表示しない', (tester) async {
+    await tester.pumpWidget(buildTestApp(pickReaction: (_) async => null));
+
+    await tester.enterText(find.byType(TextField), ':smile');
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    final controller = textField.controller!;
+    controller.value = controller.value.copyWith(
+      selection: const TextSelection(baseOffset: 0, extentOffset: 3),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('post-emoji-suggestion-menu')), findsNothing);
+  });
+
+  testWidgets('IME変換中(composing)でも絵文字サジェストを表示する', (tester) async {
+    await tester.pumpWidget(buildTestApp(pickReaction: (_) async => null));
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    final controller = textField.controller!;
+    controller.value = const TextEditingValue(
+      text: ':sm',
+      selection: TextSelection.collapsed(offset: 3),
+      composing: TextRange(start: 1, end: 3),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('post-emoji-suggestion-menu')), findsOneWidget);
   });
 }
 
