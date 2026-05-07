@@ -249,6 +249,8 @@ class ImageViewerRoute extends GoRouteData with $ImageViewerRoute {
       fullscreenDialog: true,
       opaque: false,
       barrierColor: Colors.black38,
+      transitionDuration: const Duration(milliseconds: 220),
+      reverseTransitionDuration: const Duration(milliseconds: 180),
       transitionsBuilder: (context, animation, secondaryAnimation, child) =>
           child,
       child: ImageViewerScreen(
