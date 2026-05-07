@@ -101,6 +101,7 @@ void main() {
       find.byKey(const ValueKey('post-federation-toggle-button')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('post-cw-toggle-button')), findsOneWidget);
     expect(find.byKey(const ValueKey('post-submit-button')), findsOneWidget);
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
@@ -178,8 +179,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(postDataSource.lastText, '投稿テスト');
+    expect(postDataSource.lastCw, isNull);
     expect(postDataSource.lastVisibility, PostVisibility.home);
     expect(postDataSource.lastIsFederated, isFalse);
+  });
+
+  testWidgets('CWトグルでCW入力欄を表示し本文欄は維持される', (tester) async {
+    await tester.pumpWidget(buildTestApp(pickReaction: (_) async => null));
+
+    expect(find.byKey(const ValueKey('post-cw-text-field')), findsNothing);
+    expect(find.byKey(const ValueKey('post-body-text-field')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('post-cw-toggle-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('post-cw-text-field')), findsOneWidget);
+    expect(find.byKey(const ValueKey('post-body-text-field')), findsOneWidget);
+  });
+
+  testWidgets('CWモード投稿ではCWと本文を送信する', (tester) async {
+    final postDataSource = _RecordingPostDataSource();
+
+    await tester.pumpWidget(
+      buildTestApp(
+        pickReaction: (_) async => null,
+        authDataSource: _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+        postDataSource: postDataSource,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('post-cw-toggle-button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('post-cw-text-field')),
+      'ネタバレあり',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('post-body-text-field')),
+      '本文です',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('post-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(postDataSource.lastCw, 'ネタバレあり');
+    expect(postDataSource.lastText, '本文です');
   });
 
   testWidgets('連合トグルを押すとロケットアイコンが切り替わる', (tester) async {
@@ -323,6 +373,7 @@ class _FakePostDataSource implements PostDataSource {
   Future<ResponseWithCacheHints<Map<String, dynamic>>> createPost(
     AuthSession session,
     String text,
+    String? cw,
     PostVisibility visibility,
     bool isFederated,
   ) async => const ResponseWithCacheHints(data: <String, dynamic>{});
@@ -330,6 +381,7 @@ class _FakePostDataSource implements PostDataSource {
 
 class _RecordingPostDataSource implements PostDataSource {
   String? lastText;
+  String? lastCw;
   PostVisibility? lastVisibility;
   bool? lastIsFederated;
 
@@ -337,10 +389,12 @@ class _RecordingPostDataSource implements PostDataSource {
   Future<ResponseWithCacheHints<Map<String, dynamic>>> createPost(
     AuthSession session,
     String text,
+    String? cw,
     PostVisibility visibility,
     bool isFederated,
   ) async {
     lastText = text;
+    lastCw = cw;
     lastVisibility = visibility;
     lastIsFederated = isFederated;
     return const ResponseWithCacheHints(data: <String, dynamic>{});

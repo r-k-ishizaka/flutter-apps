@@ -57,8 +57,11 @@ class PostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submit(String text) async {
-    if (text.trim().isEmpty) {
+  Future<void> submit({required String text, String? cw}) async {
+    final normalizedText = text.trim();
+    final normalizedCw = cw?.trim();
+
+    if (normalizedText.isEmpty) {
       const message = '投稿内容を入力してください。';
       _screenState = const PostScreenState.error(message: message);
       _effectState = const PostEffectState.showError(message);
@@ -82,7 +85,8 @@ class PostProvider extends ChangeNotifier {
 
         final postResult = await _postRepository.createPost(
           session,
-          text.trim(),
+          normalizedText,
+          normalizedCw == null || normalizedCw.isEmpty ? null : normalizedCw,
           _visibility,
           _isFederated,
         );

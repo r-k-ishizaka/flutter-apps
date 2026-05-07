@@ -6,6 +6,7 @@ abstract interface class PostDataSource {
   Future<ResponseWithCacheHints<Map<String, dynamic>>> createPost(
     AuthSession session,
     String text,
+    String? cw,
     PostVisibility visibility,
     bool isFederated,
   );

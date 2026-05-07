@@ -15,6 +15,7 @@ class PostRepository {
   Future<Result<void>> createPost(
     AuthSession session,
     String text,
+    String? cw,
     PostVisibility visibility,
     bool isFederated,
   ) async {
@@ -22,6 +23,7 @@ class PostRepository {
       final response = await _dataSource.createPost(
         session,
         text,
+        cw,
         visibility,
         isFederated,
       );

@@ -21,6 +21,7 @@ class MisskeyPostDataSource implements PostDataSource {
   Future<ResponseWithCacheHints<Map<String, dynamic>>> createPost(
     AuthSession session,
     String text,
+    String? cw,
     PostVisibility visibility,
     bool isFederated,
   ) async {
@@ -30,6 +31,7 @@ class MisskeyPostDataSource implements PostDataSource {
       body: {
         'i': session.accessToken,
         'text': text,
+        if (cw != null && cw.isNotEmpty) 'cw': cw,
         'visibility': _toMisskeyVisibility(visibility),
         'localOnly': !isFederated,
       },

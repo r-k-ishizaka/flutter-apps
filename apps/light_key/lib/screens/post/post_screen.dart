@@ -249,9 +249,12 @@ class PostScreen extends HookWidget {
 
   Future<void> _submitPost(
     BuildContext context,
-    TextEditingController textController,
+    TextEditingController bodyTextController,
+    String? cw,
   ) async {
-    await context.read<PostProvider>().submit(textController.text);
+    await context
+        .read<PostProvider>()
+        .submit(text: bodyTextController.text, cw: cw);
   }
 
   Future<void> _showVisibilityPicker(BuildContext context) async {
@@ -341,11 +344,17 @@ class PostScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textController = useTextEditingController();
-    final textValue = useValueListenable(textController);
-    final focusNode = useFocusNode();
-    final textFieldLayerLink = useMemoized(LayerLink.new);
-    final textFieldAnchorKey = useMemoized(GlobalKey.new);
+    final bodyTextController = useTextEditingController();
+    final cwTextController = useTextEditingController();
+    final bodyTextValue = useValueListenable(bodyTextController);
+    final cwTextValue = useValueListenable(cwTextController);
+    final bodyFocusNode = useFocusNode();
+    final cwFocusNode = useFocusNode();
+    useListenable(bodyFocusNode);
+    useListenable(cwFocusNode);
+    final isCwEnabled = useState(false);
+    final bodyTextFieldAnchorKey = useMemoized(GlobalKey.new);
+    final cwTextFieldAnchorKey = useMemoized(GlobalKey.new);
     final suggestionOverlayRef = useRef<OverlayEntry?>(null);
     final provider = context.watch<PostProvider>();
     final state = provider.state;
@@ -357,7 +366,16 @@ class PostScreen extends HookWidget {
     final previewCreatedAt = useMemoized(DateTime.now);
     final emojiEntries = context.read<EmojiCache>().entries;
     final emojiCandidates = _buildEmojiSuggestionItems(emojiEntries);
-    final emojiQuery = _detectEmojiSuggestionQuery(textValue);
+    final activeTextController = cwFocusNode.hasFocus
+        ? cwTextController
+        : bodyTextController;
+    final activeFocusNode = cwFocusNode.hasFocus ? cwFocusNode : bodyFocusNode;
+    final activeTextFieldAnchorKey =
+        cwFocusNode.hasFocus && isCwEnabled.value
+        ? cwTextFieldAnchorKey
+        : bodyTextFieldAnchorKey;
+    final activeTextValue = activeTextController.value;
+    final emojiQuery = _detectEmojiSuggestionQuery(activeTextValue);
     final emojiSuggestions = emojiQuery != null
         ? _filterEmojiCandidates(emojiCandidates, emojiQuery.query)
         : const <_EmojiSuggestionItem>[];
@@ -368,15 +386,15 @@ class PostScreen extends HookWidget {
     }
 
     void selectEmojiSuggestion(_EmojiSuggestionItem item) {
-      final latestQuery = _detectEmojiSuggestionQuery(textController.value);
+      final latestQuery = _detectEmojiSuggestionQuery(activeTextController.value);
       if (latestQuery == null) return;
 
-      textController.value = _replaceTextRange(
-        textController.value,
+      activeTextController.value = _replaceTextRange(
+        activeTextController.value,
         TextRange(start: latestQuery.replaceStart, end: latestQuery.replaceEnd),
         ':${item.name}:',
       );
-      focusNode.requestFocus();
+      activeFocusNode.requestFocus();
       closeSuggestionOverlay();
     }
 
@@ -428,7 +446,7 @@ class PostScreen extends HookWidget {
           if (!context.mounted) return;
           if (suggestionOverlayRef.value != null) return;
 
-          final anchorContext = textFieldAnchorKey.currentContext;
+          final anchorContext = activeTextFieldAnchorKey.currentContext;
           final anchorBox = anchorContext?.findRenderObject() as RenderBox?;
           final anchorSize = anchorBox?.size ?? Size.zero;
           final overlayState = Overlay.maybeOf(context, rootOverlay: true);
@@ -443,7 +461,7 @@ class PostScreen extends HookWidget {
                       _textFieldContentPadding.right)
                   .clamp(1.0, double.infinity);
           final caretMetrics = _estimateCaretMetrics(
-            value: textController.value,
+            value: activeTextController.value,
             textStyle: textStyle,
             textDirection: Directionality.of(context),
             textAreaWidth: textAreaWidth,
@@ -626,6 +644,9 @@ class PostScreen extends HookWidget {
         return closeSuggestionOverlay;
       },
       [
+        isCwEnabled.value,
+        bodyFocusNode.hasFocus,
+        cwFocusNode.hasFocus,
         emojiQuery?.replaceStart,
         emojiQuery?.replaceEnd,
         emojiQuery?.query,
@@ -635,7 +656,8 @@ class PostScreen extends HookWidget {
 
     final previewNote = Note(
       id: 'post-preview',
-      text: textValue.text,
+      text: bodyTextValue.text,
+      cw: isCwEnabled.value ? cwTextValue.text : null,
       createdAt: previewCreatedAt,
       user: const User(id: 'post-preview-user', username: 'you', name: 'あなた'),
     );
@@ -668,7 +690,11 @@ class PostScreen extends HookWidget {
             key: const ValueKey('post-submit-button'),
             onPressed: state is PostScreenStateSubmitting
                 ? null
-                : () => _submitPost(context, textController),
+                : () => _submitPost(
+                    context,
+                    bodyTextController,
+                    isCwEnabled.value ? cwTextController.text : null,
+                  ),
             child: state is PostScreenStateSubmitting
                 ? const SizedBox(
                     width: 18,
@@ -682,33 +708,70 @@ class PostScreen extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          CompositedTransformTarget(
-            link: textFieldLayerLink,
-            child: Container(
-              key: textFieldAnchorKey,
+          if (isCwEnabled.value)
+            Container(
+              key: cwTextFieldAnchorKey,
               child: TextField(
+                key: const ValueKey('post-cw-text-field'),
                 autofocus: true,
-                controller: textController,
-                focusNode: focusNode,
-                maxLines: 6,
+                controller: cwTextController,
+                focusNode: cwFocusNode,
+                maxLines: 2,
                 decoration: InputDecoration(
-                  hintText: 'いまどうしてる？',
+                  hintText: 'CW (内容の警告)',
                   contentPadding: _textFieldContentPadding,
                   border: const OutlineInputBorder(),
                 ),
               ),
             ),
+          if (isCwEnabled.value) const SizedBox(height: 12),
+          Container(
+            key: bodyTextFieldAnchorKey,
+            child: TextField(
+              key: const ValueKey('post-body-text-field'),
+              autofocus: !isCwEnabled.value,
+              controller: bodyTextController,
+              focusNode: bodyFocusNode,
+              maxLines: 6,
+              decoration: InputDecoration(
+                hintText: isCwEnabled.value ? '本文を入力' : 'いまどうしてる？',
+                contentPadding: _textFieldContentPadding,
+                border: const OutlineInputBorder(),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('post-emoji-picker-button'),
-              onPressed: () =>
-                  _onEmojiPickerPressed(context, textController, focusNode),
-              icon: const Icon(Icons.emoji_emotions_outlined),
-              label: const Text('絵文字を挿入'),
-            ),
+          Row(
+            children: [
+              TextButton.icon(
+                key: const ValueKey('post-emoji-picker-button'),
+                onPressed: () => _onEmojiPickerPressed(
+                  context,
+                  activeTextController,
+                  activeFocusNode,
+                ),
+                icon: const Icon(Icons.emoji_emotions_outlined),
+                label: const Text('絵文字を挿入'),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                key: const ValueKey('post-cw-toggle-button'),
+                tooltip: 'CW: ${isCwEnabled.value ? 'オン' : 'オフ'}',
+                onPressed: state is PostScreenStateSubmitting
+                    ? null
+                    : () {
+                        isCwEnabled.value = !isCwEnabled.value;
+                        if (isCwEnabled.value) {
+                          cwFocusNode.requestFocus();
+                        } else {
+                          bodyFocusNode.requestFocus();
+                        }
+                      },
+                icon: Icon(
+                  isCwEnabled.value ? Icons.visibility : Icons.visibility_off,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           const Text('プレビュー'),
