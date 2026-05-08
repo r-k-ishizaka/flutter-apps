@@ -19,6 +19,11 @@ class NotificationsScreen extends HookWidget {
     await UserProfileRoute(userId: user.id).push<void>(context);
   }
 
+  Future<void> _onNoteTap(BuildContext context, String noteId) async {
+    if (noteId.isEmpty) return;
+    await NoteDetailRoute(noteId: noteId).push<void>(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     useEffect(() {
@@ -56,6 +61,7 @@ class NotificationsScreen extends HookWidget {
           onRefresh: () =>
               context.read<NotificationsProvider>().fetch(showLoading: false),
           onLoadMore: () => context.read<NotificationsProvider>().fetchMore(),
+          onNoteTap: (noteId) => _onNoteTap(context, noteId),
         ),
     };
   }
@@ -69,6 +75,7 @@ class _NotificationList extends HookWidget {
     required this.onRefresh,
     required this.onLoadMore,
     required this.onUserTap,
+    required this.onNoteTap,
     this.errorMessage,
   });
 
@@ -79,6 +86,7 @@ class _NotificationList extends HookWidget {
   final Future<void> Function() onRefresh;
   final VoidCallback onLoadMore;
   final ValueChanged<User> onUserTap;
+  final ValueChanged<String> onNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +188,7 @@ class _NotificationList extends HookWidget {
                   notification: notifications[index],
                   emojis: emojis,
                   onUserTap: onUserTap,
+                  onNoteTap: onNoteTap,
                 );
               },
             ),

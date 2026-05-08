@@ -13,12 +13,14 @@ class NotificationItem extends StatelessWidget {
     required this.notification,
     required this.emojis,
     this.onUserTap,
+    this.onNoteTap,
     super.key,
   });
 
   final MisskeyNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
   final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +34,14 @@ class NotificationItem extends StatelessWidget {
         notification: n,
         emojis: emojis,
         onUserTap: onUserTap,
+        onNoteTap: onNoteTap,
       ),
       final ReactionGroupedNotification n =>
         _ReactionGroupedItem(
           notification: n,
           emojis: emojis,
           onUserTap: onUserTap,
+          onNoteTap: onNoteTap,
         ),
       final FollowRequestAcceptedNotification n =>
         _FollowRequestAcceptedItem(
@@ -132,11 +136,13 @@ class _ReactionItem extends StatelessWidget {
     required this.notification,
     required this.emojis,
     this.onUserTap,
+    this.onNoteTap,
   });
 
   final ReactionNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
   final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +166,12 @@ class _ReactionItem extends StatelessWidget {
         suffix: ' さんがリアクションしました',
         emojis: emojis,
       ),
-      subtitle: _NotePreview(text: notification.note.text, emojis: emojis),
+      subtitle: _NotePreview(
+        text: notification.note.text,
+        emojis: emojis,
+        noteId: notification.note.id,
+        onTap: onNoteTap,
+      ),
     );
   }
 }
@@ -173,11 +184,13 @@ class _ReactionGroupedItem extends StatelessWidget {
     required this.notification,
     required this.emojis,
     this.onUserTap,
+    this.onNoteTap,
   });
 
   final ReactionGroupedNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
   final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +233,12 @@ class _ReactionGroupedItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (notification.note.text.isNotEmpty) ...[
-            _NotePreview(text: notification.note.text, emojis: emojis),
+            _NotePreview(
+              text: notification.note.text,
+              emojis: emojis,
+              noteId: notification.note.id,
+              onTap: onNoteTap,
+            ),
           ],
           if (notification.reactions.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -446,22 +464,79 @@ class _UserAvatar extends StatelessWidget {
 // ノートテキストプレビュー
 // ---------------------------------------------------------------------------
 class _NotePreview extends StatelessWidget {
-  const _NotePreview({required this.text, required this.emojis});
+  const _NotePreview({
+    required this.text,
+    required this.emojis,
+    this.noteId = '',
+    this.onTap,
+  });
 
   final String text;
   final Map<String, EmojiCacheEntry> emojis;
+  final String noteId;
+  final ValueChanged<String>? onTap;
 
   @override
   Widget build(BuildContext context) {
     if (text.isEmpty) return const SizedBox.shrink();
-    return EmojiText(
-      text,
-      emojis: emojis,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+
+    final handleTap = onTap;
+    final isInteractive = noteId.isNotEmpty && handleTap != null;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final quoteBackground = colorScheme.onSurface.withValues(
+      alpha: isInteractive ? 0.08 : 0.05,
+    );
+    final quoteBorder = colorScheme.onSurfaceVariant.withValues(alpha: 0.45);
+
+    final preview = IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 3,
+            child: DecoratedBox(decoration: BoxDecoration(color: quoteBorder)),
           ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: quoteBackground,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: EmojiText(
+                text,
+                emojis: emojis,
+                emojiSize: 14,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.84),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!isInteractive) {
+      return preview;
+    }
+
+    return Semantics(
+      button: true,
+      label: 'ノート詳細を開く',
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => handleTap(noteId),
+          mouseCursor: SystemMouseCursors.click,
+          child: preview,
+        ),
+      ),
     );
   }
 }
