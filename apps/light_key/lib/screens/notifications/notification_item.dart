@@ -6,6 +6,7 @@ import '../../models/misskey_notification.dart';
 import '../../models/user.dart';
 import '../../services/emoji_cache.dart';
 import '../../widgets/emoji_text.dart';
+import '../../widgets/timeline_note_item.dart';
 
 /// 通知一覧の個別アイテム Widget
 class NotificationItem extends StatelessWidget {
@@ -14,6 +15,9 @@ class NotificationItem extends StatelessWidget {
     required this.emojis,
     this.onUserTap,
     this.onNoteTap,
+    this.onReply,
+    this.onRenote,
+    this.onReaction,
     super.key,
   });
 
@@ -21,6 +25,9 @@ class NotificationItem extends StatelessWidget {
   final Map<String, EmojiCacheEntry> emojis;
   final ValueChanged<User>? onUserTap;
   final ValueChanged<String>? onNoteTap;
+  final VoidCallback? onReply;
+  final VoidCallback? onRenote;
+  final VoidCallback? onReaction;
 
   @override
   Widget build(BuildContext context) {
@@ -30,25 +37,62 @@ class NotificationItem extends StatelessWidget {
         emojis: emojis,
         onUserTap: onUserTap,
       ),
+      final ReplyNotification n => _ReplyItem(
+        notification: n,
+        emojis: emojis,
+        onUserTap: onUserTap,
+        onNoteTap: onNoteTap,
+        onReply: onReply,
+        onRenote: onRenote,
+        onReaction: onReaction,
+      ),
+      final MentionNotification n => _MentionItem(
+        notification: n,
+        emojis: emojis,
+        onUserTap: onUserTap,
+        onNoteTap: onNoteTap,
+        onReply: onReply,
+        onRenote: onRenote,
+        onReaction: onReaction,
+      ),
+      final RenoteNotification n => _RenoteItem(
+        notification: n,
+        emojis: emojis,
+        onUserTap: onUserTap,
+        onNoteTap: onNoteTap,
+      ),
+      final QuoteNotification n => _QuoteItem(
+        notification: n,
+        emojis: emojis,
+        onUserTap: onUserTap,
+        onNoteTap: onNoteTap,
+        onReply: onReply,
+        onRenote: onRenote,
+        onReaction: onReaction,
+      ),
       final ReactionNotification n => _ReactionItem(
         notification: n,
         emojis: emojis,
         onUserTap: onUserTap,
         onNoteTap: onNoteTap,
       ),
-      final ReactionGroupedNotification n =>
-        _ReactionGroupedItem(
-          notification: n,
-          emojis: emojis,
-          onUserTap: onUserTap,
-          onNoteTap: onNoteTap,
-        ),
-      final FollowRequestAcceptedNotification n =>
-        _FollowRequestAcceptedItem(
-          notification: n,
-          emojis: emojis,
-          onUserTap: onUserTap,
-        ),
+      final ReactionGroupedNotification n => _ReactionGroupedItem(
+        notification: n,
+        emojis: emojis,
+        onUserTap: onUserTap,
+        onNoteTap: onNoteTap,
+      ),
+      final FollowRequestAcceptedNotification n => _FollowRequestAcceptedItem(
+        notification: n,
+        emojis: emojis,
+        onUserTap: onUserTap,
+      ),
+      final PollEndedNotification n => _PollEndedItem(
+        notification: n,
+        emojis: emojis,
+        onNoteTap: onNoteTap,
+      ),
+      final LoginNotification n => _LoginItem(notification: n),
       final UnknownNotification n => _UnknownItem(notification: n),
     };
   }
@@ -124,6 +168,161 @@ class _FollowRequestAcceptedItem extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             )
           : null,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// リプライ通知
+// ---------------------------------------------------------------------------
+class _ReplyItem extends StatelessWidget {
+  const _ReplyItem({
+    required this.notification,
+    required this.emojis,
+    this.onUserTap,
+    this.onNoteTap,
+    this.onReply,
+    this.onRenote,
+    this.onReaction,
+  });
+
+  final ReplyNotification notification;
+  final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onNoteTap;
+  final VoidCallback? onReply;
+  final VoidCallback? onRenote;
+  final VoidCallback? onReaction;
+
+  @override
+  Widget build(BuildContext context) {
+    return TimelineNoteItem(
+      note: notification.note,
+      animation: kAlwaysCompleteAnimation,
+      emojis: emojis,
+      onUserTap: onUserTap,
+      onReply: onReply,
+      onRenote: onRenote,
+      onReaction: onReaction,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// メンション通知
+// ---------------------------------------------------------------------------
+class _MentionItem extends StatelessWidget {
+  const _MentionItem({
+    required this.notification,
+    required this.emojis,
+    this.onUserTap,
+    this.onNoteTap,
+    this.onReply,
+    this.onRenote,
+    this.onReaction,
+  });
+
+  final MentionNotification notification;
+  final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onNoteTap;
+  final VoidCallback? onReply;
+  final VoidCallback? onRenote;
+  final VoidCallback? onReaction;
+
+  @override
+  Widget build(BuildContext context) {
+    return TimelineNoteItem(
+      note: notification.note,
+      animation: kAlwaysCompleteAnimation,
+      emojis: emojis,
+      onUserTap: onUserTap,
+      onReply: onReply,
+      onRenote: onRenote,
+      onReaction: onReaction,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// リノート通知
+// ---------------------------------------------------------------------------
+class _RenoteItem extends StatelessWidget {
+  const _RenoteItem({
+    required this.notification,
+    required this.emojis,
+    this.onUserTap,
+    this.onNoteTap,
+  });
+
+  final RenoteNotification notification;
+  final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onNoteTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final previewNote =
+        notification.note.text.isEmpty && notification.note.renote != null
+        ? notification.note.renote!
+        : notification.note;
+    final previewText = previewNote.text.isNotEmpty ? previewNote.text : '(本文なし)';
+
+    return _BaseItem(
+      leading: _AvatarWithBadge(
+        user: notification.user,
+        badge: const Icon(Icons.repeat, size: 15, color: Colors.white),
+        badgeColor: Colors.green,
+        onTap: onUserTap,
+      ),
+      createdAt: notification.createdAt,
+      title: _UserNameText(
+        user: notification.user,
+        suffix: ' さんがリノートしました',
+        emojis: emojis,
+      ),
+      subtitle: _NotePreview(
+        text: previewText,
+        emojis: emojis,
+        noteId: previewNote.id,
+        onTap: onNoteTap,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 引用通知
+// ---------------------------------------------------------------------------
+class _QuoteItem extends StatelessWidget {
+  const _QuoteItem({
+    required this.notification,
+    required this.emojis,
+    this.onUserTap,
+    this.onNoteTap,
+    this.onReply,
+    this.onRenote,
+    this.onReaction,
+  });
+
+  final QuoteNotification notification;
+  final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<User>? onUserTap;
+  final ValueChanged<String>? onNoteTap;
+  final VoidCallback? onReply;
+  final VoidCallback? onRenote;
+  final VoidCallback? onReaction;
+
+  @override
+  Widget build(BuildContext context) {
+    return TimelineNoteItem(
+      note: notification.note,
+      animation: kAlwaysCompleteAnimation,
+      emojis: emojis,
+      onUserTap: onUserTap,
+      onReply: onReply,
+      onRenote: onRenote,
+      onReaction: onReaction,
     );
   }
 }
@@ -223,9 +422,7 @@ class _ReactionGroupedItem extends StatelessWidget {
       createdAt: notification.createdAt,
       title: Text(
         '${notification.reactions.length}件のリアクション',
-        style: textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -265,6 +462,70 @@ class _ReactionGroupedItem extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 投票終了通知
+// ---------------------------------------------------------------------------
+class _PollEndedItem extends StatelessWidget {
+  const _PollEndedItem({
+    required this.notification,
+    required this.emojis,
+    this.onNoteTap,
+  });
+
+  final PollEndedNotification notification;
+  final Map<String, EmojiCacheEntry> emojis;
+  final ValueChanged<String>? onNoteTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseItem(
+      leading: const CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.deepOrange,
+        child: Icon(Icons.poll, size: 20, color: Colors.white),
+      ),
+      createdAt: notification.createdAt,
+      title: Text('投票が終了しました', style: Theme.of(context).textTheme.bodyMedium),
+      subtitle: _NotePreview(
+        text: notification.note.text,
+        emojis: emojis,
+        noteId: notification.note.id,
+        onTap: onNoteTap,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ログイン通知
+// ---------------------------------------------------------------------------
+class _LoginItem extends StatelessWidget {
+  const _LoginItem({required this.notification});
+
+  final LoginNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseItem(
+      leading: const CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.blueGrey,
+        child: Icon(Icons.login, size: 20, color: Colors.white),
+      ),
+      createdAt: notification.createdAt,
+      title: Text('ログイン通知', style: Theme.of(context).textTheme.bodyMedium),
+      subtitle: Text(
+        notification.message?.isNotEmpty == true
+            ? notification.message!
+            : '新しいログインが検出されました',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }
@@ -324,7 +585,10 @@ class _BaseItem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 52, child: Align(alignment: Alignment.topCenter, child: leading)),
+          SizedBox(
+            width: 52,
+            child: Align(alignment: Alignment.topCenter, child: leading),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -343,10 +607,7 @@ class _BaseItem extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  subtitle!,
-                ],
+                if (subtitle != null) ...[const SizedBox(height: 4), subtitle!],
               ],
             ),
           ),
@@ -433,8 +694,7 @@ class _UserAvatar extends StatelessWidget {
       return CircleAvatar(
         radius: radius,
         child: Text(
-          (user.name.isNotEmpty ? user.name : user.username)
-              .characters
+          (user.name.isNotEmpty ? user.name : user.username).characters
               .take(1)
               .toString(),
           style: TextStyle(fontSize: radius * 0.6),
@@ -571,7 +831,6 @@ class _UserNameText extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // ヘルパー
 // ---------------------------------------------------------------------------
-
 
 String _formatDate(DateTime dt) {
   final now = DateTime.now();

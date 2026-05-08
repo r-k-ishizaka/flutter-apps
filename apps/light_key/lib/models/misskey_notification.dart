@@ -20,19 +20,135 @@ sealed class MisskeyNotification {
     final createdAtStr = json['createdAt'] as String? ?? '';
     final createdAt = createdAtStr.isNotEmpty
         ? (DateTime.tryParse(createdAtStr) ??
-            DateTime.fromMillisecondsSinceEpoch(0))
+              DateTime.fromMillisecondsSinceEpoch(0))
         : DateTime.fromMillisecondsSinceEpoch(0);
     final type = json['type'] as String? ?? '';
 
     return switch (type) {
       'follow' => FollowNotification._fromJson(json, id, createdAt),
+      'reply' => ReplyNotification._fromJson(json, id, createdAt),
+      'mention' => MentionNotification._fromJson(json, id, createdAt),
+      'renote' => RenoteNotification._fromJson(json, id, createdAt),
+      'quote' => QuoteNotification._fromJson(json, id, createdAt),
       'reaction' => ReactionNotification._fromJson(json, id, createdAt),
-      'reaction:grouped' =>
-        ReactionGroupedNotification._fromJson(json, id, createdAt),
-      'followRequestAccepted' =>
-        FollowRequestAcceptedNotification._fromJson(json, id, createdAt),
+      'reaction:grouped' => ReactionGroupedNotification._fromJson(
+        json,
+        id,
+        createdAt,
+      ),
+      'followRequestAccepted' => FollowRequestAcceptedNotification._fromJson(
+        json,
+        id,
+        createdAt,
+      ),
+      'pollEnded' => PollEndedNotification._fromJson(json, id, createdAt),
+      'login' => LoginNotification._fromJson(json, id, createdAt),
       _ => UnknownNotification(id: id, createdAt: createdAt, type: type),
     };
+  }
+}
+
+/// リプライ通知
+class ReplyNotification extends MisskeyNotification {
+  const ReplyNotification({
+    required super.id,
+    required super.createdAt,
+    required this.user,
+    required this.note,
+  }) : super(type: 'reply');
+
+  final User user;
+  final Note note;
+
+  factory ReplyNotification._fromJson(
+    Map<String, dynamic> json,
+    String id,
+    DateTime createdAt,
+  ) {
+    return ReplyNotification(
+      id: id,
+      createdAt: createdAt,
+      user: _parseUser(json['user']),
+      note: _parseNote(json['note']),
+    );
+  }
+}
+
+/// メンション通知
+class MentionNotification extends MisskeyNotification {
+  const MentionNotification({
+    required super.id,
+    required super.createdAt,
+    required this.user,
+    required this.note,
+  }) : super(type: 'mention');
+
+  final User user;
+  final Note note;
+
+  factory MentionNotification._fromJson(
+    Map<String, dynamic> json,
+    String id,
+    DateTime createdAt,
+  ) {
+    return MentionNotification(
+      id: id,
+      createdAt: createdAt,
+      user: _parseUser(json['user']),
+      note: _parseNote(json['note']),
+    );
+  }
+}
+
+/// リノート通知
+class RenoteNotification extends MisskeyNotification {
+  const RenoteNotification({
+    required super.id,
+    required super.createdAt,
+    required this.user,
+    required this.note,
+  }) : super(type: 'renote');
+
+  final User user;
+  final Note note;
+
+  factory RenoteNotification._fromJson(
+    Map<String, dynamic> json,
+    String id,
+    DateTime createdAt,
+  ) {
+    return RenoteNotification(
+      id: id,
+      createdAt: createdAt,
+      user: _parseUser(json['user']),
+      note: _parseNote(json['note']),
+    );
+  }
+}
+
+/// 引用通知
+class QuoteNotification extends MisskeyNotification {
+  const QuoteNotification({
+    required super.id,
+    required super.createdAt,
+    required this.user,
+    required this.note,
+  }) : super(type: 'quote');
+
+  final User user;
+  final Note note;
+
+  factory QuoteNotification._fromJson(
+    Map<String, dynamic> json,
+    String id,
+    DateTime createdAt,
+  ) {
+    return QuoteNotification(
+      id: id,
+      createdAt: createdAt,
+      user: _parseUser(json['user']),
+      note: _parseNote(json['note']),
+    );
   }
 }
 
@@ -80,17 +196,8 @@ class ReactionNotification extends MisskeyNotification {
     String id,
     DateTime createdAt,
   ) {
-    final userJson = json['user'];
-    final user = userJson is Map
-        ? User.fromJson(Map<String, dynamic>.from(userJson))
-        : const User();
-    final noteJson = json['note'];
-    final note = noteJson is Map
-        ? Note.fromJson(Map<String, dynamic>.from(noteJson))
-        : Note(
-            createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-            user: const User(),
-          );
+    final user = _parseUser(json['user']);
+    final note = _parseNote(json['note']);
     final reaction = json['reaction'] as String? ?? '';
     return ReactionNotification(
       id: id,
@@ -121,13 +228,7 @@ class ReactionGroupedNotification extends MisskeyNotification {
     String id,
     DateTime createdAt,
   ) {
-    final noteJson = json['note'];
-    final note = noteJson is Map
-        ? Note.fromJson(Map<String, dynamic>.from(noteJson))
-        : Note(
-            createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-            user: const User(),
-          );
+    final note = _parseNote(json['note']);
     final reactionsRaw = json['reactions'];
     final reactions = <GroupedReactionItem>[];
     if (reactionsRaw is List) {
@@ -182,10 +283,7 @@ class FollowRequestAcceptedNotification extends MisskeyNotification {
     String id,
     DateTime createdAt,
   ) {
-    final userJson = json['user'];
-    final user = userJson is Map
-        ? User.fromJson(Map<String, dynamic>.from(userJson))
-        : const User();
+    final user = _parseUser(json['user']);
     final message = json['message'] as String?;
     return FollowRequestAcceptedNotification(
       id: id,
@@ -194,6 +292,69 @@ class FollowRequestAcceptedNotification extends MisskeyNotification {
       message: message,
     );
   }
+}
+
+/// 投票終了通知
+class PollEndedNotification extends MisskeyNotification {
+  const PollEndedNotification({
+    required super.id,
+    required super.createdAt,
+    required this.note,
+  }) : super(type: 'pollEnded');
+
+  final Note note;
+
+  factory PollEndedNotification._fromJson(
+    Map<String, dynamic> json,
+    String id,
+    DateTime createdAt,
+  ) {
+    return PollEndedNotification(
+      id: id,
+      createdAt: createdAt,
+      note: _parseNote(json['note']),
+    );
+  }
+}
+
+/// ログイン通知
+class LoginNotification extends MisskeyNotification {
+  const LoginNotification({
+    required super.id,
+    required super.createdAt,
+    this.message,
+  }) : super(type: 'login');
+
+  final String? message;
+
+  factory LoginNotification._fromJson(
+    Map<String, dynamic> json,
+    String id,
+    DateTime createdAt,
+  ) {
+    final message =
+        (json['body'] as String?) ??
+        (json['message'] as String?) ??
+        (json['text'] as String?);
+    return LoginNotification(id: id, createdAt: createdAt, message: message);
+  }
+}
+
+User _parseUser(Object? userJson) {
+  if (userJson is Map) {
+    return User.fromJson(Map<String, dynamic>.from(userJson));
+  }
+  return const User();
+}
+
+Note _parseNote(Object? noteJson) {
+  if (noteJson is Map) {
+    return Note.fromJson(Map<String, dynamic>.from(noteJson));
+  }
+  return Note(
+    createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+    user: const User(),
+  );
 }
 
 /// 未対応の通知タイプ
