@@ -93,17 +93,12 @@ class _NotificationList extends HookWidget {
     final scrollController = useScrollController();
     final emojis = context.read<EmojiCache>().entries;
 
-    useEffect(() {
-      void listener() {
-        if (scrollController.position.pixels >=
-            scrollController.position.maxScrollExtent - 200) {
-          onLoadMore();
-        }
+    void maybeLoadMore() {
+      if (!hasMore || isLoadingMore) {
+        return;
       }
-
-      scrollController.addListener(listener);
-      return () => scrollController.removeListener(listener);
-    }, [onLoadMore]);
+      onLoadMore();
+    }
 
     if (notifications.isEmpty) {
       return RefreshIndicator(
@@ -139,61 +134,89 @@ class _NotificationList extends HookWidget {
       );
     }
 
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!scrollController.hasClients) {
+          return;
+        }
+        if (scrollController.position.extentAfter < 200) {
+          maybeLoadMore();
+        }
+      });
+      return null;
+    }, [scrollController, notifications.length, hasMore, isLoadingMore, onLoadMore]);
+
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: Column(
-        children: [
-          if (errorMessage != null)
-            Material(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber,
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                      size: 16,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.extentAfter < 200) {
+            maybeLoadMore();
+          }
+          return false;
+        },
+        child: ListView.separated(
+          controller: scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount:
+              (errorMessage != null ? 1 : 0) +
+              notifications.length +
+              (isLoadingMore ? 1 : 0),
+          separatorBuilder: (context, index) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            var currentIndex = index;
+
+            if (errorMessage != null) {
+              if (currentIndex == 0) {
+                return Material(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        errorMessage!,
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onErrorContainer,
-                          fontSize: 12,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          size: 16,
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            errorMessage!,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-          Expanded(
-            child: ListView.separated(
-              controller: scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: notifications.length + (isLoadingMore ? 1 : 0),
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                if (index == notifications.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                return NotificationItem(
-                  notification: notifications[index],
-                  emojis: emojis,
-                  onUserTap: onUserTap,
-                  onNoteTap: onNoteTap,
+                  ),
                 );
-              },
-            ),
-          ),
-        ],
+              }
+              currentIndex -= 1;
+            }
+
+            if (currentIndex == notifications.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            return NotificationItem(
+              notification: notifications[currentIndex],
+              emojis: emojis,
+              onUserTap: onUserTap,
+              onNoteTap: onNoteTap,
+            );
+          },
+        ),
       ),
     );
   }

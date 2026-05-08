@@ -19,12 +19,18 @@ class NotificationsProvider extends ChangeNotifier {
 
   NotificationsScreenState get state => _state;
 
+  NotificationsScreenStateLoaded? get _loadedState => switch (_state) {
+        final NotificationsScreenStateLoaded loaded => loaded,
+        _ => null,
+      };
+
   List<MisskeyNotification> get _loadedNotifications => switch (_state) {
         NotificationsScreenStateLoaded(:final notifications) => notifications,
         _ => const <MisskeyNotification>[],
       };
 
   Future<void> fetch({bool showLoading = true}) async {
+    final previousLoaded = _loadedState;
     final previous = _loadedNotifications;
     if (showLoading || previous.isEmpty) {
       _state = const NotificationsScreenStateLoading();
@@ -47,14 +53,15 @@ class NotificationsProvider extends ChangeNotifier {
         result.when(
           success: (notifications) {
             _state = NotificationsScreenStateLoaded(
-              notifications: notifications,
-              hasMore: notifications.length >= 20,
+              notifications: List.unmodifiable(notifications),
+              hasMore: notifications.isNotEmpty,
             );
           },
           failure: (error, _) {
             if (previous.isNotEmpty) {
               _state = NotificationsScreenStateLoaded(
                 notifications: previous,
+                hasMore: previousLoaded?.hasMore ?? true,
                 message: '通知の取得に失敗しました: $error',
               );
             } else {
@@ -96,7 +103,15 @@ class NotificationsProvider extends ChangeNotifier {
     final sessionResult = await _authRepository.restoreSession();
     await sessionResult.when(
       success: (session) async {
-        if (session == null) return;
+        if (session == null) {
+          _state = NotificationsScreenStateLoaded(
+            notifications: loaded.notifications,
+            hasMore: loaded.hasMore,
+            message: '先に認証してください。',
+          );
+          notifyListeners();
+          return;
+        }
 
         final result = await _notificationRepository.fetchGroupedNotifications(
           session,
@@ -104,10 +119,11 @@ class NotificationsProvider extends ChangeNotifier {
         );
         result.when(
           success: (more) {
-            final merged = [...loaded.notifications, ...more];
+            final merged = _mergeNotifications(loaded.notifications, more);
+            final appendedCount = merged.length - loaded.notifications.length;
             _state = NotificationsScreenStateLoaded(
-              notifications: List.unmodifiable(merged),
-              hasMore: more.length >= 20,
+              notifications: merged,
+              hasMore: appendedCount > 0,
             );
           },
           failure: (error, _) {
@@ -129,5 +145,23 @@ class NotificationsProvider extends ChangeNotifier {
         notifyListeners();
       },
     );
+  }
+
+  List<MisskeyNotification> _mergeNotifications(
+    List<MisskeyNotification> current,
+    List<MisskeyNotification> incoming,
+  ) {
+    final merged = <MisskeyNotification>[];
+    final seenIds = <String>{};
+
+    for (final item in [...current, ...incoming]) {
+      final id = item.id;
+      if (id.isNotEmpty && !seenIds.add(id)) {
+        continue;
+      }
+      merged.add(item);
+    }
+
+    return List.unmodifiable(merged);
   }
 }
