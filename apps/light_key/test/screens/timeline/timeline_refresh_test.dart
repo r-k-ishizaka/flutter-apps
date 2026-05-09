@@ -432,6 +432,70 @@ void main() {
     });
   });
 
+  group('TimelineProvider.createFavorite', () {
+    test('通常ノートをお気に入りに追加する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createFavorite(_note(id: 'note-1'));
+
+      expect(message, isNull);
+      expect(timelineDataSource.favoriteCalls, ['note-1']);
+    });
+
+    test('未認証時はエラーメッセージを返す', () async {
+      final authRepository = AuthRepository(_FakeAuthDataSource());
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createFavorite(_note(id: 'note-1'));
+
+      expect(message, '先に認証してください。');
+      expect(timelineDataSource.favoriteCalls, isEmpty);
+    });
+
+    test('対象ノートIDが空のときはエラーメッセージを返す', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [() async => []],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createFavorite(_note(id: ''));
+
+      expect(message, 'お気に入り対象のノートIDが見つかりません。');
+      expect(timelineDataSource.favoriteCalls, isEmpty);
+    });
+  });
+
   group('TimelineList refresh feedback', () {
     testWidgets('本文絵文字をタップするとノートと絵文字が渡される', (tester) async {
       final mockActions = _MockNoteActions();
@@ -773,9 +837,10 @@ void main() {
     testWidgets('引用ノート部分をタップすると引用元ノートが渡される', (tester) async {
       final mockActions = _MockNoteActions();
       final quoted = _note(id: 'quoted-1', text: 'quoted body');
-      final quoteRenote = _note(id: 'quote-1', text: 'outer body').copyWith(
-        renote: quoted,
-      );
+      final quoteRenote = _note(
+        id: 'quote-1',
+        text: 'outer body',
+      ).copyWith(renote: quoted);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -846,6 +911,7 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   final List<Future<List<Note>> Function()> fetchHandlers;
   final List<(String noteId, String reaction)> reactionCalls = [];
   final List<String> renoteCalls = [];
+  final List<String> favoriteCalls = [];
   var _fetchIndex = 0;
 
   @override
@@ -863,6 +929,14 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     required String noteId,
   }) async {
     renoteCalls.add(noteId);
+  }
+
+  @override
+  Future<void> createFavorite(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    favoriteCalls.add(noteId);
   }
 
   @override
@@ -949,4 +1023,7 @@ class _MockNoteActions implements NoteActions {
 
   @override
   Future<void> onReplyNoteTap(Note reply) async {}
+
+  @override
+  Future<void> onMenu(Note note, Map<String, dynamic> emojis) async {}
 }

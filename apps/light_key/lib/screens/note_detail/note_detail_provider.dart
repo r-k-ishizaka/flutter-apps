@@ -139,6 +139,34 @@ class NoteDetailProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createFavorite(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'お気に入り対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final favoriteResult = await _timelineRepository.createFavorite(
+          session,
+          noteId: targetNote.id,
+        );
+        return favoriteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'お気に入り追加に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   Note _updateMyReaction(Note note, String targetNoteId, String reaction) {
     if (note.id == targetNoteId) {
       return _updateNoteReaction(note, reaction);

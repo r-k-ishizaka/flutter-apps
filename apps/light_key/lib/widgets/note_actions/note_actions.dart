@@ -1,5 +1,6 @@
 import '../../models/note.dart';
 import '../../models/user.dart';
+import '../../services/emoji_cache.dart';
 
 /// ノートに対するユーザーアクションのインターフェース。
 ///
@@ -38,4 +39,8 @@ abstract class NoteActions {
   /// 返信元ノートをタップしたときの処理。
   /// 返信元のノート詳細画面へ遷移する。
   Future<void> onReplyNoteTap(Note reply);
+
+  /// メニューボタン（⋯）をタップしたときの処理。
+  /// ノートメニューシートを表示する。
+  Future<void> onMenu(Note note, Map<String, EmojiCacheEntry> emojis);
 }

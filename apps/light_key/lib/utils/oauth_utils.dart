@@ -4,6 +4,9 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 class OAuthUtils {
+  static const String defaultScope =
+      'read:account write:notes write:reactions write:favorites read:notifications';
+
   /// ランダムな文字列を生成
   static String generateRandomString(int length) {
     const charset =
@@ -39,8 +42,7 @@ class OAuthUtils {
     required String redirectUri,
     String? state,
     String? codeChallenge,
-    String scope =
-        'read:account write:notes write:reactions read:notifications',
+    String scope = defaultScope,
   }) {
     final uri = Uri.parse('$baseUrl/oauth/authorize');
     final queryParameters = <String, String>{

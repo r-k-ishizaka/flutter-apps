@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
 import '../../models/note_type.dart';
 import '../../route/app_routes.dart';
+import '../../screens/auth/auth_provider.dart';
 import '../../screens/post/post_screen_param.dart';
+import '../../services/emoji_cache.dart';
 import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
+import '../../sheets/note_menu/note_menu_sheet.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 
@@ -51,12 +55,71 @@ mixin NoteActionsMixin {
     return showNoteEmojiActionSheet(context, emoji: emoji);
   }
 
+  /// ノートメニューシートを表示してアクションを選択する。
+  @protected
+  Future<NoteMenuAction?> pickNoteMenuAction(
+    Note note,
+    Map<String, EmojiCacheEntry> emojis,
+  ) async {
+    final currentUserId = context.read<AuthProvider>().currentUser?.id ?? '';
+    final isOwnNote = currentUserId.isNotEmpty && currentUserId == note.user.id;
+    final isPureRenote = note.noteType == NoteType.pureRenote;
+    final renoteUserName = isPureRenote
+        ? (note.user.name.isNotEmpty ? note.user.name : note.user.username)
+        : '';
+
+    // ミュート・ブロック対象のユーザーノート
+    // pure renote の場合はリノート元ノート
+    final menuTargetNote = isPureRenote ? note.renote! : note;
+
+    return showNoteMenuSheet(
+      context,
+      note: note,
+      menuTargetNote: menuTargetNote,
+      emojis: emojis,
+      isOwnNote: isOwnNote,
+      isPureRenote: isPureRenote,
+      renoteUserName: renoteUserName,
+    );
+  }
+
   /// 絵文字をクリップボードにコピーする。
   @protected
   Future<void> copyEmojiToClipboard(String emoji) async {
     await Clipboard.setData(ClipboardData(text: emoji));
     if (!context.mounted) return;
     showSnackBar('絵文字をコピーしました。');
+  }
+
+  /// メニューアクションの対象ノートを取得する。
+  /// 純粋リノートの場合はリノート元を返す。
+  @protected
+  Note getMenuActionTargetNote(Note note) {
+    if (note.noteType == NoteType.pureRenote) {
+      return note.renote ?? note;
+    }
+    return note;
+  }
+
+  /// ノートリンクをクリップボードにコピーする。
+  @protected
+  Future<void> copyNoteLinkToClipboard(Note note) async {
+    final targetNote = getMenuActionTargetNote(note);
+    if (targetNote.id.isEmpty) {
+      showSnackBar('リンク対象のノートIDが見つかりません。');
+      return;
+    }
+
+    final session = context.read<AuthProvider>().state.session;
+    if (session == null) {
+      showSnackBar('先に認証してください。');
+      return;
+    }
+
+    final noteUrl = _buildNoteUrl(session.baseUrl, targetNote.id);
+    await Clipboard.setData(ClipboardData(text: noteUrl));
+    if (!context.mounted) return;
+    showSnackBar('リンクをコピーしました。');
   }
 
   /// ノート詳細画面で表示するノートIDを取得する。
@@ -118,5 +181,19 @@ mixin NoteActionsMixin {
         avatarUrl: targetNote.user.avatarUrl,
       ),
     ).push<String>(context);
+  }
+
+  String _buildNoteUrl(String baseUrl, String noteId) {
+    final baseUri = Uri.parse(baseUrl.trim());
+    final segments =
+        baseUri.pathSegments
+            .where((segment) => segment.isNotEmpty)
+            .toList(growable: true)
+          ..add('notes')
+          ..add(noteId);
+
+    return baseUri
+        .replace(pathSegments: segments, query: null, fragment: null)
+        .toString();
   }
 }

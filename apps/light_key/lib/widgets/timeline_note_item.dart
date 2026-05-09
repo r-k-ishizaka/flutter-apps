@@ -283,6 +283,9 @@ class TimelineNoteItem extends HookWidget {
                                     ? () => actions!.onRenote(note)
                                     : null,
                                 onReaction: actions != null ? () => actions!.onReaction(note) : null,
+                                onMenu: actions != null
+                                    ? () => actions!.onMenu(note, emojis)
+                                    : null,
                               ),
                               if (displayReactions.isNotEmpty) ...[
                                 const SizedBox(height: 8),
@@ -764,11 +767,12 @@ class _CwBar extends StatelessWidget {
 }
 
 class _TimelineNoteActionRow extends StatelessWidget {
-  const _TimelineNoteActionRow({this.onReply, this.onRenote, this.onReaction});
+  const _TimelineNoteActionRow({this.onReply, this.onRenote, this.onReaction, this.onMenu});
 
   final VoidCallback? onReply;
   final VoidCallback? onRenote;
   final VoidCallback? onReaction;
+  final VoidCallback? onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -790,6 +794,11 @@ class _TimelineNoteActionRow extends StatelessWidget {
           icon: Icons.add_reaction_outlined,
           tooltip: 'リアクション',
           onPressed: onReaction,
+        ),
+        _TimelineNoteActionButton(
+          icon: Icons.more_horiz,
+          tooltip: 'メニュー',
+          onPressed: onMenu,
         ),
       ],
     );

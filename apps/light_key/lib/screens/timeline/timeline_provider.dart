@@ -261,6 +261,34 @@ class TimelineProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createFavorite(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'お気に入り対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final favoriteResult = await _timelineRepository.createFavorite(
+          session,
+          noteId: targetNote.id,
+        );
+        return favoriteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'お気に入り追加に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   /// リアクション送信成功後にローカル状態の myReaction を更新する。
   void _applyMyReaction(Note note, String targetNoteId, String reaction) {
     final loadedState = switch (_state) {
@@ -380,7 +408,10 @@ class TimelineProvider extends ChangeNotifier {
       incoming.reactions,
       incomingReaction,
     );
-    final currentExists = _reactionKeyExists(incoming.reactions, currentReaction);
+    final currentExists = _reactionKeyExists(
+      incoming.reactions,
+      currentReaction,
+    );
     if (!incomingExists && currentExists) {
       return currentReaction;
     }
@@ -389,7 +420,9 @@ class TimelineProvider extends ChangeNotifier {
   }
 
   String _normalizeOutgoingReaction(String reaction) {
-    final sameServerDot = RegExp(r'^:([a-zA-Z0-9_.-]+)@\.:$').firstMatch(reaction);
+    final sameServerDot = RegExp(
+      r'^:([a-zA-Z0-9_.-]+)@\.:$',
+    ).firstMatch(reaction);
     if (sameServerDot != null) {
       // 互換入力として受け取りつつ、送信は自鯖形式 `:name:` を優先する。
       return ':${sameServerDot.group(1)}:';
@@ -402,11 +435,15 @@ class TimelineProvider extends ChangeNotifier {
     if (reactions.containsKey(reaction)) {
       return true;
     }
-    final sameServerBare = RegExp(r'^:([a-zA-Z0-9_.-]+):$').firstMatch(reaction);
+    final sameServerBare = RegExp(
+      r'^:([a-zA-Z0-9_.-]+):$',
+    ).firstMatch(reaction);
     if (sameServerBare != null) {
       return reactions.containsKey(':${sameServerBare.group(1)}@.:');
     }
-    final sameServerDot = RegExp(r'^:([a-zA-Z0-9_.-]+)@\.:$').firstMatch(reaction);
+    final sameServerDot = RegExp(
+      r'^:([a-zA-Z0-9_.-]+)@\.:$',
+    ).firstMatch(reaction);
     if (sameServerDot != null) {
       return reactions.containsKey(':${sameServerDot.group(1)}:');
     }

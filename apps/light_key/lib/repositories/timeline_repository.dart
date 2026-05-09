@@ -49,6 +49,18 @@ class TimelineRepository {
     }
   }
 
+  Future<Result<void>> createFavorite(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    try {
+      await _dataSource.createFavorite(session, noteId: noteId);
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
   Future<Result<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,

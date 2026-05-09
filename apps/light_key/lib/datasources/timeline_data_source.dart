@@ -17,6 +17,8 @@ abstract interface class TimelineDataSource {
 
   Future<void> createRenote(AuthSession session, {required String noteId});
 
+  Future<void> createFavorite(AuthSession session, {required String noteId});
+
   /// Fetches a single note by ID.
   Future<ResponseWithCacheHints<Note>> fetchNote(
     AuthSession session,

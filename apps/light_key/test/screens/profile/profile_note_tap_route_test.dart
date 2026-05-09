@@ -210,6 +210,12 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }) async {}
 
   @override
+  Future<void> createFavorite(
+    AuthSession session, {
+    required String noteId,
+  }) async {}
+
+  @override
   Future<ResponseWithCacheHints<Note>> fetchNote(
     AuthSession session,
     String noteId,

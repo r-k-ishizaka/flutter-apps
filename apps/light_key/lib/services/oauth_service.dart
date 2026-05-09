@@ -89,6 +89,7 @@ class OAuthService {
         redirectUri: redirectUri,
         state: state,
         codeChallenge: codeChallenge,
+        scope: scope ?? OAuthUtils.defaultScope,
       );
 
       // Code verifier を保存（トークンをリクエストする際に必要）

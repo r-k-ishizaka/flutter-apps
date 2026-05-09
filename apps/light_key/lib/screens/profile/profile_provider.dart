@@ -95,7 +95,10 @@ class ProfileProvider extends ChangeNotifier {
 
             await allNotesResult.when(
               success: (allNotes) async {
-                final mergedAll = _mergePinnedNotes(profile.pinnedNotes, allNotes);
+                final mergedAll = _mergePinnedNotes(
+                  profile.pinnedNotes,
+                  allNotes,
+                );
 
                 noteOnlyResult.when(
                   success: (noteOnlyNotes) {
@@ -107,9 +110,15 @@ class ProfileProvider extends ChangeNotifier {
                           allNotes: List<Note>.unmodifiable(mergedAll),
                           noteOnlyNotes: List<Note>.unmodifiable(noteOnlyNotes),
                           mediaNotes: List<Note>.unmodifiable(mediaNotes),
-                          allNotesUntilId: mergedAll.isNotEmpty ? mergedAll.last.id : null,
-                          noteOnlyNotesUntilId: noteOnlyNotes.isNotEmpty ? noteOnlyNotes.last.id : null,
-                          mediaNotesUntilId: mediaNotes.isNotEmpty ? mediaNotes.last.id : null,
+                          allNotesUntilId: mergedAll.isNotEmpty
+                              ? mergedAll.last.id
+                              : null,
+                          noteOnlyNotesUntilId: noteOnlyNotes.isNotEmpty
+                              ? noteOnlyNotes.last.id
+                              : null,
+                          mediaNotesUntilId: mediaNotes.isNotEmpty
+                              ? mediaNotes.last.id
+                              : null,
                         );
                       },
                       failure: (error, _) {
@@ -215,7 +224,9 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   String _normalizeOutgoingReaction(String reaction) {
-    final sameServerDot = RegExp(r'^:([a-zA-Z0-9_.-]+)@\.:$').firstMatch(reaction);
+    final sameServerDot = RegExp(
+      r'^:([a-zA-Z0-9_.-]+)@\.:$',
+    ).firstMatch(reaction);
     if (sameServerDot != null) {
       return ':${sameServerDot.group(1)}:';
     }
@@ -251,6 +262,34 @@ class ProfileProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createFavorite(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'お気に入り対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final favoriteResult = await _timelineRepository.createFavorite(
+          session,
+          noteId: targetNote.id,
+        );
+        return favoriteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'お気に入り追加に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   /// 「全て」タブの追加読み込みを実行する
   Future<void> loadMoreAllNotes(String userId) =>
       _loadMoreByTab(userId, _ProfileNotesTab.all);
@@ -270,7 +309,9 @@ class ProfileProvider extends ChangeNotifier {
     }
 
     final tabState = _tabState(currentState, tab);
-    if (tabState.isLoadingMore || tabState.untilId == null || tabState.notes.isEmpty) {
+    if (tabState.isLoadingMore ||
+        tabState.untilId == null ||
+        tabState.notes.isEmpty) {
       return;
     }
 
@@ -365,10 +406,12 @@ class ProfileProvider extends ChangeNotifier {
   }) {
     return switch (tab) {
       _ProfileNotesTab.all => state.copyWith(isLoadingMoreAllNotes: isLoading),
-      _ProfileNotesTab.noteOnly =>
-        state.copyWith(isLoadingMoreNoteOnlyNotes: isLoading),
-      _ProfileNotesTab.media =>
-        state.copyWith(isLoadingMoreMediaNotes: isLoading),
+      _ProfileNotesTab.noteOnly => state.copyWith(
+        isLoadingMoreNoteOnlyNotes: isLoading,
+      ),
+      _ProfileNotesTab.media => state.copyWith(
+        isLoadingMoreMediaNotes: isLoading,
+      ),
     };
   }
 

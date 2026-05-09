@@ -13,9 +13,9 @@ class NotificationsProvider extends ChangeNotifier {
     required AuthRepository authRepository,
     required NotificationRepository notificationRepository,
     required TimelineRepository timelineRepository,
-  })  : _authRepository = authRepository,
-        _notificationRepository = notificationRepository,
-        _timelineRepository = timelineRepository;
+  }) : _authRepository = authRepository,
+       _notificationRepository = notificationRepository,
+       _timelineRepository = timelineRepository;
 
   final AuthRepository _authRepository;
   final NotificationRepository _notificationRepository;
@@ -26,14 +26,14 @@ class NotificationsProvider extends ChangeNotifier {
   NotificationsScreenState get state => _state;
 
   NotificationsScreenStateLoaded? get _loadedState => switch (_state) {
-        final NotificationsScreenStateLoaded loaded => loaded,
-        _ => null,
-      };
+    final NotificationsScreenStateLoaded loaded => loaded,
+    _ => null,
+  };
 
   List<MisskeyNotification> get _loadedNotifications => switch (_state) {
-        NotificationsScreenStateLoaded(:final notifications) => notifications,
-        _ => const <MisskeyNotification>[],
-      };
+    NotificationsScreenStateLoaded(:final notifications) => notifications,
+    _ => const <MisskeyNotification>[],
+  };
 
   Future<void> fetch({bool showLoading = true}) async {
     final previousLoaded = _loadedState;
@@ -47,15 +47,14 @@ class NotificationsProvider extends ChangeNotifier {
     await sessionResult.when(
       success: (session) async {
         if (session == null) {
-          _state = const NotificationsScreenStateError(
-            message: '先に認証してください。',
-          );
+          _state = const NotificationsScreenStateError(message: '先に認証してください。');
           notifyListeners();
           return;
         }
 
-        final result =
-            await _notificationRepository.fetchGroupedNotifications(session);
+        final result = await _notificationRepository.fetchGroupedNotifications(
+          session,
+        );
         result.when(
           success: (notifications) {
             _state = NotificationsScreenStateLoaded(
@@ -96,8 +95,9 @@ class NotificationsProvider extends ChangeNotifier {
     };
     if (loaded == null || loaded.isLoadingMore || !loaded.hasMore) return;
 
-    final lastId =
-        loaded.notifications.isEmpty ? null : loaded.notifications.last.id;
+    final lastId = loaded.notifications.isEmpty
+        ? null
+        : loaded.notifications.last.id;
 
     _state = NotificationsScreenStateLoaded(
       notifications: loaded.notifications,
@@ -238,6 +238,34 @@ class NotificationsProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createFavorite(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'お気に入り対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final favoriteResult = await _timelineRepository.createFavorite(
+          session,
+          noteId: targetNote.id,
+        );
+        return favoriteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'お気に入り追加に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   void _applyMyReaction(String targetNoteId, String reaction) {
     final loaded = _loadedState;
     if (loaded == null) {
@@ -245,11 +273,10 @@ class NotificationsProvider extends ChangeNotifier {
     }
 
     final updatedNotifications = loaded.notifications
-        .map((notification) => _updateNotificationReaction(
-              notification,
-              targetNoteId,
-              reaction,
-            ))
+        .map(
+          (notification) =>
+              _updateNotificationReaction(notification, targetNoteId, reaction),
+        )
         .toList(growable: false);
 
     _state = NotificationsScreenStateLoaded(
@@ -267,28 +294,48 @@ class NotificationsProvider extends ChangeNotifier {
     String reaction,
   ) {
     return switch (notification) {
-      ReplyNotification(:final id, :final createdAt, :final user, :final note) =>
+      ReplyNotification(
+        :final id,
+        :final createdAt,
+        :final user,
+        :final note,
+      ) =>
         ReplyNotification(
           id: id,
           createdAt: createdAt,
           user: user,
           note: _updateMyReactionInNote(note, targetNoteId, reaction),
         ),
-      MentionNotification(:final id, :final createdAt, :final user, :final note) =>
+      MentionNotification(
+        :final id,
+        :final createdAt,
+        :final user,
+        :final note,
+      ) =>
         MentionNotification(
           id: id,
           createdAt: createdAt,
           user: user,
           note: _updateMyReactionInNote(note, targetNoteId, reaction),
         ),
-      RenoteNotification(:final id, :final createdAt, :final user, :final note) =>
+      RenoteNotification(
+        :final id,
+        :final createdAt,
+        :final user,
+        :final note,
+      ) =>
         RenoteNotification(
           id: id,
           createdAt: createdAt,
           user: user,
           note: _updateMyReactionInNote(note, targetNoteId, reaction),
         ),
-      QuoteNotification(:final id, :final createdAt, :final user, :final note) =>
+      QuoteNotification(
+        :final id,
+        :final createdAt,
+        :final user,
+        :final note,
+      ) =>
         QuoteNotification(
           id: id,
           createdAt: createdAt,
@@ -301,7 +348,8 @@ class NotificationsProvider extends ChangeNotifier {
         :final user,
         :final note,
         :final reaction,
-      ) => ReactionNotification(
+      ) =>
+        ReactionNotification(
           id: id,
           createdAt: createdAt,
           user: user,
@@ -313,7 +361,8 @@ class NotificationsProvider extends ChangeNotifier {
         :final createdAt,
         :final note,
         :final reactions,
-      ) => ReactionGroupedNotification(
+      ) =>
+        ReactionGroupedNotification(
           id: id,
           createdAt: createdAt,
           note: _updateMyReactionInNote(note, targetNoteId, reaction),
@@ -329,7 +378,11 @@ class NotificationsProvider extends ChangeNotifier {
     };
   }
 
-  Note _updateMyReactionInNote(Note note, String targetNoteId, String reaction) {
+  Note _updateMyReactionInNote(
+    Note note,
+    String targetNoteId,
+    String reaction,
+  ) {
     if (note.id == targetNoteId) {
       return _updateNoteReaction(note, reaction);
     }
@@ -346,10 +399,7 @@ class NotificationsProvider extends ChangeNotifier {
       return note;
     }
 
-    return note.copyWith(
-      renote: updatedRenote,
-      reply: updatedReply,
-    );
+    return note.copyWith(renote: updatedRenote, reply: updatedReply);
   }
 
   Note _updateNoteReaction(Note note, String reaction) {

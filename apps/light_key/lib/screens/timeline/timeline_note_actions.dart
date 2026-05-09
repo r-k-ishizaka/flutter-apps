@@ -4,7 +4,9 @@ import '../../models/note.dart';
 import '../../models/user.dart';
 import '../../route/app_routes.dart';
 import '../../screens/post/post_screen_param.dart';
+import '../../services/emoji_cache.dart';
 import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
+import '../../sheets/note_menu/note_menu_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/note_actions/note_actions.dart';
 import '../../widgets/note_actions/note_actions_mixin.dart';
@@ -15,10 +17,8 @@ import 'timeline_provider.dart';
 /// TimelineProviderと連携して、リアクション/リノートの投稿、
 /// ノート詳細/ユーザープロフィール/投稿画面への遷移を行う。
 class TimelineNoteActions with NoteActionsMixin implements NoteActions {
-  TimelineNoteActions({
-    required this.provider,
-    required BuildContext context,
-  }) : _context = context;
+  TimelineNoteActions({required this.provider, required BuildContext context})
+    : _context = context;
 
   final TimelineProvider provider;
   final BuildContext _context;
@@ -117,6 +117,46 @@ class TimelineNoteActions with NoteActionsMixin implements NoteActions {
   @override
   Future<void> onReplyNoteTap(Note reply) async {
     await onNoteTap(reply);
+  }
+
+  @override
+  Future<void> onMenu(Note note, Map<String, EmojiCacheEntry> emojis) async {
+    final action = await pickNoteMenuAction(note, emojis);
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case NoteMenuAction.addFavorite:
+        final message = await provider.createFavorite(note);
+        if (!context.mounted) return;
+        showSnackBar(message ?? 'お気に入りに追加しました。');
+        return;
+      case NoteMenuAction.copyLink:
+        await copyNoteLinkToClipboard(note);
+        return;
+      case NoteMenuAction.pinNote:
+        // TODO: ピン留め
+        showComingSoon('ピン留め');
+        return;
+      case NoteMenuAction.deleteNote:
+        // TODO: 投稿を削除
+        showComingSoon('投稿の削除');
+        return;
+      case NoteMenuAction.muteUser:
+        // TODO: ユーザーをミュート
+        showComingSoon('ミュート');
+        return;
+      case NoteMenuAction.muteUserRenote:
+        // TODO: ユーザーのリノートをミュート
+        showComingSoon('リノートをミュート');
+        return;
+      case NoteMenuAction.blockUser:
+        // TODO: ユーザーをブロック
+        showComingSoon('ブロック');
+        return;
+      case NoteMenuAction.report:
+        // TODO: 通報
+        showComingSoon('通報');
+        return;
+    }
   }
 
   /// リアクションを送信する。

@@ -195,21 +195,24 @@ void main() {
       await controller.close();
 
       expect(emissions[0].map((note) => note.id), ['note-2', 'note-1']);
-      expect(emissions[1].map((note) => note.id), ['note-3', 'note-2', 'note-1']);
+      expect(emissions[1].map((note) => note.id), [
+        'note-3',
+        'note-2',
+        'note-1',
+      ]);
       expect(emissions[2].last.id, 'note-1');
       expect(emissions[2].last.reactions, const {'👍': 1});
     });
   });
 }
 
-typedef _FetchNoteHandler = Future<ResponseWithCacheHints<Note>> Function(
-  AuthSession,
-  String,
-);
-typedef _FetchTimelineHandler = Future<ResponseWithCacheHints<List<Note>>> Function(
-  AuthSession session, {
-  int limit,
-});
+typedef _FetchNoteHandler =
+    Future<ResponseWithCacheHints<Note>> Function(AuthSession, String);
+typedef _FetchTimelineHandler =
+    Future<ResponseWithCacheHints<List<Note>>> Function(
+      AuthSession session, {
+      int limit,
+    });
 
 class _FakeTimelineDataSource implements TimelineDataSource {
   _FakeTimelineDataSource({
@@ -232,6 +235,12 @@ class _FakeTimelineDataSource implements TimelineDataSource {
 
   @override
   Future<void> createRenote(
+    AuthSession session, {
+    required String noteId,
+  }) async {}
+
+  @override
+  Future<void> createFavorite(
     AuthSession session, {
     required String noteId,
   }) async {}

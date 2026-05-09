@@ -1,5 +1,6 @@
 import '../../models/note.dart';
 import '../../models/user.dart';
+import '../../services/emoji_cache.dart';
 import 'note_actions.dart';
 
 /// [NoteActions] のデフォルト実装。
@@ -32,4 +33,7 @@ class DefaultNoteActions implements NoteActions {
 
   @override
   Future<void> onReplyNoteTap(Note reply) async {}
+
+  @override
+  Future<void> onMenu(Note note, Map<String, EmojiCacheEntry> emojis) async {}
 }

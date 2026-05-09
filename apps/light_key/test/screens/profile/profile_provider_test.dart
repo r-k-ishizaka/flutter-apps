@@ -164,6 +164,49 @@ void main() {
       expect(provider.timelineDataSource.renoteCalls, ['note-1']);
     });
   });
+
+  group('ProfileProvider.createFavorite', () {
+    test('通常ノートをお気に入りに追加する', () async {
+      final provider = _buildProvider(
+        authSession: const AuthSession(
+          baseUrl: 'https://example.com',
+          accessToken: 'token',
+        ),
+      );
+
+      final message = await provider.provider.createFavorite(
+        _note(id: 'note-1'),
+      );
+
+      expect(message, isNull);
+      expect(provider.timelineDataSource.favoriteCalls, ['note-1']);
+    });
+
+    test('未認証時はエラーメッセージを返す', () async {
+      final provider = _buildProvider();
+
+      final message = await provider.provider.createFavorite(
+        _note(id: 'note-1'),
+      );
+
+      expect(message, '先に認証してください。');
+      expect(provider.timelineDataSource.favoriteCalls, isEmpty);
+    });
+
+    test('対象ノートIDが空のときはエラーメッセージを返す', () async {
+      final provider = _buildProvider(
+        authSession: const AuthSession(
+          baseUrl: 'https://example.com',
+          accessToken: 'token',
+        ),
+      );
+
+      final message = await provider.provider.createFavorite(_note(id: ''));
+
+      expect(message, 'お気に入り対象のノートIDが見つかりません。');
+      expect(provider.timelineDataSource.favoriteCalls, isEmpty);
+    });
+  });
 }
 
 _NamedProvider _buildProvider({
@@ -176,7 +219,10 @@ _NamedProvider _buildProvider({
     profileRepository: UserProfileRepository(_FakeUserProfileDataSource()),
     timelineRepository: TimelineRepository(timelineDataSource),
   );
-  return _NamedProvider(provider: provider, timelineDataSource: timelineDataSource);
+  return _NamedProvider(
+    provider: provider,
+    timelineDataSource: timelineDataSource,
+  );
 }
 
 class _NamedProvider {
@@ -216,8 +262,7 @@ class _FakeAuthDataSource implements AuthDataSource {
     String code,
     String redirectUri, {
     String? codeVerifier,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<AuthSession?> loadSession() async => session;
@@ -229,14 +274,9 @@ class _FakeAuthDataSource implements AuthDataSource {
   Future<ResponseWithCacheHints<User>> verify(
     String baseUrl,
     String accessToken,
-  ) async =>
-      const ResponseWithCacheHints(
-        data: User(
-          id: 'user-1',
-          username: 'sample_user',
-          name: 'Sample User',
-        ),
-      );
+  ) async => const ResponseWithCacheHints(
+    data: User(id: 'user-1', username: 'sample_user', name: 'Sample User'),
+  );
 }
 
 class _FakeUserProfileDataSource implements UserProfileDataSource {
@@ -244,8 +284,7 @@ class _FakeUserProfileDataSource implements UserProfileDataSource {
   Future<ResponseWithCacheHints<UserProfile>> fetchUserProfile(
     AuthSession session,
     String userId,
-  ) async =>
-      throw UnimplementedError();
+  ) async => throw UnimplementedError();
 
   @override
   Future<ResponseWithCacheHints<List<Note>>> fetchUserNotes(
@@ -258,8 +297,7 @@ class _FakeUserProfileDataSource implements UserProfileDataSource {
     bool withChannelNotes = true,
     bool allowPartial = false,
     String? untilId,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 }
 
 class _FakeTimelineDataSource implements TimelineDataSource {
@@ -268,6 +306,7 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   final Exception? renoteError;
   final List<(String noteId, String reaction)> reactionCalls = [];
   final List<String> renoteCalls = [];
+  final List<String> favoriteCalls = [];
 
   @override
   Future<void> createReaction(
@@ -290,18 +329,24 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }
 
   @override
+  Future<void> createFavorite(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    favoriteCalls.add(noteId);
+  }
+
+  @override
   Future<ResponseWithCacheHints<Note>> fetchNote(
     AuthSession session,
     String noteId,
-  ) async =>
-      ResponseWithCacheHints(data: _note(id: noteId));
+  ) async => ResponseWithCacheHints(data: _note(id: noteId));
 
   @override
   Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,
-  }) async =>
-      const ResponseWithCacheHints(data: <Note>[]);
+  }) async => const ResponseWithCacheHints(data: <Note>[]);
 
   @override
   TimelineConnection openConnection(AuthSession session) =>

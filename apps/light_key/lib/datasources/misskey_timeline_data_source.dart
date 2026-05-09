@@ -39,6 +39,18 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
+  Future<void> createFavorite(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/notes/favorites/create',
+      body: {'i': session.accessToken, 'noteId': noteId},
+    );
+  }
+
+  @override
   Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,

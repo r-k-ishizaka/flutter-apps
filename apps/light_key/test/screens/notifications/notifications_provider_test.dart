@@ -54,7 +54,6 @@ void main() {
     });
 
     test('純粋リノートでは元ノートにリアクションを送信する', () async {
-
       final pureRenote = Note(
         id: 'wrapper',
         text: '',
@@ -93,12 +92,17 @@ void main() {
     test('未認証時はエラーメッセージを返す', () async {
       final timelineDataSource = _FakeTimelineDataSource();
       final provider = NotificationsProvider(
-        authRepository: _FakeAuthRepository(const [Success<AuthSession?>(null)]),
+        authRepository: _FakeAuthRepository(const [
+          Success<AuthSession?>(null),
+        ]),
         notificationRepository: _FakeNotificationRepository(const []),
         timelineRepository: TimelineRepository(timelineDataSource),
       );
 
-      final reactionMessage = await provider.createReaction(_note(id: 'note-1'), '👍');
+      final reactionMessage = await provider.createReaction(
+        _note(id: 'note-1'),
+        '👍',
+      );
       final renoteMessage = await provider.createRenote(_note(id: 'note-1'));
 
       expect(reactionMessage, '先に認証してください。');
@@ -140,10 +144,7 @@ void main() {
       loaded = _loadedState(provider);
       expect(loaded.notifications.map((e) => e.id), ['n1', 'n2']);
       expect(loaded.hasMore, isFalse);
-      expect(
-        notificationRepository.untilIds,
-        [null, 'n1', 'n2'],
-      );
+      expect(notificationRepository.untilIds, [null, 'n1', 'n2']);
     });
 
     test('追加取得で重複した通知はマージ時に除外する', () async {
@@ -216,7 +217,11 @@ Note _note({required String id, String text = 'hello'}) {
     id: id,
     text: text,
     createdAt: DateTime(2026, 5, 8, 12),
-    user: const User(id: 'user-1', username: 'sample_user', name: 'Sample User'),
+    user: const User(
+      id: 'user-1',
+      username: 'sample_user',
+      name: 'Sample User',
+    ),
   );
 }
 
@@ -281,6 +286,7 @@ class _FakeNotificationRepository implements NotificationRepository {
 class _FakeTimelineDataSource implements TimelineDataSource {
   final List<(String noteId, String reaction)> reactionCalls = [];
   final List<String> renoteCalls = [];
+  final List<String> favoriteCalls = [];
 
   @override
   Future<void> createReaction(
@@ -297,6 +303,14 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     required String noteId,
   }) async {
     renoteCalls.add(noteId);
+  }
+
+  @override
+  Future<void> createFavorite(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    favoriteCalls.add(noteId);
   }
 
   @override
