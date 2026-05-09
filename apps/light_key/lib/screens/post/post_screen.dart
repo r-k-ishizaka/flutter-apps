@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:light_key/screens/post/post_screen_param.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
@@ -7,6 +8,7 @@ import '../../models/user.dart';
 import '../../screens/auth/auth_provider.dart';
 import '../../services/emoji_cache.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
+import '../../widgets/emoji_text.dart';
 import '../../widgets/timeline_note_item.dart';
 import 'post_effect_state.dart';
 import 'post_provider.dart';
@@ -69,20 +71,12 @@ extension on PostVisibility {
 class PostScreen extends HookWidget {
   const PostScreen({
     super.key,
+    this.param = const PostScreenParam.normal(),
     this.pickReaction = showReactionPickerSheet,
-    this.replyToId,
-    this.replyToUserName,
-    this.replyToDisplayName,
-    this.replyToText,
-    this.replyToAvatarUrl,
   });
 
+  final PostScreenParam param;
   final ReactionPickerLauncher pickReaction;
-  final String? replyToId;
-  final String? replyToUserName;
-  final String? replyToDisplayName;
-  final String? replyToText;
-  final String? replyToAvatarUrl;
   static final RegExp _emojiQueryPattern = RegExp(r'^[a-zA-Z0-9_.-]*$');
   static const EdgeInsets _textFieldContentPadding = EdgeInsets.symmetric(
     horizontal: 12,
@@ -266,10 +260,14 @@ class PostScreen extends HookWidget {
     TextEditingController bodyTextController,
     String? cw,
     String? replyId,
+    String? renoteId,
   ) async {
-    await context
-        .read<PostProvider>()
-        .submit(text: bodyTextController.text, cw: cw, replyId: replyId);
+    await context.read<PostProvider>().submit(
+      text: bodyTextController.text,
+      cw: cw,
+      replyId: replyId,
+      renoteId: renoteId,
+    );
   }
 
   Future<void> _showVisibilityPicker(BuildContext context) async {
@@ -359,19 +357,7 @@ class PostScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasReplyContext = replyToId != null && replyToId!.isNotEmpty;
-    final normalizedReplyUserName =
-        replyToUserName == null || replyToUserName!.trim().isEmpty
-        ? 'unknown'
-        : replyToUserName!.trim();
-    final normalizedReplyDisplayName =
-        replyToDisplayName == null || replyToDisplayName!.trim().isEmpty
-        ? normalizedReplyUserName
-        : replyToDisplayName!.trim();
-    final normalizedReplyText =
-        replyToText == null || replyToText!.trim().isEmpty
-        ? ''
-        : replyToText!.trim();
+    final param = this.param;
     final bodyTextController = useTextEditingController();
     final cwTextController = useTextEditingController();
     final bodyTextValue = useValueListenable(bodyTextController);
@@ -398,8 +384,7 @@ class PostScreen extends HookWidget {
         ? cwTextController
         : bodyTextController;
     final activeFocusNode = cwFocusNode.hasFocus ? cwFocusNode : bodyFocusNode;
-    final activeTextFieldAnchorKey =
-        cwFocusNode.hasFocus && isCwEnabled.value
+    final activeTextFieldAnchorKey = cwFocusNode.hasFocus && isCwEnabled.value
         ? cwTextFieldAnchorKey
         : bodyTextFieldAnchorKey;
     final activeTextValue = activeTextController.value;
@@ -414,7 +399,9 @@ class PostScreen extends HookWidget {
     }
 
     void selectEmojiSuggestion(_EmojiSuggestionItem item) {
-      final latestQuery = _detectEmojiSuggestionQuery(activeTextController.value);
+      final latestQuery = _detectEmojiSuggestionQuery(
+        activeTextController.value,
+      );
       if (latestQuery == null) return;
 
       activeTextController.value = _replaceTextRange(
@@ -684,7 +671,8 @@ class PostScreen extends HookWidget {
 
     // ログイン中のユーザー情報を取得してプレビューに使用
     final authProvider = context.watch<AuthProvider>();
-    final currentUser = authProvider.currentUser ??
+    final currentUser =
+        authProvider.currentUser ??
         const User(id: 'post-preview-user', username: 'you', name: 'あなた');
 
     final previewNote = Note(
@@ -693,19 +681,32 @@ class PostScreen extends HookWidget {
       cw: isCwEnabled.value ? cwTextValue.text : null,
       createdAt: previewCreatedAt,
       user: currentUser,
-      reply: hasReplyContext
-          ? Note(
-              id: 'post-preview-reply',
-              text: normalizedReplyText,
-              createdAt: previewCreatedAt,
-              user: User(
-                id: 'post-preview-reply-user',
-                username: normalizedReplyUserName,
-                name: normalizedReplyDisplayName,
-                avatarUrl: replyToAvatarUrl ?? '',
-              ),
-            )
-          : null,
+      reply: param.mapOrNull(
+        reply: (ctx) => Note(
+          id: 'post-preview-reply',
+          text: ctx.text,
+          createdAt: previewCreatedAt,
+          user: User(
+            id: 'post-preview-reply-user',
+            username: ctx.userName,
+            name: ctx.displayName,
+            avatarUrl: ctx.avatarUrl ?? '',
+          ),
+        ),
+      ),
+      renote: param.mapOrNull(
+        quote: (ctx) => Note(
+          id: 'post-preview-renote',
+          text: ctx.text,
+          createdAt: previewCreatedAt,
+          user: User(
+            id: 'post-preview-renote-user',
+            username: ctx.userName,
+            name: ctx.displayName,
+            avatarUrl: ctx.avatarUrl ?? '',
+          ),
+        ),
+      ),
     );
 
     return Scaffold(
@@ -740,7 +741,8 @@ class PostScreen extends HookWidget {
                     context,
                     bodyTextController,
                     isCwEnabled.value ? cwTextController.text : null,
-                    hasReplyContext ? replyToId : null,
+                    param.mapOrNull(reply: (ctx) => ctx.targetId),
+                    param.mapOrNull(quote: (ctx) => ctx.targetId),
                   ),
             child: state is PostScreenStateSubmitting
                 ? const SizedBox(
@@ -755,12 +757,16 @@ class PostScreen extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (hasReplyContext)
-            _ReplyTargetCard(
-              userName: replyToUserName,
-              text: replyToText,
+          if (param is PostScreenParamReply)
+            _ReplyTargetCard(userName: param.userName, text: param.text),
+          if (param is PostScreenParamReply) const SizedBox(height: 12),
+          if (param is PostScreenParamQuote)
+            _RenoteTargetCard(
+              userName: param.userName,
+              text: param.text,
+              emojis: emojiEntries,
             ),
-          if (hasReplyContext) const SizedBox(height: 12),
+          if (param is PostScreenParamQuote) const SizedBox(height: 12),
           if (isCwEnabled.value)
             Container(
               key: cwTextFieldAnchorKey,
@@ -846,20 +852,14 @@ class PostScreen extends HookWidget {
 }
 
 class _ReplyTargetCard extends StatelessWidget {
-  const _ReplyTargetCard({this.userName, this.text});
+  const _ReplyTargetCard({required this.userName, required this.text});
 
-  final String? userName;
-  final String? text;
+  final String userName;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final normalizedUserName = (userName == null || userName!.trim().isEmpty)
-        ? null
-        : userName!.trim();
-    final normalizedText = (text == null || text!.trim().isEmpty)
-        ? '(本文なし)'
-        : text!.trim();
 
     return Container(
       key: const ValueKey('post-reply-target-card'),
@@ -881,19 +881,79 @@ class _ReplyTargetCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  normalizedUserName == null
-                      ? '返信先'
-                      : '返信先: @$normalizedUserName',
+                  '返信先: @$userName',
                   key: const ValueKey('post-reply-target-user'),
                   style: theme.textTheme.labelLarge,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  normalizedText,
+                  text.isEmpty ? '(本文なし)' : text,
                   key: const ValueKey('post-reply-target-text'),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RenoteTargetCard extends StatelessWidget {
+  const _RenoteTargetCard({
+    required this.userName,
+    required this.text,
+    required this.emojis,
+  });
+
+  final String userName;
+  final String text;
+  final Map<String, EmojiCacheEntry> emojis;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      key: const ValueKey('post-renote-target-card'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.format_quote, size: 18),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                EmojiText(
+                  '引用元: @$userName',
+                  emojis: emojis,
+                  key: const ValueKey('post-renote-target-user'),
+                  style: theme.textTheme.labelLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  emojiSize: 16,
+                ),
+                const SizedBox(height: 4),
+                EmojiText(
+                  text.isEmpty ? '(本文なし)' : text,
+                  emojis: emojis,
+                  key: const ValueKey('post-renote-target-text'),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                  emojiSize: 16,
                 ),
               ],
             ),

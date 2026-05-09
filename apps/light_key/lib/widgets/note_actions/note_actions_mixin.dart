@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../../models/note.dart';
 import '../../models/note_type.dart';
+import '../../route/app_routes.dart';
+import '../../screens/post/post_screen_param.dart';
 import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
@@ -95,5 +97,26 @@ mixin NoteActionsMixin {
       return note.cw!;
     }
     return note.text;
+  }
+
+  /// 引用リノート画面へ遷移する。
+  /// 純粋リノートの場合は元ノートを引用する。
+  @protected
+  Future<String?> navigateToQuoteRenote(Note note) async {
+    final targetNote = getReplyTargetNote(note);
+    final renoteId = getReplyTargetId(note);
+    if (renoteId.isEmpty) {
+      return null;
+    }
+
+    return PostRoute(
+      $extra: PostScreenParam.quote(
+        targetId: renoteId,
+        userName: targetNote.user.username,
+        displayName: targetNote.user.name,
+        text: getReplyPreviewText(targetNote),
+        avatarUrl: targetNote.user.avatarUrl,
+      ),
+    ).push<String>(context);
   }
 }

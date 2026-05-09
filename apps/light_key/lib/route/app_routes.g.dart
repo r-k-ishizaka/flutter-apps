@@ -205,43 +205,28 @@ RouteBase get $postRoute =>
     GoRouteData.$route(path: '/post', factory: $PostRoute._fromState);
 
 mixin $PostRoute on GoRouteData {
-  static PostRoute _fromState(GoRouterState state) => PostRoute(
-    replyToId: state.uri.queryParameters['reply-to-id'],
-    replyToUserName: state.uri.queryParameters['reply-to-user-name'],
-    replyToDisplayName: state.uri.queryParameters['reply-to-display-name'],
-    replyToText: state.uri.queryParameters['reply-to-text'],
-    replyToAvatarUrl: state.uri.queryParameters['reply-to-avatar-url'],
-  );
+  static PostRoute _fromState(GoRouterState state) =>
+      PostRoute($extra: state.extra as PostScreenParam?);
 
   PostRoute get _self => this as PostRoute;
 
   @override
-  String get location => GoRouteData.$location(
-    '/post',
-    queryParams: {
-      if (_self.replyToId != null) 'reply-to-id': _self.replyToId,
-      if (_self.replyToUserName != null)
-        'reply-to-user-name': _self.replyToUserName,
-      if (_self.replyToDisplayName != null)
-        'reply-to-display-name': _self.replyToDisplayName,
-      if (_self.replyToText != null) 'reply-to-text': _self.replyToText,
-      if (_self.replyToAvatarUrl != null)
-        'reply-to-avatar-url': _self.replyToAvatarUrl,
-    },
-  );
+  String get location => GoRouteData.$location('/post');
 
   @override
-  void go(BuildContext context) => context.go(location);
+  void go(BuildContext context) => context.go(location, extra: _self.$extra);
 
   @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+  Future<T?> push<T>(BuildContext context) =>
+      context.push<T>(location, extra: _self.$extra);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
+      context.pushReplacement(location, extra: _self.$extra);
 
   @override
-  void replace(BuildContext context) => context.replace(location);
+  void replace(BuildContext context) =>
+      context.replace(location, extra: _self.$extra);
 }
 
 RouteBase get $settingsRoute =>

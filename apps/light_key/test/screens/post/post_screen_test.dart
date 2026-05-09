@@ -10,10 +10,12 @@ import 'package:light_key/models/user.dart';
 import 'package:light_key/repositories/auth_repository.dart';
 import 'package:light_key/repositories/post_repository.dart';
 import 'package:light_key/screens/auth/auth_provider.dart';
+import 'package:light_key/screens/post/post_screen_param.dart';
 import 'package:light_key/screens/post/post_provider.dart';
 import 'package:light_key/screens/post/post_screen.dart';
 import 'package:light_key/screens/post/post_screen_state.dart';
 import 'package:light_key/services/emoji_cache.dart';
+import 'package:light_key/widgets/emoji_text.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -36,11 +38,7 @@ void main() {
     required ReactionPickerLauncher pickReaction,
     AuthDataSource? authDataSource,
     PostDataSource? postDataSource,
-    String? replyToId,
-    String? replyToUserName,
-    String? replyToDisplayName,
-    String? replyToText,
-    String? replyToAvatarUrl,
+    PostScreenParam param = const PostScreenParam.normal(),
   }) {
     final authRepository = AuthRepository(authDataSource ?? _FakeAuthDataSource());
 
@@ -60,11 +58,7 @@ void main() {
       child: MaterialApp(
         home: PostScreen(
           pickReaction: pickReaction,
-          replyToId: replyToId,
-          replyToUserName: replyToUserName,
-          replyToDisplayName: replyToDisplayName,
-          replyToText: replyToText,
-          replyToAvatarUrl: replyToAvatarUrl,
+          param: param,
         ),
       ),
     );
@@ -215,11 +209,13 @@ void main() {
           ),
         ),
         postDataSource: postDataSource,
-        replyToId: 'note-42',
-        replyToUserName: 'alice',
-        replyToDisplayName: 'Alice',
-        replyToText: '返信元ノートです',
-        replyToAvatarUrl: 'https://example.com/alice.png',
+        param: const PostScreenParam.reply(
+          targetId: 'note-42',
+          userName: 'alice',
+          displayName: 'Alice',
+          text: '返信元ノートです',
+          avatarUrl: 'https://example.com/alice.png',
+        ),
       ),
     );
 
@@ -261,6 +257,44 @@ void main() {
 
     expect(postDataSource.lastText, 'リプライ本文');
     expect(postDataSource.lastReplyId, 'note-42');
+  });
+
+  testWidgets('引用コンテキストがある場合は引用元ノートをEmojiTextで表示して renoteId を送信する', (tester) async {
+    final postDataSource = _RecordingPostDataSource();
+
+    await tester.pumpWidget(
+      buildTestApp(
+        pickReaction: (_) async => null,
+        authDataSource: _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+        postDataSource: postDataSource,
+        param: const PostScreenParam.quote(
+          targetId: 'note-99',
+          userName: 'alice',
+          displayName: 'Alice',
+          text: '引用元 :smile: ノート',
+          avatarUrl: 'https://example.com/alice.png',
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('post-renote-target-card')), findsOneWidget);
+
+    final renoteText = tester.widget<EmojiText>(
+      find.byKey(const ValueKey('post-renote-target-text')),
+    );
+    expect(renoteText.text, '引用元 :smile: ノート');
+
+    await tester.enterText(find.byType(TextField).first, '引用リノート本文');
+    await tester.tap(find.byKey(const ValueKey('post-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(postDataSource.lastText, '引用リノート本文');
+    expect(postDataSource.lastRenoteId, 'note-99');
   });
 
   testWidgets('CWトグルでCW入力欄を表示し本文欄は維持される', (tester) async {
@@ -456,6 +490,7 @@ class _FakePostDataSource implements PostDataSource {
     PostVisibility visibility,
     bool isFederated, {
     String? replyId,
+    String? renoteId,
   }) async => const ResponseWithCacheHints(data: <String, dynamic>{});
 }
 
@@ -463,6 +498,7 @@ class _RecordingPostDataSource implements PostDataSource {
   String? lastText;
   String? lastCw;
   String? lastReplyId;
+  String? lastRenoteId;
   PostVisibility? lastVisibility;
   bool? lastIsFederated;
 
@@ -474,10 +510,12 @@ class _RecordingPostDataSource implements PostDataSource {
     PostVisibility visibility,
     bool isFederated, {
     String? replyId,
+    String? renoteId,
   }) async {
     lastText = text;
     lastCw = cw;
     lastReplyId = replyId;
+    lastRenoteId = renoteId;
     lastVisibility = visibility;
     lastIsFederated = isFederated;
     return const ResponseWithCacheHints(data: <String, dynamic>{});

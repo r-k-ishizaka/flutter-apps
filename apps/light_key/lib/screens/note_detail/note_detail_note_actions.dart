@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/note.dart';
 import '../../models/user.dart';
 import '../../route/app_routes.dart';
+import '../../screens/post/post_screen_param.dart';
 import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/note_actions/note_actions.dart';
@@ -51,11 +52,13 @@ class NoteDetailNoteActions with NoteActionsMixin implements NoteActions {
     }
 
     final message = await PostRoute(
-      replyToId: replyToId,
-      replyToUserName: targetNote.user.username,
-      replyToDisplayName: targetNote.user.name,
-      replyToText: getReplyPreviewText(targetNote),
-      replyToAvatarUrl: targetNote.user.avatarUrl,
+      $extra: PostScreenParam.reply(
+        targetId: replyToId,
+        userName: targetNote.user.username,
+        displayName: targetNote.user.name,
+        text: getReplyPreviewText(targetNote),
+        avatarUrl: targetNote.user.avatarUrl,
+      ),
     ).push<String>(context);
 
     if (!context.mounted || message == null || message.isEmpty) return;
@@ -74,7 +77,9 @@ class NoteDetailNoteActions with NoteActionsMixin implements NoteActions {
         showSnackBar(message ?? 'リノートしました。');
         return;
       case RenoteAction.quote:
-        showComingSoon('引用');
+        final message = await navigateToQuoteRenote(note);
+        if (!context.mounted || message == null || message.isEmpty) return;
+        showSnackBar(message);
         return;
     }
   }

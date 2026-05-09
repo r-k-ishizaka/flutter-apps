@@ -67,7 +67,12 @@ class PostProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submit({required String text, String? cw, String? replyId}) async {
+  Future<void> submit({
+    required String text,
+    String? cw,
+    String? replyId,
+    String? renoteId,
+  }) async {
     final normalizedText = text.trim();
     final normalizedCw = cw?.trim();
 
@@ -100,6 +105,7 @@ class PostProvider extends ChangeNotifier {
           _visibility,
           _isFederated,
           replyId: replyId,
+          renoteId: renoteId,
         );
         postResult.when(
           success: (_) {

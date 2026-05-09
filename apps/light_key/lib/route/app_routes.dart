@@ -15,6 +15,7 @@ import '../screens/note_detail/note_detail_provider.dart';
 import '../screens/note_detail/note_detail_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/post/post_screen.dart';
+import '../screens/post/post_screen_param.dart';
 import '../screens/profile/profile_provider.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/settings/settings_provider.dart';
@@ -145,19 +146,9 @@ class AuthRoute extends GoRouteData with $AuthRoute {
 @TypedGoRoute<PostRoute>(path: '/post')
 @immutable
 class PostRoute extends GoRouteData with $PostRoute {
-  const PostRoute({
-    this.replyToId,
-    this.replyToUserName,
-    this.replyToDisplayName,
-    this.replyToText,
-    this.replyToAvatarUrl,
-  });
+  const PostRoute({this.$extra});
 
-  final String? replyToId;
-  final String? replyToUserName;
-  final String? replyToDisplayName;
-  final String? replyToText;
-  final String? replyToAvatarUrl;
+  final PostScreenParam? $extra;
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) =>
@@ -166,13 +157,7 @@ class PostRoute extends GoRouteData with $PostRoute {
         fullscreenDialog: true,
         transitionDuration: const Duration(milliseconds: 240),
         reverseTransitionDuration: const Duration(milliseconds: 200),
-        child: PostScreen(
-          replyToId: replyToId,
-          replyToUserName: replyToUserName,
-          replyToDisplayName: replyToDisplayName,
-          replyToText: replyToText,
-          replyToAvatarUrl: replyToAvatarUrl,
-        ),
+        child: PostScreen(param: $extra ?? const PostScreenParam.normal()),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final curvedAnimation = CurvedAnimation(
             parent: animation,
@@ -250,9 +235,7 @@ class NoteDetailRoute extends GoRouteData with $NoteDetailRoute {
 @TypedGoRoute<ImageViewerRoute>(path: '/image-viewer/:initialIndex')
 @immutable
 class ImageViewerRoute extends GoRouteData with $ImageViewerRoute {
-  const ImageViewerRoute({
-    required this.initialIndex,
-  });
+  const ImageViewerRoute({required this.initialIndex});
 
   final int initialIndex;
 
@@ -271,10 +254,7 @@ class ImageViewerRoute extends GoRouteData with $ImageViewerRoute {
       reverseTransitionDuration: const Duration(milliseconds: 180),
       transitionsBuilder: (context, animation, secondaryAnimation, child) =>
           child,
-      child: ImageViewerScreen(
-        files: files,
-        initialIndex: safeInitialIndex,
-      ),
+      child: ImageViewerScreen(files: files, initialIndex: safeInitialIndex),
     );
   }
 }

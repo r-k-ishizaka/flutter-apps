@@ -19,6 +19,7 @@ class PostRepository {
     PostVisibility visibility,
     bool isFederated, {
     String? replyId,
+    String? renoteId,
   }) async {
     try {
       final response = await _dataSource.createPost(
@@ -28,6 +29,7 @@ class PostRepository {
         visibility,
         isFederated,
         replyId: replyId,
+        renoteId: renoteId,
       );
       if (_emojiRepository != null && response.emojisToCache.isNotEmpty) {
         await _emojiRepository.cacheEmojiHints(response.emojisToCache);

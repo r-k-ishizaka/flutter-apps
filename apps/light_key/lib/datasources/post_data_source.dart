@@ -10,5 +10,6 @@ abstract interface class PostDataSource {
     PostVisibility visibility,
     bool isFederated, {
     String? replyId,
+    String? renoteId,
   });
 }
