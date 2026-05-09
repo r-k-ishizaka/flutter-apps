@@ -6,6 +6,7 @@ import '../../models/misskey_notification.dart';
 import '../../models/user.dart';
 import '../../services/emoji_cache.dart';
 import '../../widgets/emoji_text.dart';
+import '../../widgets/note_actions/note_actions.dart';
 import '../../widgets/timeline_note_item.dart';
 
 /// 通知一覧の個別アイテム Widget
@@ -13,21 +14,17 @@ class NotificationItem extends StatelessWidget {
   const NotificationItem({
     required this.notification,
     required this.emojis,
+    this.actions,
     this.onUserTap,
     this.onNoteTap,
-    this.onReply,
-    this.onRenote,
-    this.onReaction,
     super.key,
   });
 
   final MisskeyNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
+  final NoteActions? actions;
   final ValueChanged<User>? onUserTap;
   final ValueChanged<String>? onNoteTap;
-  final VoidCallback? onReply;
-  final VoidCallback? onRenote;
-  final VoidCallback? onReaction;
 
   @override
   Widget build(BuildContext context) {
@@ -40,20 +37,12 @@ class NotificationItem extends StatelessWidget {
       final ReplyNotification n => _ReplyItem(
         notification: n,
         emojis: emojis,
-        onUserTap: onUserTap,
-        onNoteTap: onNoteTap,
-        onReply: onReply,
-        onRenote: onRenote,
-        onReaction: onReaction,
+        actions: actions,
       ),
       final MentionNotification n => _MentionItem(
         notification: n,
         emojis: emojis,
-        onUserTap: onUserTap,
-        onNoteTap: onNoteTap,
-        onReply: onReply,
-        onRenote: onRenote,
-        onReaction: onReaction,
+        actions: actions,
       ),
       final RenoteNotification n => _RenoteItem(
         notification: n,
@@ -64,11 +53,7 @@ class NotificationItem extends StatelessWidget {
       final QuoteNotification n => _QuoteItem(
         notification: n,
         emojis: emojis,
-        onUserTap: onUserTap,
-        onNoteTap: onNoteTap,
-        onReply: onReply,
-        onRenote: onRenote,
-        onReaction: onReaction,
+        actions: actions,
       ),
       final ReactionNotification n => _ReactionItem(
         notification: n,
@@ -179,20 +164,12 @@ class _ReplyItem extends StatelessWidget {
   const _ReplyItem({
     required this.notification,
     required this.emojis,
-    this.onUserTap,
-    this.onNoteTap,
-    this.onReply,
-    this.onRenote,
-    this.onReaction,
+    this.actions,
   });
 
   final ReplyNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
-  final ValueChanged<User>? onUserTap;
-  final ValueChanged<String>? onNoteTap;
-  final VoidCallback? onReply;
-  final VoidCallback? onRenote;
-  final VoidCallback? onReaction;
+  final NoteActions? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -200,10 +177,7 @@ class _ReplyItem extends StatelessWidget {
       note: notification.note,
       animation: kAlwaysCompleteAnimation,
       emojis: emojis,
-      onUserTap: onUserTap,
-      onReply: onReply,
-      onRenote: onRenote,
-      onReaction: onReaction,
+      actions: actions,
     );
   }
 }
@@ -215,20 +189,12 @@ class _MentionItem extends StatelessWidget {
   const _MentionItem({
     required this.notification,
     required this.emojis,
-    this.onUserTap,
-    this.onNoteTap,
-    this.onReply,
-    this.onRenote,
-    this.onReaction,
+    this.actions,
   });
 
   final MentionNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
-  final ValueChanged<User>? onUserTap;
-  final ValueChanged<String>? onNoteTap;
-  final VoidCallback? onReply;
-  final VoidCallback? onRenote;
-  final VoidCallback? onReaction;
+  final NoteActions? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -236,10 +202,7 @@ class _MentionItem extends StatelessWidget {
       note: notification.note,
       animation: kAlwaysCompleteAnimation,
       emojis: emojis,
-      onUserTap: onUserTap,
-      onReply: onReply,
-      onRenote: onRenote,
-      onReaction: onReaction,
+      actions: actions,
     );
   }
 }
@@ -298,20 +261,12 @@ class _QuoteItem extends StatelessWidget {
   const _QuoteItem({
     required this.notification,
     required this.emojis,
-    this.onUserTap,
-    this.onNoteTap,
-    this.onReply,
-    this.onRenote,
-    this.onReaction,
+    this.actions,
   });
 
   final QuoteNotification notification;
   final Map<String, EmojiCacheEntry> emojis;
-  final ValueChanged<User>? onUserTap;
-  final ValueChanged<String>? onNoteTap;
-  final VoidCallback? onReply;
-  final VoidCallback? onRenote;
-  final VoidCallback? onReaction;
+  final NoteActions? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -319,10 +274,7 @@ class _QuoteItem extends StatelessWidget {
       note: notification.note,
       animation: kAlwaysCompleteAnimation,
       emojis: emojis,
-      onUserTap: onUserTap,
-      onReply: onReply,
-      onRenote: onRenote,
-      onReaction: onReaction,
+      actions: actions,
     );
   }
 }

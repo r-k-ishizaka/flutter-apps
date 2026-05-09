@@ -55,6 +55,7 @@ class LightKeyApp extends StatelessWidget {
           create: (_) => NotificationsProvider(
             authRepository: getIt<AuthRepository>(),
             notificationRepository: getIt<NotificationRepository>(),
+            timelineRepository: getIt<TimelineRepository>(),
           ),
         ),
       ],

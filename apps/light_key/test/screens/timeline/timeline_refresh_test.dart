@@ -16,6 +16,7 @@ import 'package:light_key/screens/timeline/timeline_provider.dart';
 import 'package:light_key/screens/timeline/timeline_screen_state.dart';
 import 'package:light_key/services/emoji_cache.dart';
 import 'package:light_key/widgets/emoji_text.dart';
+import 'package:light_key/widgets/note_actions/note_actions.dart';
 import 'package:light_key/widgets/note_reaction_list.dart';
 import 'package:light_key/widgets/timeline_list.dart';
 
@@ -433,18 +434,14 @@ void main() {
 
   group('TimelineList refresh feedback', () {
     testWidgets('本文絵文字をタップするとノートと絵文字が渡される', (tester) async {
-      Note? tappedNote;
-      String? tappedEmoji;
+      final mockActions = _MockNoteActions();
 
       await tester.pumpWidget(
         MaterialApp(
           home: TimelineList(
             notes: [_note(id: 'note-1', text: 'hello :custom:')],
             emojis: getIt<EmojiCache>().entries,
-            onNoteBodyEmojiTap: (note, emoji) {
-              tappedNote = note;
-              tappedEmoji = emoji;
-            },
+            actions: mockActions,
           ),
         ),
       );
@@ -454,14 +451,12 @@ void main() {
       );
       await tester.pump();
 
-      expect(tappedNote?.id, 'note-1');
-      expect(tappedEmoji, ':custom:');
+      expect(mockActions.lastTappedNote?.id, 'note-1');
+      expect(mockActions.lastTappedEmoji, ':custom:');
     });
 
     testWidgets('表示中のリアクションをタップすると送信コールバックが呼ばれる', (tester) async {
-      Note? tappedNote;
-      String? tappedReaction;
-
+      final mockActions = _MockNoteActions();
       final noteWithReaction = _note(
         id: 'note-1',
       ).copyWith(reactions: const {'👍': 2});
@@ -471,10 +466,7 @@ void main() {
           home: TimelineList(
             notes: [noteWithReaction],
             emojis: getIt<EmojiCache>().entries,
-            onNoteReactionChipTap: (note, reaction) {
-              tappedNote = note;
-              tappedReaction = reaction;
-            },
+            actions: mockActions,
           ),
         ),
       );
@@ -482,19 +474,19 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('reaction-chip-👍')));
       await tester.pump();
 
-      expect(tappedNote?.id, 'note-1');
-      expect(tappedReaction, '👍');
+      expect(mockActions.lastTappedNote?.id, 'note-1');
+      expect(mockActions.lastTappedReaction, '👍');
     });
 
     testWidgets('ノート本体タップでコールバックが呼ばれる', (tester) async {
-      Note? tappedNote;
+      final mockActions = _MockNoteActions();
 
       await tester.pumpWidget(
         MaterialApp(
           home: TimelineList(
             notes: [_note(id: 'note-1', text: 'note body')],
             emojis: getIt<EmojiCache>().entries,
-            onNoteTap: (note) => tappedNote = note,
+            actions: mockActions,
           ),
         ),
       );
@@ -502,7 +494,7 @@ void main() {
       await tester.tap(find.text('note body'));
       await tester.pump();
 
-      expect(tappedNote?.id, 'note-1');
+      expect(mockActions.lastTappedNote?.id, 'note-1');
     });
 
     testWidgets('他サーバー絵文字のリアクションチップはタップできない', (tester) async {
@@ -777,6 +769,29 @@ void main() {
       expect(find.byKey(const ValueKey('reaction-chip-:e17:')), findsNothing);
       expect(find.text('もっと見る'), findsOneWidget);
     });
+
+    testWidgets('引用ノート部分をタップすると引用元ノートが渡される', (tester) async {
+      final mockActions = _MockNoteActions();
+      final quoted = _note(id: 'quoted-1', text: 'quoted body');
+      final quoteRenote = _note(id: 'quote-1', text: 'outer body').copyWith(
+        renote: quoted,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TimelineList(
+            notes: [quoteRenote],
+            emojis: getIt<EmojiCache>().entries,
+            actions: mockActions,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('quoted body'));
+      await tester.pump();
+
+      expect(mockActions.lastTappedNote?.id, 'quoted-1');
+    });
   });
 }
 
@@ -885,11 +900,53 @@ class _FakeTimelineConnection implements TimelineConnection {
   void disconnectChannel(String channelId) {}
 
   @override
-  Stream<dynamic> get messages => const Stream<dynamic>.empty();
-
-  @override
   void subscribeNote(String noteId) {}
 
   @override
   void unsubscribeNote(String noteId) {}
+
+  @override
+  Stream<dynamic> get messages => const Stream<dynamic>.empty();
+}
+
+/// テスト用のモックNoteActionsクラス
+class _MockNoteActions implements NoteActions {
+  Note? lastTappedNote;
+  String? lastTappedEmoji;
+  String? lastTappedReaction;
+  User? lastTappedUser;
+
+  @override
+  Future<void> onNoteTap(Note note) async {
+    lastTappedNote = note;
+  }
+
+  @override
+  Future<void> onReply(Note note) async {}
+
+  @override
+  Future<void> onRenote(Note note) async {}
+
+  @override
+  Future<void> onReaction(Note note) async {}
+
+  @override
+  Future<void> onReactionChipTap(Note note, String reaction) async {
+    lastTappedNote = note;
+    lastTappedReaction = reaction;
+  }
+
+  @override
+  Future<void> onUserTap(User user) async {
+    lastTappedUser = user;
+  }
+
+  @override
+  Future<void> onBodyEmojiTap(Note note, String emoji) async {
+    lastTappedNote = note;
+    lastTappedEmoji = emoji;
+  }
+
+  @override
+  Future<void> onReplyNoteTap(Note reply) async {}
 }

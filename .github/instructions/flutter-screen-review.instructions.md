@@ -23,6 +23,8 @@ applyTo:
 - 画面状態は Provider に集約され、UIは状態を監視して描画している。
 - 副作用（SnackBar/遷移/ダイアログ）は state 本体から分離されている。
 - `widgets/` 配下の再利用Widgetが直接遷移していない。
+- Actionsパターンを使う画面では、Screen 側で `useMemoized` により Actions インスタンスを管理している。
+- Actionsを毎buildで `XxxActions(...)` 直接生成していない（依存値変更時のみ再生成される）。
 
 3. ルーティング規約
 - `go_router_builder` の Typed Route（`@TypedGoRoute`）を使っている。

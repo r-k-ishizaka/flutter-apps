@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../models/note.dart';
-import '../models/user.dart';
 import '../services/emoji_cache.dart';
+import '../widgets/note_actions/note_actions.dart';
 import 'new_notes_banner.dart';
 import 'timeline_note_item.dart';
 
@@ -13,33 +13,19 @@ class TimelineList extends HookWidget {
   const TimelineList({
     required this.notes,
     required this.emojis,
+    this.actions,
     this.isRefreshing = false,
     this.message,
     this.onRefresh,
-    this.onNoteReply,
-    this.onNoteRenote,
-    this.onNoteReaction,
-    this.onNoteReactionChipTap,
-    this.onNoteUserTap,
-    this.onNoteBodyEmojiTap,
-    this.onNoteTap,
-    this.onReplyNoteTap,
     super.key,
   });
 
   final List<Note> notes;
   final Map<String, EmojiCacheEntry> emojis;
+  final NoteActions? actions;
   final bool isRefreshing;
   final String? message;
   final Future<void> Function()? onRefresh;
-  final void Function(Note note)? onNoteReply;
-  final void Function(Note note)? onNoteRenote;
-  final void Function(Note note)? onNoteReaction;
-  final void Function(Note note, String reaction)? onNoteReactionChipTap;
-  final void Function(Note note, User user)? onNoteUserTap;
-  final void Function(Note note, String emoji)? onNoteBodyEmojiTap;
-  final void Function(Note note)? onNoteTap;
-  final void Function(Note note)? onReplyNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -146,24 +132,7 @@ class TimelineList extends HookWidget {
                 note: note,
                 emojis: emojis,
                 animation: animation,
-                onTap: onNoteTap != null ? () => onNoteTap!(note) : null,
-                onReply: onNoteReply != null ? () => onNoteReply!(note) : null,
-                onRenote: onNoteRenote != null
-                    ? () => onNoteRenote!(note)
-                    : null,
-                onReaction: onNoteReaction != null
-                    ? () => onNoteReaction!(note)
-                    : null,
-                onReactionChipTap: onNoteReactionChipTap != null
-                    ? (reaction) => onNoteReactionChipTap!(note, reaction)
-                    : null,
-                onUserTap: onNoteUserTap != null
-                    ? (user) => onNoteUserTap!(note, user)
-                    : null,
-                onBodyEmojiTap: onNoteBodyEmojiTap != null
-                    ? (emoji) => onNoteBodyEmojiTap!(note, emoji)
-                    : null,
-                onReplyNoteTap: onReplyNoteTap,
+                actions: actions,
               );
             },
           ),

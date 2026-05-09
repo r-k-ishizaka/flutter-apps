@@ -8,6 +8,7 @@ import '../../models/user.dart';
 import '../../route/app_routes.dart';
 import '../../services/emoji_cache.dart';
 import 'notification_item.dart';
+import 'notifications_note_actions.dart';
 import 'notifications_provider.dart';
 import 'notifications_screen_state.dart';
 
@@ -26,6 +27,17 @@ class NotificationsScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<NotificationsProvider>();
+
+    // アクションをuseMemoizedで作成
+    final actions = useMemoized(
+      () => NotificationsNoteActions(
+        provider: provider,
+        context: context,
+      ),
+      [provider],
+    );
+
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final provider = context.read<NotificationsProvider>();
@@ -36,7 +48,7 @@ class NotificationsScreen extends HookWidget {
       return null;
     }, const []);
 
-    final state = context.watch<NotificationsProvider>().state;
+    final state = provider.state;
 
     return switch (state) {
       NotificationsScreenStateIdle() ||
@@ -57,10 +69,10 @@ class NotificationsScreen extends HookWidget {
           isLoadingMore: isLoadingMore,
           hasMore: hasMore,
           errorMessage: message,
+          actions: actions,
           onUserTap: (user) => _onUserTap(context, user),
-          onRefresh: () =>
-              context.read<NotificationsProvider>().fetch(showLoading: false),
-          onLoadMore: () => context.read<NotificationsProvider>().fetchMore(),
+          onRefresh: () => provider.fetch(showLoading: false),
+          onLoadMore: () => provider.fetchMore(),
           onNoteTap: (noteId) => _onNoteTap(context, noteId),
         ),
     };
@@ -74,6 +86,7 @@ class _NotificationList extends HookWidget {
     required this.hasMore,
     required this.onRefresh,
     required this.onLoadMore,
+    required this.actions,
     required this.onUserTap,
     required this.onNoteTap,
     this.errorMessage,
@@ -85,6 +98,7 @@ class _NotificationList extends HookWidget {
   final String? errorMessage;
   final Future<void> Function() onRefresh;
   final VoidCallback onLoadMore;
+  final NotificationsNoteActions actions;
   final ValueChanged<User> onUserTap;
   final ValueChanged<String> onNoteTap;
 
@@ -212,6 +226,7 @@ class _NotificationList extends HookWidget {
             return NotificationItem(
               notification: notifications[currentIndex],
               emojis: emojis,
+              actions: actions,
               onUserTap: onUserTap,
               onNoteTap: onNoteTap,
             );

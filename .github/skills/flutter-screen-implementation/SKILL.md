@@ -62,6 +62,8 @@ disable-model-invocation: false
    - `StatefulWidget` は使わない。
    - Provider の状態を監視してUIを切り替える。
    - Effect を監視して一度だけ副作用を実行する。
+   - Actionsパターンを使う場合は Screen 側で `useMemoized` により Actions インスタンスを管理する。
+   - `useMemoized` の依存配列には provider や route param など Actions の振る舞いに影響する値を含める。
    - 画面遷移は screen 側で行う。
    - `widgets/` 配下の再利用Widgetでは遷移を持たせず、コールバックで通知する。
 
@@ -102,6 +104,7 @@ dart run build_runner build --delete-conflicting-outputs
 - 画面は `HookWidget` で実装されている
 - 状態は Provider に集約され、UI が状態に従って再描画される
 - 副作用は state から分離されている（必要時のみ）
+- Actionsパターン利用時は Screen 側で `useMemoized` 管理され、毎buildで再生成していない
 - ルーティングは Typed Route API を利用している
 - 命名規則・ファイル構成が共通規約に準拠している
 - build_runner 生成物が最新である

@@ -1,10 +1,15 @@
 import 'package:core/models/result.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:light_key/datasources/timeline_connection.dart';
+import 'package:light_key/datasources/timeline_data_source.dart';
 import 'package:light_key/models/auth_session.dart';
 import 'package:light_key/models/misskey_notification.dart';
+import 'package:light_key/models/note.dart';
+import 'package:light_key/models/response_with_cache_hints.dart';
 import 'package:light_key/models/user.dart';
 import 'package:light_key/repositories/auth_repository.dart';
 import 'package:light_key/repositories/notification_repository.dart';
+import 'package:light_key/repositories/timeline_repository.dart';
 import 'package:light_key/screens/notifications/notifications_provider.dart';
 import 'package:light_key/screens/notifications/notifications_screen_state.dart';
 
@@ -13,6 +18,95 @@ void main() {
     baseUrl: 'https://misskey.example',
     accessToken: 'token-123',
   );
+
+  group('NotificationsProvider.createReaction / createRenote', () {
+    test('リアクションを送信し、通知内ノートの myReaction も更新する', () async {
+      final authRepository = _FakeAuthRepository([
+        const Success(session),
+        const Success(session),
+      ]);
+      final notificationRepository = _FakeNotificationRepository([
+        Success(<MisskeyNotification>[
+          ReplyNotification(
+            id: 'n1',
+            createdAt: DateTime(2026, 5, 8, 12),
+            user: const User(id: 'user-2', username: 'alice'),
+            note: _note(id: 'note-1'),
+          ),
+        ]),
+      ]);
+      final timelineDataSource = _FakeTimelineDataSource();
+      final provider = NotificationsProvider(
+        authRepository: authRepository,
+        notificationRepository: notificationRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+      final message = await provider.createReaction(_note(id: 'note-1'), '👍');
+
+      expect(message, isNull);
+      expect(timelineDataSource.reactionCalls, [('note-1', '👍')]);
+      final loaded = _loadedState(provider);
+      final notification = loaded.notifications.single as ReplyNotification;
+      expect(notification.note.myReaction, '👍');
+      expect(notification.note.reactions['👍'], 1);
+    });
+
+    test('純粋リノートでは元ノートにリアクションを送信する', () async {
+
+      final pureRenote = Note(
+        id: 'wrapper',
+        text: '',
+        createdAt: DateTime(2026, 5, 8, 12),
+        user: const User(id: 'user-2', username: 'alice'),
+        renote: _note(id: 'renoted-1'),
+      );
+
+      final timelineDataSource = _FakeTimelineDataSource();
+      final provider2 = NotificationsProvider(
+        authRepository: _FakeAuthRepository([const Success(session)]),
+        notificationRepository: _FakeNotificationRepository(const []),
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider2.createReaction(pureRenote, ':custom:');
+
+      expect(message, isNull);
+      expect(timelineDataSource.reactionCalls, [('renoted-1', ':custom:')]);
+    });
+
+    test('リノートを送信する', () async {
+      final timelineDataSource = _FakeTimelineDataSource();
+      final provider = NotificationsProvider(
+        authRepository: _FakeAuthRepository([const Success(session)]),
+        notificationRepository: _FakeNotificationRepository(const []),
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final message = await provider.createRenote(_note(id: 'note-1'));
+
+      expect(message, isNull);
+      expect(timelineDataSource.renoteCalls, ['note-1']);
+    });
+
+    test('未認証時はエラーメッセージを返す', () async {
+      final timelineDataSource = _FakeTimelineDataSource();
+      final provider = NotificationsProvider(
+        authRepository: _FakeAuthRepository(const [Success<AuthSession?>(null)]),
+        notificationRepository: _FakeNotificationRepository(const []),
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      final reactionMessage = await provider.createReaction(_note(id: 'note-1'), '👍');
+      final renoteMessage = await provider.createRenote(_note(id: 'note-1'));
+
+      expect(reactionMessage, '先に認証してください。');
+      expect(renoteMessage, '先に認証してください。');
+      expect(timelineDataSource.reactionCalls, isEmpty);
+      expect(timelineDataSource.renoteCalls, isEmpty);
+    });
+  });
 
   group('NotificationsProvider.fetchMore', () {
     test('初回取得が20件未満でも追加読み込みできる', () async {
@@ -29,6 +123,7 @@ void main() {
       final provider = NotificationsProvider(
         authRepository: authRepository,
         notificationRepository: notificationRepository,
+        timelineRepository: TimelineRepository(_FakeTimelineDataSource()),
       );
 
       await provider.fetch();
@@ -66,6 +161,7 @@ void main() {
       final provider = NotificationsProvider(
         authRepository: authRepository,
         notificationRepository: notificationRepository,
+        timelineRepository: TimelineRepository(_FakeTimelineDataSource()),
       );
 
       await provider.fetch();
@@ -87,6 +183,7 @@ void main() {
       final provider = NotificationsProvider(
         authRepository: authRepository,
         notificationRepository: notificationRepository,
+        timelineRepository: TimelineRepository(_FakeTimelineDataSource()),
       );
 
       await provider.fetch();
@@ -114,8 +211,20 @@ MisskeyNotification _notification(String id) {
   );
 }
 
+Note _note({required String id, String text = 'hello'}) {
+  return Note(
+    id: id,
+    text: text,
+    createdAt: DateTime(2026, 5, 8, 12),
+    user: const User(id: 'user-1', username: 'sample_user', name: 'Sample User'),
+  );
+}
+
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository(this._restoreSessionResults);
+  _FakeAuthRepository(List<Result<AuthSession?>> restoreSessionResults)
+    : _restoreSessionResults = List<Result<AuthSession?>>.from(
+        restoreSessionResults,
+      );
 
   final List<Result<AuthSession?>> _restoreSessionResults;
 
@@ -167,4 +276,69 @@ class _FakeNotificationRepository implements NotificationRepository {
     }
     return _results.removeAt(0);
   }
+}
+
+class _FakeTimelineDataSource implements TimelineDataSource {
+  final List<(String noteId, String reaction)> reactionCalls = [];
+  final List<String> renoteCalls = [];
+
+  @override
+  Future<void> createReaction(
+    AuthSession session, {
+    required String noteId,
+    required String reaction,
+  }) async {
+    reactionCalls.add((noteId, reaction));
+  }
+
+  @override
+  Future<void> createRenote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    renoteCalls.add(noteId);
+  }
+
+  @override
+  Future<ResponseWithCacheHints<Note>> fetchNote(
+    AuthSession session,
+    String noteId,
+  ) async => ResponseWithCacheHints(
+    data: Note(
+      id: noteId,
+      text: '',
+      createdAt: DateTime(2026, 5, 8, 12),
+      user: const User(id: 'user-1', username: 'user1'),
+    ),
+  );
+
+  @override
+  Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
+    AuthSession session, {
+    int limit = 20,
+  }) async => const ResponseWithCacheHints(data: <Note>[]);
+
+  @override
+  TimelineConnection openConnection(AuthSession session) =>
+      _FakeTimelineConnection();
+}
+
+class _FakeTimelineConnection implements TimelineConnection {
+  @override
+  Future<void> close() async {}
+
+  @override
+  void connectChannel(String channelId) {}
+
+  @override
+  void disconnectChannel(String channelId) {}
+
+  @override
+  Stream<dynamic> get messages => const Stream<dynamic>.empty();
+
+  @override
+  void subscribeNote(String noteId) {}
+
+  @override
+  void unsubscribeNote(String noteId) {}
 }

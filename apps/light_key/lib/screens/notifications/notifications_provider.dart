@@ -1,19 +1,25 @@
 import 'package:flutter/foundation.dart';
 
 import '../../models/misskey_notification.dart';
+import '../../models/note.dart';
+import '../../models/note_type.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/notification_repository.dart';
+import '../../repositories/timeline_repository.dart';
 import 'notifications_screen_state.dart';
 
 class NotificationsProvider extends ChangeNotifier {
   NotificationsProvider({
     required AuthRepository authRepository,
     required NotificationRepository notificationRepository,
+    required TimelineRepository timelineRepository,
   })  : _authRepository = authRepository,
-        _notificationRepository = notificationRepository;
+        _notificationRepository = notificationRepository,
+        _timelineRepository = timelineRepository;
 
   final AuthRepository _authRepository;
   final NotificationRepository _notificationRepository;
+  final TimelineRepository _timelineRepository;
 
   NotificationsScreenState _state = const NotificationsScreenStateIdle();
 
@@ -163,5 +169,212 @@ class NotificationsProvider extends ChangeNotifier {
     }
 
     return List.unmodifiable(merged);
+  }
+
+  Future<String?> createReaction(Note note, String reaction) async {
+    final requestedReaction = reaction.trim();
+    if (requestedReaction.isEmpty) {
+      return 'リアクションが選択されていません。';
+    }
+
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'リアクション対象のノートIDが見つかりません。';
+    }
+
+    final outgoingReaction = _normalizeOutgoingReaction(requestedReaction);
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final reactionResult = await _timelineRepository.createReaction(
+          session,
+          noteId: targetNote.id,
+          reaction: outgoingReaction,
+        );
+
+        return reactionResult.when(
+          success: (_) {
+            _applyMyReaction(targetNote.id, outgoingReaction);
+            return null;
+          },
+          failure: (error, _) => 'リアクション送信に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  Future<String?> createRenote(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'リノート対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final renoteResult = await _timelineRepository.createRenote(
+          session,
+          noteId: targetNote.id,
+        );
+        return renoteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'リノート送信に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  void _applyMyReaction(String targetNoteId, String reaction) {
+    final loaded = _loadedState;
+    if (loaded == null) {
+      return;
+    }
+
+    final updatedNotifications = loaded.notifications
+        .map((notification) => _updateNotificationReaction(
+              notification,
+              targetNoteId,
+              reaction,
+            ))
+        .toList(growable: false);
+
+    _state = NotificationsScreenStateLoaded(
+      notifications: List.unmodifiable(updatedNotifications),
+      isLoadingMore: loaded.isLoadingMore,
+      hasMore: loaded.hasMore,
+      message: loaded.message,
+    );
+    notifyListeners();
+  }
+
+  MisskeyNotification _updateNotificationReaction(
+    MisskeyNotification notification,
+    String targetNoteId,
+    String reaction,
+  ) {
+    return switch (notification) {
+      ReplyNotification(:final id, :final createdAt, :final user, :final note) =>
+        ReplyNotification(
+          id: id,
+          createdAt: createdAt,
+          user: user,
+          note: _updateMyReactionInNote(note, targetNoteId, reaction),
+        ),
+      MentionNotification(:final id, :final createdAt, :final user, :final note) =>
+        MentionNotification(
+          id: id,
+          createdAt: createdAt,
+          user: user,
+          note: _updateMyReactionInNote(note, targetNoteId, reaction),
+        ),
+      RenoteNotification(:final id, :final createdAt, :final user, :final note) =>
+        RenoteNotification(
+          id: id,
+          createdAt: createdAt,
+          user: user,
+          note: _updateMyReactionInNote(note, targetNoteId, reaction),
+        ),
+      QuoteNotification(:final id, :final createdAt, :final user, :final note) =>
+        QuoteNotification(
+          id: id,
+          createdAt: createdAt,
+          user: user,
+          note: _updateMyReactionInNote(note, targetNoteId, reaction),
+        ),
+      ReactionNotification(
+        :final id,
+        :final createdAt,
+        :final user,
+        :final note,
+        :final reaction,
+      ) => ReactionNotification(
+          id: id,
+          createdAt: createdAt,
+          user: user,
+          note: _updateMyReactionInNote(note, targetNoteId, reaction),
+          reaction: reaction,
+        ),
+      ReactionGroupedNotification(
+        :final id,
+        :final createdAt,
+        :final note,
+        :final reactions,
+      ) => ReactionGroupedNotification(
+          id: id,
+          createdAt: createdAt,
+          note: _updateMyReactionInNote(note, targetNoteId, reaction),
+          reactions: reactions,
+        ),
+      PollEndedNotification(:final id, :final createdAt, :final note) =>
+        PollEndedNotification(
+          id: id,
+          createdAt: createdAt,
+          note: _updateMyReactionInNote(note, targetNoteId, reaction),
+        ),
+      _ => notification,
+    };
+  }
+
+  Note _updateMyReactionInNote(Note note, String targetNoteId, String reaction) {
+    if (note.id == targetNoteId) {
+      return _updateNoteReaction(note, reaction);
+    }
+
+    final updatedRenote = note.renote == null
+        ? null
+        : _updateMyReactionInNote(note.renote!, targetNoteId, reaction);
+    final updatedReply = note.reply == null
+        ? null
+        : _updateMyReactionInNote(note.reply!, targetNoteId, reaction);
+
+    if (identical(updatedRenote, note.renote) &&
+        identical(updatedReply, note.reply)) {
+      return note;
+    }
+
+    return note.copyWith(
+      renote: updatedRenote,
+      reply: updatedReply,
+    );
+  }
+
+  Note _updateNoteReaction(Note note, String reaction) {
+    final previousReaction = note.myReaction;
+    if (previousReaction == reaction) {
+      return note.copyWith(myReaction: reaction);
+    }
+
+    var updated = note;
+    if (previousReaction != null && previousReaction.isNotEmpty) {
+      updated = updated.applyReactionDelta(previousReaction, -1);
+    }
+    updated = updated.applyReactionDelta(reaction, 1);
+
+    return updated.copyWith(myReaction: reaction);
+  }
+
+  String _normalizeOutgoingReaction(String reaction) {
+    final sameServerDot = RegExp(
+      r'^:([a-zA-Z0-9_.-]+)@\.:$',
+    ).firstMatch(reaction);
+    if (sameServerDot != null) {
+      return ':${sameServerDot.group(1)}:';
+    }
+
+    return reaction;
   }
 }

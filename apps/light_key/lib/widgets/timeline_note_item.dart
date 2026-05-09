@@ -4,10 +4,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../models/note.dart';
 import '../models/note_type.dart';
 import '../models/note_visibility.dart';
-import '../models/user.dart';
 import '../services/emoji_cache.dart';
 import '../utils/datetime_format.dart';
 import 'emoji_text.dart';
+import 'note_actions/note_actions.dart';
 import 'note_media_list.dart';
 import 'note_reaction_list.dart';
 import 'renote_card.dart';
@@ -18,14 +18,7 @@ class TimelineNoteItem extends HookWidget {
     required this.note,
     required this.animation,
     required this.emojis,
-    this.onTap,
-    this.onReply,
-    this.onRenote,
-    this.onReaction,
-    this.onReactionChipTap,
-    this.onUserTap,
-    this.onBodyEmojiTap,
-    this.onReplyNoteTap,
+    this.actions,
     this.showAllMedia = false,
     this.showAllReactions = false,
     super.key,
@@ -34,14 +27,7 @@ class TimelineNoteItem extends HookWidget {
   final Note note;
   final Animation<double> animation;
   final Map<String, EmojiCacheEntry> emojis;
-  final VoidCallback? onTap;
-  final VoidCallback? onReply;
-  final VoidCallback? onRenote;
-  final VoidCallback? onReaction;
-  final ValueChanged<String>? onReactionChipTap;
-  final ValueChanged<User>? onUserTap;
-  final ValueChanged<String>? onBodyEmojiTap;
-  final ValueChanged<Note>? onReplyNoteTap;
+  final NoteActions? actions;
   final bool showAllMedia;
   final bool showAllReactions;
 
@@ -71,11 +57,11 @@ class TimelineNoteItem extends HookWidget {
     final renoteUserName = note.user.name.isNotEmpty
         ? note.user.name
         : note.user.username;
-    final onDisplayUserTap = displayNote.user.id.isNotEmpty && onUserTap != null
-        ? () => onUserTap!(displayNote.user)
+    final onDisplayUserTap = displayNote.user.id.isNotEmpty && actions != null
+        ? () => actions!.onUserTap(displayNote.user)
         : null;
-    final onRenoteUserTap = note.user.id.isNotEmpty && onUserTap != null
-        ? () => onUserTap!(note.user)
+    final onRenoteUserTap = note.user.id.isNotEmpty && actions != null
+        ? () => actions!.onUserTap(note.user)
         : null;
     final displayReplyNote = displayNote.reply;
 
@@ -84,7 +70,7 @@ class TimelineNoteItem extends HookWidget {
     final hasCw = cw != null && cw.isNotEmpty;
     final renoteAction = displayNote.visibility == NoteVisibility.followers
         ? null
-        : onRenote;
+        : actions;
 
     return SizeTransition(
       sizeFactor: curved,
@@ -95,7 +81,7 @@ class TimelineNoteItem extends HookWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
-              onTap: onTap,
+              onTap: actions != null ? () => actions!.onNoteTap(note) : null,
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -140,8 +126,10 @@ class TimelineNoteItem extends HookWidget {
                       _ReplyThreadPreview(
                         rootReply: displayReplyNote,
                         emojis: emojis,
-                        onBodyEmojiTap: onBodyEmojiTap,
-                        onReplyNoteTap: onReplyNoteTap,
+                        onBodyEmojiTap: actions != null
+                            ? (emoji) => actions!.onBodyEmojiTap(displayReplyNote, emoji)
+                            : null,
+                        onReplyNoteTap: actions?.onReplyNoteTap,
                       ),
                     ],
                     Row(
@@ -222,7 +210,9 @@ class TimelineNoteItem extends HookWidget {
                                     note.text.isEmpty ? '(本文なし)' : note.text,
                                     emojis: emojis,
                                     host: note.user.host,
-                                    onEmojiTap: onBodyEmojiTap,
+                                    onEmojiTap: actions != null
+                                        ? (emoji) => actions!.onBodyEmojiTap(note, emoji)
+                                        : null,
                                   ),
                                   NoteType.pureRenote => EmojiText(
                                     displayNote.text.isEmpty
@@ -230,7 +220,9 @@ class TimelineNoteItem extends HookWidget {
                                         : displayNote.text,
                                     emojis: emojis,
                                     host: displayNote.user.host,
-                                    onEmojiTap: onBodyEmojiTap,
+                                    onEmojiTap: actions != null
+                                        ? (emoji) => actions!.onBodyEmojiTap(displayNote, emoji)
+                                        : null,
                                   ),
                                   NoteType.quoteRenote => Column(
                                     crossAxisAlignment:
@@ -242,7 +234,9 @@ class TimelineNoteItem extends HookWidget {
                                             : note.text,
                                         emojis: emojis,
                                         host: note.user.host,
-                                        onEmojiTap: onBodyEmojiTap,
+                                        onEmojiTap: actions != null
+                                            ? (emoji) => actions!.onBodyEmojiTap(note, emoji)
+                                            : null,
                                       ),
                                       if (note.files.isNotEmpty) ...[
                                         const SizedBox(height: 8),
@@ -255,7 +249,12 @@ class TimelineNoteItem extends HookWidget {
                                       RenoteCard(
                                         renote: note.renote!,
                                         emojis: emojis,
-                                        onBodyEmojiTap: onBodyEmojiTap,
+                                        onTap: actions != null
+                                            ? () => actions!.onNoteTap(note.renote!)
+                                            : null,
+                                        onBodyEmojiTap: actions != null
+                                            ? (emoji) => actions!.onBodyEmojiTap(note.renote!, emoji)
+                                            : null,
                                       ),
                                     ],
                                   ),
@@ -279,9 +278,11 @@ class TimelineNoteItem extends HookWidget {
                               ],
                               const SizedBox(height: 8),
                               _TimelineNoteActionRow(
-                                onReply: onReply,
-                                onRenote: renoteAction,
-                                onReaction: onReaction,
+                                onReply: actions != null ? () => actions!.onReply(note) : null,
+                                onRenote: renoteAction != null && actions != null
+                                    ? () => actions!.onRenote(note)
+                                    : null,
+                                onReaction: actions != null ? () => actions!.onReaction(note) : null,
                               ),
                               if (displayReactions.isNotEmpty) ...[
                                 const SizedBox(height: 8),
@@ -290,7 +291,9 @@ class TimelineNoteItem extends HookWidget {
                                   emojis: emojis,
                                   myReaction: displayMyReaction,
                                   showAll: showAllReactions,
-                                  onReactionTap: onReactionChipTap,
+                                  onReactionTap: actions != null
+                                      ? (reaction) => actions!.onReactionChipTap(note, reaction)
+                                      : null,
                                 ),
                               ],
                             ],

@@ -1,19 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/note.dart';
-import '../../models/note_type.dart';
 import '../../models/user_profile.dart';
-import '../../route/app_routes.dart';
 import '../../services/emoji_cache.dart';
-import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
-import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
-import '../../sheets/renote_action/renote_action_sheet.dart';
 import '../../widgets/emoji_text.dart';
 import '../../widgets/timeline_note_item.dart';
 import '../../widgets/user_avatar.dart';
+import 'profile_note_actions.dart';
 import 'profile_provider.dart';
 import 'profile_screen_state.dart';
 
@@ -231,6 +227,7 @@ class _ProfileContent extends StatelessWidget {
                       ),
                     ),
                     _ProfileNotesSliver(
+                      userId: userId,
                       notes: notes,
                       emptyMessage: emptyMessage,
                       emojis: emojis,
@@ -331,31 +328,38 @@ class _ProfileSummary extends StatelessWidget {
   }
 }
 
-class _ProfileNotesSliver extends StatefulWidget {
+class _ProfileNotesSliver extends HookWidget {
   const _ProfileNotesSliver({
+    required this.userId,
     required this.notes,
     required this.emptyMessage,
     required this.emojis,
     required this.isLoadingMore,
   });
 
+  final String userId;
   final List<Note> notes;
   final String emptyMessage;
   final Map<String, EmojiCacheEntry> emojis;
   final bool isLoadingMore;
 
   @override
-  State<_ProfileNotesSliver> createState() => _ProfileNotesSliverState();
-}
-
-class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
-  @override
   Widget build(BuildContext context) {
-    final notes = widget.notes;
+    // アクションをuseMemoizedで作成（providerが変わらない限り同じインスタンスを使う）
+    final provider = context.read<ProfileProvider>();
+    final actions = useMemoized(
+      () => ProfileNoteActions(
+        provider: provider,
+        currentUserId: userId,
+        context: context,
+      ),
+      [provider, userId],
+    );
+
     if (notes.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
-        child: Center(child: Text(widget.emptyMessage)),
+        child: Center(child: Text(emptyMessage)),
       );
     }
 
@@ -363,7 +367,7 @@ class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
       delegate: SliverChildBuilderDelegate((context, index) {
         // 最後のアイテムの場合
         if (index == notes.length) {
-          return widget.isLoadingMore
+          return isLoadingMore
               ? const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   child: Center(child: CircularProgressIndicator()),
@@ -375,113 +379,11 @@ class _ProfileNotesSliverState extends State<_ProfileNotesSliver> {
         return TimelineNoteItem(
           note: note,
           animation: kAlwaysCompleteAnimation,
-          emojis: widget.emojis,
-          onTap: () => _onNoteTap(context, note),
-          onRenote: () => _onNoteRenote(context, note),
-          onReaction: () => _onNoteReaction(context, note),
-          onReactionChipTap: (reaction) =>
-              _onReactionChipTap(context, note, reaction),
-          onBodyEmojiTap: (emoji) => _onNoteBodyEmojiTap(context, note, emoji),
+          emojis: emojis,
+          actions: actions,
         );
-      }, childCount: notes.length + (widget.isLoadingMore ? 1 : 0)),
+      }, childCount: notes.length + (isLoadingMore ? 1 : 0)),
     );
-  }
-
-  static String _noteDetailId(Note note) {
-    if (note.noteType == NoteType.pureRenote) {
-      return note.renote?.id ?? note.id;
-    }
-    return note.id;
-  }
-
-  static Future<void> _onNoteTap(BuildContext context, Note note) async {
-    final noteId = _noteDetailId(note);
-    if (noteId.isEmpty) {
-      _showComingSoonSnackBar(context, 'ノート詳細');
-      return;
-    }
-    await NoteDetailRoute(noteId: noteId).push<void>(context);
-  }
-
-  static void _showComingSoonSnackBar(BuildContext context, String label) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger == null) return;
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$label は準備中です')));
-  }
-
-  static Future<void> _onNoteReaction(BuildContext context, Note note) async {
-    final emoji = await showReactionPickerSheet(context);
-    if (emoji == null || !context.mounted) return;
-    await _sendReaction(context, note, emoji);
-  }
-
-  static Future<void> _sendReaction(
-    BuildContext context,
-    Note note,
-    String reaction,
-  ) async {
-    final message = await context.read<ProfileProvider>().createReaction(
-      note,
-      reaction,
-    );
-    if (!context.mounted || message == null) return;
-    ScaffoldMessenger.maybeOf(context)
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  static Future<void> _onNoteBodyEmojiTap(
-    BuildContext context,
-    Note note,
-    String emoji,
-  ) async {
-    final action = await showNoteEmojiActionSheet(context, emoji: emoji);
-    if (action == null || !context.mounted) return;
-
-    switch (action) {
-      case NoteEmojiAction.react:
-        await _sendReaction(context, note, emoji);
-        return;
-      case NoteEmojiAction.copy:
-        await Clipboard.setData(ClipboardData(text: emoji));
-        if (!context.mounted) return;
-        ScaffoldMessenger.maybeOf(context)
-          ?..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('絵文字をコピーしました。')));
-        return;
-    }
-  }
-
-  static Future<void> _onReactionChipTap(
-    BuildContext context,
-    Note note,
-    String reaction,
-  ) async {
-    await _sendReaction(context, note, reaction);
-  }
-
-  static Future<void> _onNoteRenote(BuildContext context, Note note) async {
-    final action = await showRenoteActionSheet(context);
-    if (action == null || !context.mounted) return;
-
-    switch (action) {
-      case RenoteAction.renote:
-        final message = await context.read<ProfileProvider>().createRenote(
-          note,
-        );
-        if (!context.mounted) return;
-        final messenger = ScaffoldMessenger.maybeOf(context);
-        if (messenger == null) return;
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(message ?? 'リノートしました。')));
-        return;
-      case RenoteAction.quote:
-        _showComingSoonSnackBar(context, '引用');
-        return;
-    }
   }
 }
 

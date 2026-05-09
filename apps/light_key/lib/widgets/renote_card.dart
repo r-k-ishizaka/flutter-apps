@@ -15,12 +15,14 @@ class RenoteCard extends HookWidget {
     required this.renote,
     required this.emojis,
     this.onBodyEmojiTap,
+    this.onTap,
     super.key,
   });
 
   final Note renote;
   final Map<String, EmojiCacheEntry> emojis;
   final ValueChanged<String>? onBodyEmojiTap;
+  final VoidCallback? onTap;
 
   String _createdAtLabel(DateTime createdAt) => createdAt.toNoteLabel();
 
@@ -36,93 +38,95 @@ class RenoteCard extends HookWidget {
     final cw = renote.cw;
     final hasCw = cw != null && cw.isNotEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          UserAvatar(
-            avatarUrl: renote.user.avatarUrl,
-            avatarBlurHash: renote.user.avatarBlurHash,
-            size: 32,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          EmojiText(
-                            displayUserName,
-                            emojis: emojis,
-                            host: renote.user.host,
-                            style: textTheme.bodySmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            emojiSize: 18,
-                          ),
-                          Text(
-                            '@${renote.user.username}',
-                            style: textTheme.bodySmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            UserAvatar(
+              avatarUrl: renote.user.avatarUrl,
+              avatarBlurHash: renote.user.avatarBlurHash,
+              size: 32,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            EmojiText(
+                              displayUserName,
+                              emojis: emojis,
+                              host: renote.user.host,
+                              style: textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              emojiSize: 18,
+                            ),
+                            Text(
+                              '@${renote.user.username}',
+                              style: textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _createdAtLabel(renote.createdAt),
-                      style: textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                // CW バー
-                if (hasCw) ...[
-                  _RenoteCardCwBar(
-                    cwText: cw,
-                    expanded: cwExpanded.value,
-                    onToggle: () => cwExpanded.value = !cwExpanded.value,
-                    host: renote.user.host,
-                    emojis: emojis,
+                      const SizedBox(width: 8),
+                      Text(
+                        _createdAtLabel(renote.createdAt),
+                        style: textTheme.bodySmall,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
-                ],
-                // 本文・メディア（CW がある場合は展開時のみ表示）
-                if (!hasCw || cwExpanded.value) ...[
-                   EmojiText(
-                     renote.text.isNotEmpty
-                         ? renote.text
-                         : renote.renote != null
-                         ? '(リノート)'
-                         : '(本文なし)',
-                     emojis: emojis,
-                     host: renote.user.host,
-                     onEmojiTap: onBodyEmojiTap,
-                     style: textTheme.bodyMedium,
-                     maxLines: 5,
-                     overflow: TextOverflow.ellipsis,
-                   ),
-                  if (renote.files.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    NoteMediaList(files: renote.files),
+                  if (hasCw) ...[
+                    _RenoteCardCwBar(
+                      cwText: cw,
+                      expanded: cwExpanded.value,
+                      onToggle: () => cwExpanded.value = !cwExpanded.value,
+                      host: renote.user.host,
+                      emojis: emojis,
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  if (!hasCw || cwExpanded.value) ...[
+                    EmojiText(
+                      renote.text.isNotEmpty
+                          ? renote.text
+                          : renote.renote != null
+                          ? '(リノート)'
+                          : '(本文なし)',
+                      emojis: emojis,
+                      host: renote.user.host,
+                      onEmojiTap: onBodyEmojiTap,
+                      style: textTheme.bodyMedium,
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (renote.files.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      NoteMediaList(files: renote.files),
+                    ],
                   ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
