@@ -327,6 +327,9 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   final List<String> renoteCalls = [];
   final List<String> favoriteCalls = [];
   final List<String> pinCalls = [];
+  final List<String> muteCalls = [];
+  final List<String> renoteMuteCalls = [];
+  final List<String> blockCalls = [];
   final List<String> deleteCalls = [];
 
   @override
@@ -355,18 +358,33 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }
 
   @override
-  Future<void> createPin(
-    AuthSession session, {
-    required String noteId,
-  }) async {
+  Future<void> createPin(AuthSession session, {required String noteId}) async {
     pinCalls.add(noteId);
   }
 
   @override
-  Future<void> deleteNote(
+  Future<void> createMute(AuthSession session, {required String userId}) async {
+    muteCalls.add(userId);
+  }
+
+  @override
+  Future<void> createRenoteMute(
     AuthSession session, {
-    required String noteId,
+    required String userId,
   }) async {
+    renoteMuteCalls.add(userId);
+  }
+
+  @override
+  Future<void> createBlock(
+    AuthSession session, {
+    required String userId,
+  }) async {
+    blockCalls.add(userId);
+  }
+
+  @override
+  Future<void> deleteNote(AuthSession session, {required String noteId}) async {
     deleteCalls.add(noteId);
   }
 

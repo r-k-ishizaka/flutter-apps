@@ -51,10 +51,7 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
-  Future<void> createPin(
-    AuthSession session, {
-    required String noteId,
-  }) async {
+  Future<void> createPin(AuthSession session, {required String noteId}) async {
     await client.postVoid(
       baseUrl: session.baseUrl,
       path: '/api/i/pin',
@@ -63,10 +60,40 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
-  Future<void> deleteNote(
+  Future<void> createMute(AuthSession session, {required String userId}) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/mute/create',
+      body: {'i': session.accessToken, 'userId': userId},
+    );
+  }
+
+  @override
+  Future<void> createRenoteMute(
     AuthSession session, {
-    required String noteId,
+    required String userId,
   }) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/renote-mute/create',
+      body: {'i': session.accessToken, 'userId': userId},
+    );
+  }
+
+  @override
+  Future<void> createBlock(
+    AuthSession session, {
+    required String userId,
+  }) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/blocking/create',
+      body: {'i': session.accessToken, 'userId': userId},
+    );
+  }
+
+  @override
+  Future<void> deleteNote(AuthSession session, {required String noteId}) async {
     await client.postVoid(
       baseUrl: session.baseUrl,
       path: '/api/notes/delete',

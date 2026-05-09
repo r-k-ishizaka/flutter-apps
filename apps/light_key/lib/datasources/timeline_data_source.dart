@@ -21,6 +21,12 @@ abstract interface class TimelineDataSource {
 
   Future<void> createPin(AuthSession session, {required String noteId});
 
+  Future<void> createMute(AuthSession session, {required String userId});
+
+  Future<void> createRenoteMute(AuthSession session, {required String userId});
+
+  Future<void> createBlock(AuthSession session, {required String userId});
+
   Future<void> deleteNote(AuthSession session, {required String noteId});
 
   /// Fetches a single note by ID.

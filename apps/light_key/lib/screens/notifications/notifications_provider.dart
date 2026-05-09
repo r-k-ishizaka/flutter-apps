@@ -294,6 +294,81 @@ class NotificationsProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createMute(String userId) async {
+    if (userId.isEmpty) {
+      return 'ミュート対象のユーザーIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final muteResult = await _timelineRepository.createMute(
+          session,
+          userId: userId,
+        );
+        return muteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'ユーザーミュートに失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  Future<String?> createRenoteMute(String userId) async {
+    if (userId.isEmpty) {
+      return 'リノートミュート対象のユーザーIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final muteResult = await _timelineRepository.createRenoteMute(
+          session,
+          userId: userId,
+        );
+        return muteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'リノートミュートに失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  Future<String?> createBlock(String userId) async {
+    if (userId.isEmpty) {
+      return 'ブロック対象のユーザーIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final blockResult = await _timelineRepository.createBlock(
+          session,
+          userId: userId,
+        );
+        return blockResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'ユーザーブロックに失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   Future<String?> deleteNote(Note note) async {
     final targetNote = note.noteType == NoteType.pureRenote
         ? note.renote ?? note
@@ -330,20 +405,22 @@ class NotificationsProvider extends ChangeNotifier {
     final loaded = _loadedState;
     if (loaded == null) return;
 
-    final filtered = loaded.notifications.where((notification) {
-      final note = switch (notification) {
-        ReplyNotification(:final note) => note,
-        MentionNotification(:final note) => note,
-        RenoteNotification(:final note) => note,
-        QuoteNotification(:final note) => note,
-        ReactionNotification(:final note) => note,
-        ReactionGroupedNotification(:final note) => note,
-        PollEndedNotification(:final note) => note,
-        _ => null,
-      };
-      if (note == null) return true;
-      return note.id != targetNoteId && note.renote?.id != targetNoteId;
-    }).toList(growable: false);
+    final filtered = loaded.notifications
+        .where((notification) {
+          final note = switch (notification) {
+            ReplyNotification(:final note) => note,
+            MentionNotification(:final note) => note,
+            RenoteNotification(:final note) => note,
+            QuoteNotification(:final note) => note,
+            ReactionNotification(:final note) => note,
+            ReactionGroupedNotification(:final note) => note,
+            PollEndedNotification(:final note) => note,
+            _ => null,
+          };
+          if (note == null) return true;
+          return note.id != targetNoteId && note.renote?.id != targetNoteId;
+        })
+        .toList(growable: false);
 
     _state = NotificationsScreenStateLoaded(
       notifications: List.unmodifiable(filtered),

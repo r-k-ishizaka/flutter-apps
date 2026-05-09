@@ -216,9 +216,24 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }) async {}
 
   @override
-  Future<void> createPin(
+  Future<void> createPin(AuthSession session, {required String noteId}) async {}
+
+  @override
+  Future<void> createMute(
     AuthSession session, {
-    required String noteId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> createRenoteMute(
+    AuthSession session, {
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> createBlock(
+    AuthSession session, {
+    required String userId,
   }) async {}
 
   @override

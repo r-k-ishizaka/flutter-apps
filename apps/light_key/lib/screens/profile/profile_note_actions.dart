@@ -151,16 +151,22 @@ class ProfileNoteActions with NoteActionsMixin implements NoteActions {
         showSnackBar(message ?? '投稿を削除しました。');
         return;
       case NoteMenuAction.muteUser:
-        // TODO: ユーザーをミュート
-        showComingSoon('ミュート');
+        final targetUserId = getMenuActionTargetNote(note).user.id;
+        final message = await provider.createMute(targetUserId);
+        if (!context.mounted) return;
+        showSnackBar(message ?? 'ユーザーをミュートしました。');
         return;
       case NoteMenuAction.muteUserRenote:
-        // TODO: ユーザーのリノートをミュート
-        showComingSoon('リノートをミュート');
+        final renoteUserId = note.user.id;
+        final message = await provider.createRenoteMute(renoteUserId);
+        if (!context.mounted) return;
+        showSnackBar(message ?? 'ユーザーのリノートをミュートしました。');
         return;
       case NoteMenuAction.blockUser:
-        // TODO: ユーザーをブロック
-        showComingSoon('ブロック');
+        final targetUserId = getMenuActionTargetNote(note).user.id;
+        final message = await provider.createBlock(targetUserId);
+        if (!context.mounted) return;
+        showSnackBar(message ?? 'ユーザーをブロックしました。');
         return;
       case NoteMenuAction.report:
         // TODO: 通報

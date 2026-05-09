@@ -73,6 +73,42 @@ class TimelineRepository {
     }
   }
 
+  Future<Result<void>> createMute(
+    AuthSession session, {
+    required String userId,
+  }) async {
+    try {
+      await _dataSource.createMute(session, userId: userId);
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
+  Future<Result<void>> createRenoteMute(
+    AuthSession session, {
+    required String userId,
+  }) async {
+    try {
+      await _dataSource.createRenoteMute(session, userId: userId);
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
+  Future<Result<void>> createBlock(
+    AuthSession session, {
+    required String userId,
+  }) async {
+    try {
+      await _dataSource.createBlock(session, userId: userId);
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
   Future<Result<void>> deleteNote(
     AuthSession session, {
     required String noteId,
