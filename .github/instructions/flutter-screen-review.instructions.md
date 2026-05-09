@@ -29,6 +29,8 @@ applyTo:
 3. ルーティング規約
 - `go_router_builder` の Typed Route（`@TypedGoRoute`）を使っている。
 - 文字列リテラル遷移（`context.go('/xxx')`）を増やしていない。
+- 画面入力が多い/条件で分岐する場合、`freezed` の `sealed class`（例: `XxxScreenParam`）で1引数に集約している。
+- 集約パラメータは Route の `$extra` で受け渡している（Deep Linkで復元が必要な値は path/query を優先）。
 
 4. 生成ファイル運用
 - `*.g.dart` / `*.freezed.dart` / `di.config.dart` を手編集していない。

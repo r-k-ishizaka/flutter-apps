@@ -61,6 +61,9 @@
 - 各ルートは `@TypedGoRoute`（必要に応じて `@TypedShellRoute`）を使って定義します。
 - 文字列リテラル（`context.go('/xxx')`）による直接遷移は避け、生成された Route API（`const XxxRoute().go(context)`）を使用します。
 - `build_runner` で自動生成される `_.g.dart` ファイルにより、mixin と生成ヘルパーが提供されます。
+- 画面に渡す入力値が多い、または条件で必要項目が分岐する場合は、`freezed` の `sealed class`（例: `XxxScreenParam`）で1つの引数に集約します。
+- `go_router_builder` では、上記の集約パラメータを Route の `\$extra` で受け渡す実装を基本とします。
+- Deep Link / URL共有で復元が必要な値は path/query のプリミティブで表現し、Route 内で `sealed class` に変換して Screen へ渡します。
 
 | ファイル名 | 役割 | 例 |
 |---|---|---|

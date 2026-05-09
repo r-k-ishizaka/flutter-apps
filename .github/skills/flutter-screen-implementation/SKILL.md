@@ -70,6 +70,9 @@ disable-model-invocation: false
 6. ルーティングを追加する。
    - `@TypedGoRoute` を使ってルートを定義する。
    - 文字列リテラル遷移（`context.go('/xxx')`）は避け、生成 Route API を使う。
+   - 画面入力が多い/条件で分岐する場合は、`freezed` の `sealed class`（例: `XxxScreenParam`）で1引数に集約して渡す。
+   - `go_router_builder` では `\$extra` を使った受け渡しを基本とする。
+   - Deep Link / URL共有で復元が必要な値は path/query で表現し、Route 内で `sealed class` に変換して Screen に渡す。
 
 7. データ層の追加が必要なら更新する。
    - 新しいデータ操作が必要な場合のみ DataSource/Repository を拡張する。
@@ -106,6 +109,7 @@ dart run build_runner build --delete-conflicting-outputs
 - 副作用は state から分離されている（必要時のみ）
 - Actionsパターン利用時は Screen 側で `useMemoized` 管理され、毎buildで再生成していない
 - ルーティングは Typed Route API を利用している
+- 複雑な画面入力は `sealed class` に集約され、Route から型安全に受け渡されている
 - 命名規則・ファイル構成が共通規約に準拠している
 - build_runner 生成物が最新である
 
