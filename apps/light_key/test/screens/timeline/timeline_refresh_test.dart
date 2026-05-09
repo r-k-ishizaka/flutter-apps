@@ -496,6 +496,85 @@ void main() {
     });
   });
 
+  group('TimelineProvider.deleteNote', () {
+    test('削除成功時に通常ノートをタイムラインから除外する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [
+            _note(id: 'note-1'),
+            _note(id: 'note-2'),
+          ],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+
+      final message = await provider.deleteNote(_note(id: 'note-1'));
+
+      expect(message, isNull);
+      expect(timelineDataSource.deleteCalls, ['note-1']);
+      final loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.map((note) => note.id), ['note-2']);
+    });
+
+    test('削除成功時に純粋リノートの元ノートを含む行も除外する', () async {
+      final authRepository = AuthRepository(
+        _FakeAuthDataSource(
+          session: const AuthSession(
+            baseUrl: 'https://example.com',
+            accessToken: 'token',
+          ),
+        ),
+      );
+      final timelineDataSource = _FakeTimelineDataSource(
+        fetchHandlers: [
+          () async => [
+            Note(
+              id: 'wrapper-1',
+              text: '',
+              createdAt: DateTime(2026, 4, 28, 12),
+              user: const User(id: 'user-2', username: 'bob', name: 'Bob'),
+              renote: _note(id: 'renoted-note'),
+            ),
+            _note(id: 'note-2'),
+          ],
+        ],
+      );
+      final provider = TimelineProvider(
+        authRepository: authRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+
+      final pureRenote = Note(
+        id: 'wrapper-1',
+        text: '',
+        createdAt: DateTime(2026, 4, 28, 12),
+        user: const User(id: 'user-2', username: 'bob', name: 'Bob'),
+        renote: _note(id: 'renoted-note'),
+      );
+      final message = await provider.deleteNote(pureRenote);
+
+      expect(message, isNull);
+      expect(timelineDataSource.deleteCalls, ['renoted-note']);
+      final loadedState = provider.state as TimelineScreenStateLoaded;
+      expect(loadedState.notes.map((note) => note.id), ['note-2']);
+    });
+  });
+
   group('TimelineList refresh feedback', () {
     testWidgets('本文絵文字をタップするとノートと絵文字が渡される', (tester) async {
       final mockActions = _MockNoteActions();
@@ -912,6 +991,8 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   final List<(String noteId, String reaction)> reactionCalls = [];
   final List<String> renoteCalls = [];
   final List<String> favoriteCalls = [];
+  final List<String> pinCalls = [];
+  final List<String> deleteCalls = [];
   var _fetchIndex = 0;
 
   @override
@@ -937,6 +1018,22 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     required String noteId,
   }) async {
     favoriteCalls.add(noteId);
+  }
+
+  @override
+  Future<void> createPin(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    pinCalls.add(noteId);
+  }
+
+  @override
+  Future<void> deleteNote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    deleteCalls.add(noteId);
   }
 
   @override

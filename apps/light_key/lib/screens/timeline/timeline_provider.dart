@@ -289,6 +289,91 @@ class TimelineProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createPin(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'ピン留め対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final pinResult = await _timelineRepository.createPin(
+          session,
+          noteId: targetNote.id,
+        );
+        return pinResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'ピン留めに失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  Future<String?> deleteNote(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return '削除対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final deleteResult = await _timelineRepository.deleteNote(
+          session,
+          noteId: targetNote.id,
+        );
+        return deleteResult.when(
+          success: (_) {
+            _removeDeletedNote(targetNote.id);
+            return null;
+          },
+          failure: (error, _) => '投稿の削除に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  void _removeDeletedNote(String targetNoteId) {
+    final loadedState = switch (_state) {
+      TimelineScreenStateLoaded(:final notes, :final isRefreshing, :final message) =>
+        (notes: notes, isRefreshing: isRefreshing, message: message),
+      _ => null,
+    };
+    if (loadedState == null) {
+      return;
+    }
+
+    final filteredNotes = loadedState.notes
+        .where(
+          (note) =>
+              note.id != targetNoteId &&
+              note.renote?.id != targetNoteId,
+        )
+        .toList(growable: false);
+
+    _state = TimelineScreenState.loaded(
+      notes: List<Note>.unmodifiable(filteredNotes),
+      isRefreshing: loadedState.isRefreshing,
+      message: loadedState.message,
+    );
+    notifyListeners();
+  }
+
   /// リアクション送信成功後にローカル状態の myReaction を更新する。
   void _applyMyReaction(Note note, String targetNoteId, String reaction) {
     final loadedState = switch (_state) {

@@ -196,6 +196,45 @@ void main() {
       expect(loaded.notifications.map((e) => e.id), ['n1']);
     });
   });
+
+  group('NotificationsProvider.deleteNote', () {
+    test('削除成功時に対象ノートを含む通知が一覧から除外される', () async {
+      final authRepository = _FakeAuthRepository([
+        const Success(session), // fetch
+        const Success(session), // deleteNote
+      ]);
+      final notificationRepository = _FakeNotificationRepository([
+        Success(<MisskeyNotification>[
+          ReplyNotification(
+            id: 'n1',
+            createdAt: DateTime(2026, 5, 8, 12),
+            user: const User(id: 'user-2', username: 'alice'),
+            note: _note(id: 'note-1'),
+          ),
+          ReplyNotification(
+            id: 'n2',
+            createdAt: DateTime(2026, 5, 8, 12),
+            user: const User(id: 'user-2', username: 'alice'),
+            note: _note(id: 'note-2'),
+          ),
+        ]),
+      ]);
+      final timelineDataSource = _FakeTimelineDataSource();
+      final provider = NotificationsProvider(
+        authRepository: authRepository,
+        notificationRepository: notificationRepository,
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      await provider.fetch();
+      final message = await provider.deleteNote(_note(id: 'note-1'));
+
+      expect(message, isNull);
+      expect(timelineDataSource.deleteCalls, ['note-1']);
+      final loaded = _loadedState(provider);
+      expect(loaded.notifications.map((e) => e.id), ['n2']);
+    });
+  });
 }
 
 NotificationsScreenStateLoaded _loadedState(NotificationsProvider provider) {
@@ -287,6 +326,8 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   final List<(String noteId, String reaction)> reactionCalls = [];
   final List<String> renoteCalls = [];
   final List<String> favoriteCalls = [];
+  final List<String> pinCalls = [];
+  final List<String> deleteCalls = [];
 
   @override
   Future<void> createReaction(
@@ -311,6 +352,22 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     required String noteId,
   }) async {
     favoriteCalls.add(noteId);
+  }
+
+  @override
+  Future<void> createPin(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    pinCalls.add(noteId);
+  }
+
+  @override
+  Future<void> deleteNote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    deleteCalls.add(noteId);
   }
 
   @override

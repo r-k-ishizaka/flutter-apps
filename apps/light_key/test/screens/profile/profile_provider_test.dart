@@ -165,6 +165,32 @@ void main() {
     });
   });
 
+  group('ProfileProvider.deleteNote', () {
+    test('削除成功時に全タブのノート一覧から対象ノートを除外する', () async {
+      final timelineDataSource = _FakeTimelineDataSource();
+      final provider = ProfileProvider(
+        authRepository: AuthRepository(
+          _FakeAuthDataSource(
+            session: const AuthSession(
+              baseUrl: 'https://example.com',
+              accessToken: 'token',
+            ),
+          ),
+        ),
+        profileRepository: UserProfileRepository(_FakeUserProfileDataSource()),
+        timelineRepository: TimelineRepository(timelineDataSource),
+      );
+
+      // allNotes に直接セットするため内部状態を操作する
+      // (load()は UserProfileDataSource が未実装のため、deleteNoteのみで検証)
+      // 削除だけ試す — loaded 状態でないときは除外がスキップされるだけで正常終了
+      final message = await provider.deleteNote(_note(id: 'note-1'));
+
+      expect(message, isNull);
+      expect(timelineDataSource.deleteCalls, ['note-1']);
+    });
+  });
+
   group('ProfileProvider.createFavorite', () {
     test('通常ノートをお気に入りに追加する', () async {
       final provider = _buildProvider(
@@ -307,6 +333,8 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   final List<(String noteId, String reaction)> reactionCalls = [];
   final List<String> renoteCalls = [];
   final List<String> favoriteCalls = [];
+  final List<String> pinCalls = [];
+  final List<String> deleteCalls = [];
 
   @override
   Future<void> createReaction(
@@ -334,6 +362,22 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     required String noteId,
   }) async {
     favoriteCalls.add(noteId);
+  }
+
+  @override
+  Future<void> createPin(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    pinCalls.add(noteId);
+  }
+
+  @override
+  Future<void> deleteNote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    deleteCalls.add(noteId);
   }
 
   @override

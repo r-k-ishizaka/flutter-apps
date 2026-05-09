@@ -216,6 +216,18 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }) async {}
 
   @override
+  Future<void> createPin(
+    AuthSession session, {
+    required String noteId,
+  }) async {}
+
+  @override
+  Future<void> deleteNote(
+    AuthSession session, {
+    required String noteId,
+  }) async {}
+
+  @override
   Future<ResponseWithCacheHints<Note>> fetchNote(
     AuthSession session,
     String noteId,

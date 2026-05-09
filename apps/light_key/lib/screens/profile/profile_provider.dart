@@ -290,6 +290,83 @@ class ProfileProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createPin(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return 'ピン留め対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final pinResult = await _timelineRepository.createPin(
+          session,
+          noteId: targetNote.id,
+        );
+        return pinResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'ピン留めに失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  Future<String?> deleteNote(Note note) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return '削除対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final deleteResult = await _timelineRepository.deleteNote(
+          session,
+          noteId: targetNote.id,
+        );
+        return deleteResult.when(
+          success: (_) {
+            _removeDeletedNote(targetNote.id);
+            return null;
+          },
+          failure: (error, _) => '投稿の削除に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
+  void _removeDeletedNote(String targetNoteId) {
+    bool _keep(Note note) =>
+        note.id != targetNoteId && note.renote?.id != targetNoteId;
+
+    _state = _state.copyWith(
+      allNotes: List<Note>.unmodifiable(
+        _state.allNotes.where(_keep).toList(growable: false),
+      ),
+      noteOnlyNotes: List<Note>.unmodifiable(
+        _state.noteOnlyNotes.where(_keep).toList(growable: false),
+      ),
+      mediaNotes: List<Note>.unmodifiable(
+        _state.mediaNotes.where(_keep).toList(growable: false),
+      ),
+    );
+    notifyListeners();
+  }
+
   /// 「全て」タブの追加読み込みを実行する
   Future<void> loadMoreAllNotes(String userId) =>
       _loadMoreByTab(userId, _ProfileNotesTab.all);

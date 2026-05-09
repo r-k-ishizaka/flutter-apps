@@ -37,6 +37,29 @@ mixin NoteActionsMixin {
     showSnackBar('$label は準備中です');
   }
 
+  /// 投稿削除の確認ダイアログを表示する。
+  @protected
+  Future<bool> confirmDeleteNote() async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('この投稿を削除しますか？'),
+        content: const Text('削除した投稿は元に戻せません。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('削除する'),
+          ),
+        ],
+      ),
+    );
+    return shouldDelete == true;
+  }
+
   /// リアクションピッカーを表示して絵文字を選択する。
   @protected
   Future<String?> pickReaction() async {

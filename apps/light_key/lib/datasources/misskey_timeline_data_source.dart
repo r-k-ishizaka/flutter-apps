@@ -51,6 +51,30 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
+  Future<void> createPin(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/i/pin',
+      body: {'i': session.accessToken, 'noteId': noteId},
+    );
+  }
+
+  @override
+  Future<void> deleteNote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/notes/delete',
+      body: {'i': session.accessToken, 'noteId': noteId},
+    );
+  }
+
+  @override
   Future<ResponseWithCacheHints<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,

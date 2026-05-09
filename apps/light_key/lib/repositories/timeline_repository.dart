@@ -61,6 +61,30 @@ class TimelineRepository {
     }
   }
 
+  Future<Result<void>> createPin(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    try {
+      await _dataSource.createPin(session, noteId: noteId);
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
+  Future<Result<void>> deleteNote(
+    AuthSession session, {
+    required String noteId,
+  }) async {
+    try {
+      await _dataSource.deleteNote(session, noteId: noteId);
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
   Future<Result<List<Note>>> fetchTimeline(
     AuthSession session, {
     int limit = 20,

@@ -139,12 +139,16 @@ class ProfileNoteActions with NoteActionsMixin implements NoteActions {
         await copyNoteLinkToClipboard(note);
         return;
       case NoteMenuAction.pinNote:
-        // TODO: ピン留め
-        showComingSoon('ピン留め');
+        final message = await provider.createPin(note);
+        if (!context.mounted) return;
+        showSnackBar(message ?? 'ピン留めしました。');
         return;
       case NoteMenuAction.deleteNote:
-        // TODO: 投稿を削除
-        showComingSoon('投稿の削除');
+        final shouldDelete = await confirmDeleteNote();
+        if (!context.mounted || !shouldDelete) return;
+        final message = await provider.deleteNote(note);
+        if (!context.mounted) return;
+        showSnackBar(message ?? '投稿を削除しました。');
         return;
       case NoteMenuAction.muteUser:
         // TODO: ユーザーをミュート
