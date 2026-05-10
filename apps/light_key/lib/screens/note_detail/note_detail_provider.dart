@@ -337,6 +337,35 @@ class NoteDetailProvider extends ChangeNotifier {
     );
   }
 
+  /// 純粋リノートを解除する。
+  ///
+  /// ラッパーノード（[note].id）を対象に削除APIを呼ぶ。
+  /// ノート詳細画面はリノートラッパーを表示することがないため状態更新は行わない。
+  Future<String?> undoRenote(Note note) async {
+    if (note.id.isEmpty) {
+      return 'リノート解除対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final deleteResult = await _timelineRepository.deleteNote(
+          session,
+          noteId: note.id,
+        );
+        return deleteResult.when(
+          success: (_) => null,
+          failure: (error, _) => 'リノートの解除に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   Note _updateMyReaction(Note note, String targetNoteId, String reaction) {
     if (note.id == targetNoteId) {
       return _updateNoteReaction(note, reaction);

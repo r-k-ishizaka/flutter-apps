@@ -8,6 +8,7 @@ enum NoteMenuAction {
   addFavorite,
   copyLink,
   pinNote,
+  undoRenote,
   deleteNote,
   muteUser,
   muteUserRenote,
@@ -70,6 +71,13 @@ Future<NoteMenuAction?> showNoteMenuSheet(
                   onTap: () =>
                       Navigator.of(context).pop(NoteMenuAction.pinNote),
                 ),
+                if (isPureRenote)
+                  ListTile(
+                    leading: const Icon(Icons.undo_outlined),
+                    title: const Text('リノートを取り消す'),
+                    onTap: () =>
+                        Navigator.of(context).pop(NoteMenuAction.undoRenote),
+                  ),
                 ListTile(
                   leading: const Icon(Icons.delete_outline),
                   title: const Text('この投稿を削除'),

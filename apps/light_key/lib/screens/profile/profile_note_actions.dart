@@ -143,6 +143,11 @@ class ProfileNoteActions with NoteActionsMixin implements NoteActions {
         if (!context.mounted) return;
         showSnackBar(message ?? 'ピン留めしました。');
         return;
+      case NoteMenuAction.undoRenote:
+        final message = await provider.undoRenote(note);
+        if (!context.mounted) return;
+        showSnackBar(message ?? 'リノートを取り消しました。');
+        return;
       case NoteMenuAction.deleteNote:
         final shouldDelete = await confirmDeleteNote();
         if (!context.mounted || !shouldDelete) return;

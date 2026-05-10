@@ -439,6 +439,38 @@ class NotificationsProvider extends ChangeNotifier {
     );
   }
 
+  /// 純粋リノートを解除する。
+  ///
+  /// ラッパーノード（[note].id）を対象に削除APIを呼び、
+  /// 成功後に通知一覧から該当エントリを除去する。
+  Future<String?> undoRenote(Note note) async {
+    if (note.id.isEmpty) {
+      return 'リノート解除対象のノートIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final deleteResult = await _timelineRepository.deleteNote(
+          session,
+          noteId: note.id,
+        );
+        return deleteResult.when(
+          success: (_) {
+            _removeNotificationsForNote(note.id);
+            return null;
+          },
+          failure: (error, _) => 'リノートの解除に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   /// 削除されたノートIDを含む通知を一覧から除外する。
   void _removeNotificationsForNote(String targetNoteId) {
     final loaded = _loadedState;
