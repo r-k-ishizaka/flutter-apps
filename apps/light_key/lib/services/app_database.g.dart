@@ -700,6 +700,572 @@ class EmojiUsageTableCompanion extends UpdateCompanion<EmojiUsageTableData> {
   }
 }
 
+class $ReactionDeckTableTable extends ReactionDeckTable
+    with TableInfo<$ReactionDeckTableTable, ReactionDeckTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReactionDeckTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _deckIdMeta = const VerificationMeta('deckId');
+  @override
+  late final GeneratedColumn<int> deckId = GeneratedColumn<int>(
+    'deck_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [deckId, name, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reaction_decks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReactionDeckTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('deck_id')) {
+      context.handle(
+        _deckIdMeta,
+        deckId.isAcceptableOrUnknown(data['deck_id']!, _deckIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {deckId};
+  @override
+  ReactionDeckTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReactionDeckTableData(
+      deckId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deck_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReactionDeckTableTable createAlias(String alias) {
+    return $ReactionDeckTableTable(attachedDatabase, alias);
+  }
+}
+
+class ReactionDeckTableData extends DataClass
+    implements Insertable<ReactionDeckTableData> {
+  final int deckId;
+  final String name;
+  final int updatedAt;
+  const ReactionDeckTableData({
+    required this.deckId,
+    required this.name,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['deck_id'] = Variable<int>(deckId);
+    map['name'] = Variable<String>(name);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  ReactionDeckTableCompanion toCompanion(bool nullToAbsent) {
+    return ReactionDeckTableCompanion(
+      deckId: Value(deckId),
+      name: Value(name),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ReactionDeckTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReactionDeckTableData(
+      deckId: serializer.fromJson<int>(json['deckId']),
+      name: serializer.fromJson<String>(json['name']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'deckId': serializer.toJson<int>(deckId),
+      'name': serializer.toJson<String>(name),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  ReactionDeckTableData copyWith({int? deckId, String? name, int? updatedAt}) =>
+      ReactionDeckTableData(
+        deckId: deckId ?? this.deckId,
+        name: name ?? this.name,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  ReactionDeckTableData copyWithCompanion(ReactionDeckTableCompanion data) {
+    return ReactionDeckTableData(
+      deckId: data.deckId.present ? data.deckId.value : this.deckId,
+      name: data.name.present ? data.name.value : this.name,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionDeckTableData(')
+          ..write('deckId: $deckId, ')
+          ..write('name: $name, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(deckId, name, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReactionDeckTableData &&
+          other.deckId == this.deckId &&
+          other.name == this.name &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ReactionDeckTableCompanion
+    extends UpdateCompanion<ReactionDeckTableData> {
+  final Value<int> deckId;
+  final Value<String> name;
+  final Value<int> updatedAt;
+  const ReactionDeckTableCompanion({
+    this.deckId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  ReactionDeckTableCompanion.insert({
+    this.deckId = const Value.absent(),
+    this.name = const Value.absent(),
+    required int updatedAt,
+  }) : updatedAt = Value(updatedAt);
+  static Insertable<ReactionDeckTableData> custom({
+    Expression<int>? deckId,
+    Expression<String>? name,
+    Expression<int>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (deckId != null) 'deck_id': deckId,
+      if (name != null) 'name': name,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  ReactionDeckTableCompanion copyWith({
+    Value<int>? deckId,
+    Value<String>? name,
+    Value<int>? updatedAt,
+  }) {
+    return ReactionDeckTableCompanion(
+      deckId: deckId ?? this.deckId,
+      name: name ?? this.name,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (deckId.present) {
+      map['deck_id'] = Variable<int>(deckId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionDeckTableCompanion(')
+          ..write('deckId: $deckId, ')
+          ..write('name: $name, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReactionDeckItemTableTable extends ReactionDeckItemTable
+    with TableInfo<$ReactionDeckItemTableTable, ReactionDeckItemTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReactionDeckItemTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _deckIdMeta = const VerificationMeta('deckId');
+  @override
+  late final GeneratedColumn<int> deckId = GeneratedColumn<int>(
+    'deck_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emojiMeta = const VerificationMeta('emoji');
+  @override
+  late final GeneratedColumn<String> emoji = GeneratedColumn<String>(
+    'emoji',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [deckId, position, emoji, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reaction_deck_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReactionDeckItemTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('deck_id')) {
+      context.handle(
+        _deckIdMeta,
+        deckId.isAcceptableOrUnknown(data['deck_id']!, _deckIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deckIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('emoji')) {
+      context.handle(
+        _emojiMeta,
+        emoji.isAcceptableOrUnknown(data['emoji']!, _emojiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emojiMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {deckId, position};
+  @override
+  ReactionDeckItemTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReactionDeckItemTableData(
+      deckId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deck_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      emoji: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}emoji'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReactionDeckItemTableTable createAlias(String alias) {
+    return $ReactionDeckItemTableTable(attachedDatabase, alias);
+  }
+}
+
+class ReactionDeckItemTableData extends DataClass
+    implements Insertable<ReactionDeckItemTableData> {
+  final int deckId;
+  final int position;
+  final String emoji;
+  final int updatedAt;
+  const ReactionDeckItemTableData({
+    required this.deckId,
+    required this.position,
+    required this.emoji,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['deck_id'] = Variable<int>(deckId);
+    map['position'] = Variable<int>(position);
+    map['emoji'] = Variable<String>(emoji);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  ReactionDeckItemTableCompanion toCompanion(bool nullToAbsent) {
+    return ReactionDeckItemTableCompanion(
+      deckId: Value(deckId),
+      position: Value(position),
+      emoji: Value(emoji),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ReactionDeckItemTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReactionDeckItemTableData(
+      deckId: serializer.fromJson<int>(json['deckId']),
+      position: serializer.fromJson<int>(json['position']),
+      emoji: serializer.fromJson<String>(json['emoji']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'deckId': serializer.toJson<int>(deckId),
+      'position': serializer.toJson<int>(position),
+      'emoji': serializer.toJson<String>(emoji),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  ReactionDeckItemTableData copyWith({
+    int? deckId,
+    int? position,
+    String? emoji,
+    int? updatedAt,
+  }) => ReactionDeckItemTableData(
+    deckId: deckId ?? this.deckId,
+    position: position ?? this.position,
+    emoji: emoji ?? this.emoji,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ReactionDeckItemTableData copyWithCompanion(
+    ReactionDeckItemTableCompanion data,
+  ) {
+    return ReactionDeckItemTableData(
+      deckId: data.deckId.present ? data.deckId.value : this.deckId,
+      position: data.position.present ? data.position.value : this.position,
+      emoji: data.emoji.present ? data.emoji.value : this.emoji,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionDeckItemTableData(')
+          ..write('deckId: $deckId, ')
+          ..write('position: $position, ')
+          ..write('emoji: $emoji, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(deckId, position, emoji, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReactionDeckItemTableData &&
+          other.deckId == this.deckId &&
+          other.position == this.position &&
+          other.emoji == this.emoji &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ReactionDeckItemTableCompanion
+    extends UpdateCompanion<ReactionDeckItemTableData> {
+  final Value<int> deckId;
+  final Value<int> position;
+  final Value<String> emoji;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const ReactionDeckItemTableCompanion({
+    this.deckId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.emoji = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReactionDeckItemTableCompanion.insert({
+    required int deckId,
+    required int position,
+    required String emoji,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : deckId = Value(deckId),
+       position = Value(position),
+       emoji = Value(emoji),
+       updatedAt = Value(updatedAt);
+  static Insertable<ReactionDeckItemTableData> custom({
+    Expression<int>? deckId,
+    Expression<int>? position,
+    Expression<String>? emoji,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (deckId != null) 'deck_id': deckId,
+      if (position != null) 'position': position,
+      if (emoji != null) 'emoji': emoji,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReactionDeckItemTableCompanion copyWith({
+    Value<int>? deckId,
+    Value<int>? position,
+    Value<String>? emoji,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ReactionDeckItemTableCompanion(
+      deckId: deckId ?? this.deckId,
+      position: position ?? this.position,
+      emoji: emoji ?? this.emoji,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (deckId.present) {
+      map['deck_id'] = Variable<int>(deckId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (emoji.present) {
+      map['emoji'] = Variable<String>(emoji.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionDeckItemTableCompanion(')
+          ..write('deckId: $deckId, ')
+          ..write('position: $position, ')
+          ..write('emoji: $emoji, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -707,6 +1273,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EmojiUsageTableTable emojiUsageTable = $EmojiUsageTableTable(
     this,
   );
+  late final $ReactionDeckTableTable reactionDeckTable =
+      $ReactionDeckTableTable(this);
+  late final $ReactionDeckItemTableTable reactionDeckItemTable =
+      $ReactionDeckItemTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -714,6 +1284,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     emojiTable,
     emojiUsageTable,
+    reactionDeckTable,
+    reactionDeckItemTable,
   ];
 }
 
@@ -1110,6 +1682,375 @@ typedef $$EmojiUsageTableTableProcessedTableManager =
       EmojiUsageTableData,
       PrefetchHooks Function()
     >;
+typedef $$ReactionDeckTableTableCreateCompanionBuilder =
+    ReactionDeckTableCompanion Function({
+      Value<int> deckId,
+      Value<String> name,
+      required int updatedAt,
+    });
+typedef $$ReactionDeckTableTableUpdateCompanionBuilder =
+    ReactionDeckTableCompanion Function({
+      Value<int> deckId,
+      Value<String> name,
+      Value<int> updatedAt,
+    });
+
+class $$ReactionDeckTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ReactionDeckTableTable> {
+  $$ReactionDeckTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get deckId => $composableBuilder(
+    column: $table.deckId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReactionDeckTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReactionDeckTableTable> {
+  $$ReactionDeckTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get deckId => $composableBuilder(
+    column: $table.deckId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReactionDeckTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReactionDeckTableTable> {
+  $$ReactionDeckTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get deckId =>
+      $composableBuilder(column: $table.deckId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ReactionDeckTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReactionDeckTableTable,
+          ReactionDeckTableData,
+          $$ReactionDeckTableTableFilterComposer,
+          $$ReactionDeckTableTableOrderingComposer,
+          $$ReactionDeckTableTableAnnotationComposer,
+          $$ReactionDeckTableTableCreateCompanionBuilder,
+          $$ReactionDeckTableTableUpdateCompanionBuilder,
+          (
+            ReactionDeckTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $ReactionDeckTableTable,
+              ReactionDeckTableData
+            >,
+          ),
+          ReactionDeckTableData,
+          PrefetchHooks Function()
+        > {
+  $$ReactionDeckTableTableTableManager(
+    _$AppDatabase db,
+    $ReactionDeckTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReactionDeckTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReactionDeckTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReactionDeckTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> deckId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+              }) => ReactionDeckTableCompanion(
+                deckId: deckId,
+                name: name,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> deckId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                required int updatedAt,
+              }) => ReactionDeckTableCompanion.insert(
+                deckId: deckId,
+                name: name,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReactionDeckTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReactionDeckTableTable,
+      ReactionDeckTableData,
+      $$ReactionDeckTableTableFilterComposer,
+      $$ReactionDeckTableTableOrderingComposer,
+      $$ReactionDeckTableTableAnnotationComposer,
+      $$ReactionDeckTableTableCreateCompanionBuilder,
+      $$ReactionDeckTableTableUpdateCompanionBuilder,
+      (
+        ReactionDeckTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $ReactionDeckTableTable,
+          ReactionDeckTableData
+        >,
+      ),
+      ReactionDeckTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$ReactionDeckItemTableTableCreateCompanionBuilder =
+    ReactionDeckItemTableCompanion Function({
+      required int deckId,
+      required int position,
+      required String emoji,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ReactionDeckItemTableTableUpdateCompanionBuilder =
+    ReactionDeckItemTableCompanion Function({
+      Value<int> deckId,
+      Value<int> position,
+      Value<String> emoji,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$ReactionDeckItemTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ReactionDeckItemTableTable> {
+  $$ReactionDeckItemTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get deckId => $composableBuilder(
+    column: $table.deckId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReactionDeckItemTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReactionDeckItemTableTable> {
+  $$ReactionDeckItemTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get deckId => $composableBuilder(
+    column: $table.deckId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReactionDeckItemTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReactionDeckItemTableTable> {
+  $$ReactionDeckItemTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get deckId =>
+      $composableBuilder(column: $table.deckId, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<String> get emoji =>
+      $composableBuilder(column: $table.emoji, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ReactionDeckItemTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReactionDeckItemTableTable,
+          ReactionDeckItemTableData,
+          $$ReactionDeckItemTableTableFilterComposer,
+          $$ReactionDeckItemTableTableOrderingComposer,
+          $$ReactionDeckItemTableTableAnnotationComposer,
+          $$ReactionDeckItemTableTableCreateCompanionBuilder,
+          $$ReactionDeckItemTableTableUpdateCompanionBuilder,
+          (
+            ReactionDeckItemTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $ReactionDeckItemTableTable,
+              ReactionDeckItemTableData
+            >,
+          ),
+          ReactionDeckItemTableData,
+          PrefetchHooks Function()
+        > {
+  $$ReactionDeckItemTableTableTableManager(
+    _$AppDatabase db,
+    $ReactionDeckItemTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReactionDeckItemTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ReactionDeckItemTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ReactionDeckItemTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> deckId = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<String> emoji = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionDeckItemTableCompanion(
+                deckId: deckId,
+                position: position,
+                emoji: emoji,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int deckId,
+                required int position,
+                required String emoji,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionDeckItemTableCompanion.insert(
+                deckId: deckId,
+                position: position,
+                emoji: emoji,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReactionDeckItemTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReactionDeckItemTableTable,
+      ReactionDeckItemTableData,
+      $$ReactionDeckItemTableTableFilterComposer,
+      $$ReactionDeckItemTableTableOrderingComposer,
+      $$ReactionDeckItemTableTableAnnotationComposer,
+      $$ReactionDeckItemTableTableCreateCompanionBuilder,
+      $$ReactionDeckItemTableTableUpdateCompanionBuilder,
+      (
+        ReactionDeckItemTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $ReactionDeckItemTableTable,
+          ReactionDeckItemTableData
+        >,
+      ),
+      ReactionDeckItemTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1118,4 +2059,8 @@ class $AppDatabaseManager {
       $$EmojiTableTableTableManager(_db, _db.emojiTable);
   $$EmojiUsageTableTableTableManager get emojiUsageTable =>
       $$EmojiUsageTableTableTableManager(_db, _db.emojiUsageTable);
+  $$ReactionDeckTableTableTableManager get reactionDeckTable =>
+      $$ReactionDeckTableTableTableManager(_db, _db.reactionDeckTable);
+  $$ReactionDeckItemTableTableTableManager get reactionDeckItemTable =>
+      $$ReactionDeckItemTableTableTableManager(_db, _db.reactionDeckItemTable);
 }

@@ -9,6 +9,22 @@ import '../../di/di.dart';
 import '../../services/app_database.dart';
 import 'custom_emoji_item.dart';
 
+class ReactionDeckView {
+  const ReactionDeckView({
+    required this.deckId,
+    required this.name,
+    required this.emojis,
+  });
+
+  final int deckId;
+  final String name;
+  final List<String> emojis;
+
+  bool get isRegistered => emojis.isNotEmpty;
+
+  String get displayName => name.trim().isEmpty ? 'デッキ $deckId' : name.trim();
+}
+
 /// リアクションピッカーのUI状態とビジネスロジックを管理する ChangeNotifier。
 class ReactionPickerProvider extends ChangeNotifier {
   ReactionPickerProvider({AppDatabase? database})
@@ -34,6 +50,12 @@ class ReactionPickerProvider extends ChangeNotifier {
   Future<void>? _sessionHostLoadTask;
   Future<void>? _initialLoadTask;
   List<String> _frequentReactions = const [];
+  List<ReactionDeckView> _reactionDecks = const [
+    ReactionDeckView(deckId: 1, name: '', emojis: []),
+    ReactionDeckView(deckId: 2, name: '', emojis: []),
+    ReactionDeckView(deckId: 3, name: '', emojis: []),
+    ReactionDeckView(deckId: 4, name: '', emojis: []),
+  ];
   static final RegExp _customEmojiPattern = RegExp(r'^:([^:]+):$');
 
   List<String> get categoryPath => _categoryPath;
@@ -45,6 +67,8 @@ class ReactionPickerProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Object? get loadError => _loadError;
+
+  List<ReactionDeckView> get reactionDecks => _reactionDecks;
 
   /// トップカテゴリの初期ロードを必要時に1回だけ開始する。
   Future<void> ensureInitialCategoriesLoaded() {
@@ -96,7 +120,7 @@ class ReactionPickerProvider extends ChangeNotifier {
   }
 
   /// 「:name:」形式のカスタム絵文字なら画像URLを返す。
-  String? getFrequentCustomEmojiUrl(String emoji) {
+  String? getCustomEmojiUrl(String emoji) {
     final match = _customEmojiPattern.firstMatch(emoji);
     if (match == null) {
       return null;
@@ -109,9 +133,19 @@ class ReactionPickerProvider extends ChangeNotifier {
   }
 
   /// 「:name:」形式のカスタム絵文字なら name を返す。
-  String? getFrequentCustomEmojiName(String emoji) {
+  String? getCustomEmojiName(String emoji) {
     final match = _customEmojiPattern.firstMatch(emoji);
     return match?.group(1);
+  }
+
+  /// 「:name:」形式のカスタム絵文字なら画像URLを返す。
+  String? getFrequentCustomEmojiUrl(String emoji) {
+    return getCustomEmojiUrl(emoji);
+  }
+
+  /// 「:name:」形式のカスタム絵文字なら name を返す。
+  String? getFrequentCustomEmojiName(String emoji) {
+    return getCustomEmojiName(emoji);
   }
 
   /// 絵文字選択回数を記録し、よく使う絵文字を更新する。
@@ -283,6 +317,7 @@ class ReactionPickerProvider extends ChangeNotifier {
       // 初期表示で代表アイコンを出せるよう、カテゴリデータも同時に構築する。
       _mergeRows(rows);
       await _reloadFrequentReactions();
+      await _reloadReactionDecks();
 
       _isLoading = false;
       _loadError = null;
@@ -346,6 +381,37 @@ class ReactionPickerProvider extends ChangeNotifier {
     _frequentReactions = top
         .where(_isFrequentEmojiDisplayable)
         .toList(growable: false);
+  }
+
+  Future<void> _reloadReactionDecks() async {
+    final decks = await _database.getReactionDecks();
+    final items = await _database.getReactionDeckItems();
+
+    final nameByDeckId = <int, String>{for (final deck in decks) deck.deckId: deck.name};
+    final emojisByDeckId = <int, List<String>>{};
+
+    for (final item in items) {
+      if (item.deckId < 1 || item.deckId > 4) {
+        continue;
+      }
+      if (item.position < 0 || item.position >= 32) {
+        continue;
+      }
+      emojisByDeckId.putIfAbsent(item.deckId, () => []).add(item.emoji);
+    }
+
+    _reactionDecks = List<ReactionDeckView>.unmodifiable(
+      List.generate(4, (index) {
+        final deckId = index + 1;
+        final name = nameByDeckId[deckId] ?? '';
+        final emojis = emojisByDeckId[deckId] ?? const [];
+        return ReactionDeckView(
+          deckId: deckId,
+          name: name,
+          emojis: List<String>.unmodifiable(emojis.take(32)),
+        );
+      }),
+    );
   }
 
   bool _isFrequentEmojiDisplayable(String emoji) {

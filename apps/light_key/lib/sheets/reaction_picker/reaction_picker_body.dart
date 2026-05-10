@@ -115,7 +115,8 @@ class ReactionPickerBody extends HookWidget {
   const ReactionPickerBody({required this.onSelected, super.key});
 
   static const String _frequentTabKey = '__frequent__';
-  static const int _maxTopTabs = 5;
+  static const String _deckTabPrefix = '__deck__';
+  static const int _deckCount = 4;
   static const int _frequentGridColumns = 8;
   static const int _frequentGridRows = 4;
 
@@ -258,13 +259,12 @@ class ReactionPickerBody extends HookWidget {
                 final shouldShowLoadingSlivers =
                     !isInitialSheetAnimationDone || notifier.isLoading;
 
-                final categoryTabNames = notifier.topLevelCategories
-                    .map((entry) => entry.key)
-                    .take(_maxTopTabs - 1)
+                final deckTabs = notifier.reactionDecks
+                    .take(_deckCount)
                     .toList(growable: false);
                 final availableTopTabKeys = <String>[
                   _frequentTabKey,
-                  ...categoryTabNames,
+                  ...deckTabs.map((deck) => _deckTabKey(deck.deckId)),
                 ];
                 final effectiveTopTabKey =
                     availableTopTabKeys.contains(selectedTopTabKey.value)
@@ -275,7 +275,7 @@ class ReactionPickerBody extends HookWidget {
                   _buildTopTabSlivers(
                     context,
                     notifier,
-                    categoryTabNames,
+                    deckTabs,
                     effectiveTopTabKey,
                     (tabKey) => selectedTopTabKey.value = tabKey,
                   ),
@@ -311,7 +311,7 @@ class ReactionPickerBody extends HookWidget {
   List<Widget> _buildTopTabSlivers(
     BuildContext context,
     ReactionPickerProvider notifier,
-    List<String> categoryTabNames,
+    List<ReactionDeckView> deckTabs,
     String selectedTopTabKey,
     ValueChanged<String> onTabChanged,
   ) {
@@ -330,13 +330,10 @@ class ReactionPickerBody extends HookWidget {
                 value: _frequentTabKey,
                 icon: Icon(Icons.schedule),
               ),
-              ...categoryTabNames.map(
-                (name) => ButtonSegment<String>(
-                  value: name,
-                  icon: _CategoryRepresentativeIcon(
-                    iconUrl: _getFirstEmojiUrlForTopCategory(notifier, name),
-                    size: 20,
-                  ),
+              ...deckTabs.map(
+                (deck) => ButtonSegment<String>(
+                  value: _deckTabKey(deck.deckId),
+                  icon: _buildDeckTabIcon(context, notifier, deck),
                 ),
               ),
             ],
@@ -350,12 +347,44 @@ class ReactionPickerBody extends HookWidget {
       ),
       ...selectedTopTabKey == _frequentTabKey
           ? _buildFrequentSectionSlivers(context, notifier)
-          : _buildCategoryEmojiPreviewSlivers(
+          : _buildReactionDeckSectionSlivers(
               context,
               notifier,
-              selectedTopCategoryName: selectedTopTabKey,
+              selectedDeckTabKey: selectedTopTabKey,
+              deckTabs: deckTabs,
             ),
     ];
+  }
+
+  String _deckTabKey(int deckId) => '$_deckTabPrefix$deckId';
+
+  int? _deckIdFromTabKey(String tabKey) {
+    if (!tabKey.startsWith(_deckTabPrefix)) {
+      return null;
+    }
+    return int.tryParse(tabKey.substring(_deckTabPrefix.length));
+  }
+
+  Widget _buildDeckTabIcon(
+    BuildContext context,
+    ReactionPickerProvider notifier,
+    ReactionDeckView deck,
+  ) {
+    if (!deck.isRegistered) {
+      return const Icon(Icons.emoji_emotions);
+    }
+
+    final emoji = deck.emojis.first;
+    final customUrl = notifier.getCustomEmojiUrl(emoji);
+    if (customUrl != null && customUrl.isNotEmpty) {
+      return _CategoryRepresentativeIcon(iconUrl: customUrl, size: 20);
+    }
+
+    if (notifier.getCustomEmojiName(emoji) != null) {
+      return const Icon(Icons.emoji_emotions);
+    }
+
+    return Center(child: Text(emoji, style: const TextStyle(fontSize: 18)));
   }
 
   List<Widget> _buildFrequentSectionSlivers(
@@ -423,119 +452,71 @@ class ReactionPickerBody extends HookWidget {
     return slivers;
   }
 
-  List<CustomEmojiItem> _extractEmojisFromTopCategory(
-    ReactionPickerProvider notifier,
-    String topCategory,
-  ) {
-    if (topCategory.isEmpty) {
-      return const [];
-    }
-    final results = <CustomEmojiItem>[];
-    for (final entry in notifier.emojisByCategory.entries) {
-      final segments = entry.key
-          .split('/')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toList(growable: false);
-      if (segments.isEmpty || segments.first != topCategory) {
-        continue;
-      }
-      results.addAll(entry.value);
-    }
-
-    final seen = <String>{};
-    final deduplicated = <CustomEmojiItem>[];
-    for (final item in results) {
-      if (!seen.add(item.name)) {
-        continue;
-      }
-      deduplicated.add(item);
-    }
-    deduplicated.sort((a, b) => a.name.compareTo(b.name));
-    return List<CustomEmojiItem>.unmodifiable(deduplicated);
-  }
-
-  String? _getFirstEmojiUrlForTopCategory(
-    ReactionPickerProvider notifier,
-    String topCategory,
-  ) {
-    final emojis = _extractEmojisFromTopCategory(notifier, topCategory);
-    if (emojis.isEmpty) {
-      return null;
-    }
-    return emojis.first.url;
-  }
-
-  List<Widget> _buildCategoryEmojiPreviewSlivers(
+  List<Widget> _buildReactionDeckSectionSlivers(
     BuildContext context,
     ReactionPickerProvider notifier, {
-    required String selectedTopCategoryName,
+    required String selectedDeckTabKey,
+    required List<ReactionDeckView> deckTabs,
   }) {
-    if (selectedTopCategoryName.isEmpty) {
-      return const [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text('表示できるカテゴリがありません'),
-          ),
-        ),
-      ];
+    final selectedDeckId = _deckIdFromTabKey(selectedDeckTabKey);
+    final deck = deckTabs.where((d) => d.deckId == selectedDeckId).firstOrNull;
+    if (deck == null) {
+      return const [];
     }
 
-    final categoryEmojis = _extractEmojisFromTopCategory(
-      notifier,
-      selectedTopCategoryName,
-    );
-    final maxPreviewItems = _frequentGridColumns * _frequentGridRows;
-    final previewItems = categoryEmojis
-        .take(maxPreviewItems)
-        .toList(growable: false);
+    const maxDeckItems = _frequentGridColumns * _frequentGridRows;
+    final deckEmojis = deck.emojis.take(maxDeckItems).toList(growable: false);
 
     return [
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
           child: Text(
-            '$selectedTopCategoryName の絵文字',
+            deck.isRegistered ? deck.displayName : 'デッキをカスタムする',
             style: Theme.of(context).textTheme.labelLarge,
           ),
         ),
       ),
-      if (previewItems.isEmpty)
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _frequentGridColumns,
-              childAspectRatio: 1,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => const SizedBox.shrink(),
-              childCount: maxPreviewItems,
-            ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _frequentGridColumns,
+            childAspectRatio: 1,
           ),
-        )
-      else
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _frequentGridColumns,
-              childAspectRatio: 1,
-            ),
-            delegate: SliverChildBuilderDelegate((context, index) {
-              if (index >= previewItems.length) {
+          delegate: SliverChildBuilderDelegate((context, index) {
+            if (!deck.isRegistered) {
+              if (index != 0) {
                 return const SizedBox.shrink();
               }
-              final item = previewItems[index];
-              return CustomEmojiCell(
-                name: item.name,
-                url: item.url,
-                onTap: () => unawaited(onSelected(':${item.name}:')),
+              return InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
+                  // TODO(kikuchi): リアクションデッキ編集画面へ遷移する。
+                },
+                child: const Center(child: Icon(Icons.add_reaction, size: 28)),
               );
-            }, childCount: maxPreviewItems),
-          ),
+            }
+
+            if (index >= deckEmojis.length) {
+              return const SizedBox.shrink();
+            }
+
+            final emoji = deckEmojis[index];
+            final customUrl = notifier.getCustomEmojiUrl(emoji);
+            if (customUrl != null && customUrl.isNotEmpty) {
+              final customName = notifier.getCustomEmojiName(emoji) ?? emoji;
+              return CustomEmojiCell(
+                name: customName,
+                url: customUrl,
+                onTap: () => unawaited(onSelected(emoji)),
+              );
+            }
+
+            return EmojiCell(emoji: emoji, onTap: () => unawaited(onSelected(emoji)));
+          }, childCount: maxDeckItems),
         ),
+      ),
       const SliverToBoxAdapter(child: SizedBox(height: 8)),
     ];
   }

@@ -60,28 +60,86 @@ class EmojiUsageTable extends Table {
   Set<Column<Object>> get primaryKey => {emoji};
 }
 
+/// リアクションデッキ本体テーブル。
+///
+/// deckId は 1..4 を利用し、name は空文字で未設定を表す。
+class ReactionDeckTable extends Table {
+  @override
+  String get tableName => 'reaction_decks';
+
+  IntColumn get deckId => integer()();
+
+  TextColumn get name => text().withDefault(const Constant(''))();
+
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {deckId};
+}
+
+/// リアクションデッキ内の絵文字アイテムテーブル。
+///
+/// position は 0..31 を想定する（1デッキ最大32件）。
+class ReactionDeckItemTable extends Table {
+  @override
+  String get tableName => 'reaction_deck_items';
+
+  IntColumn get deckId => integer()();
+
+  IntColumn get position => integer()();
+
+  TextColumn get emoji => text()();
+
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {deckId, position};
+}
+
 // ---------------------------------------------------------------------------
 // データベース
 // ---------------------------------------------------------------------------
 
-@DriftDatabase(tables: [EmojiTable, EmojiUsageTable])
+@DriftDatabase(
+  tables: [EmojiTable, EmojiUsageTable, ReactionDeckTable, ReactionDeckItemTable],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await _ensureDefaultReactionDecks();
     },
     onUpgrade: (m, from, to) async {
       if (from < 4) {
         await m.createTable(emojiUsageTable);
       }
+      if (from < 5) {
+        await m.createTable(reactionDeckTable);
+        await m.createTable(reactionDeckItemTable);
+        await _ensureDefaultReactionDecks();
+      }
     },
   );
+
+  Future<void> _ensureDefaultReactionDecks() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (var id = 1; id <= 4; id++) {
+      await into(reactionDeckTable).insert(
+        ReactionDeckTableCompanion(
+          deckId: Value(id),
+          name: const Value(''),
+          updatedAt: Value(now),
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
+    }
+  }
 
   // -- Emoji CRUD -----------------------------------------------------------
 
@@ -289,7 +347,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// 利用回数の多い順で絵文字を最大 [limit] 件返す。
   Future<List<String>> getTopUsedEmojis({int limit = 10}) async {
-    final normalizedLimit = limit.clamp(1, 1000) as int;
+    final normalizedLimit = limit.clamp(1, 1000);
     final rows = await (select(emojiUsageTable)
           ..orderBy([
             (t) => OrderingTerm.desc(t.usedCount),
@@ -299,6 +357,25 @@ class AppDatabase extends _$AppDatabase {
           ..limit(normalizedLimit))
         .get();
     return rows.map((row) => row.emoji).toList(growable: false);
+  }
+
+  // -- Reaction Deck ---------------------------------------------------------
+
+  /// リアクションデッキ一覧を deckId 昇順で返す。
+  Future<List<ReactionDeckTableData>> getReactionDecks() {
+    return (select(
+      reactionDeckTable,
+    )..orderBy([(t) => OrderingTerm.asc(t.deckId)])).get();
+  }
+
+  /// すべてのデッキアイテムを deckId / position 昇順で返す。
+  Future<List<ReactionDeckItemTableData>> getReactionDeckItems() {
+    return (select(reactionDeckItemTable)
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.deckId),
+            (t) => OrderingTerm.asc(t.position),
+          ]))
+        .get();
   }
 }
 
