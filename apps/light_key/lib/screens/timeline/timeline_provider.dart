@@ -24,6 +24,7 @@ class TimelineProvider extends ChangeNotifier {
   int _realtimeGeneration = 0;
   bool _wantsRealtime = false;
   bool _isDisposed = false;
+  final Map<String, String> _pendingMyReactionsByNoteId = <String, String>{};
 
   TimelineScreenState _state = const TimelineScreenState.idle();
 
@@ -223,6 +224,7 @@ class TimelineProvider extends ChangeNotifier {
         );
         return reactionResult.when(
           success: (_) {
+            _pendingMyReactionsByNoteId[targetNote.id] = outgoingReaction;
             _applyMyReaction(note, targetNote.id, outgoingReaction);
             return null;
           },
@@ -618,14 +620,32 @@ class TimelineProvider extends ChangeNotifier {
     };
 
     return incoming.copyWith(
-      myReaction: _resolveMergedMyReaction(incoming, matchedCurrent),
+      myReaction: _resolveMergedMyReaction(
+        incoming.id,
+        incoming,
+        matchedCurrent,
+      ),
       renote: mergedRenote,
     );
   }
 
-  String? _resolveMergedMyReaction(Note incoming, Note? current) {
+  String? _resolveMergedMyReaction(String noteId, Note incoming, Note? current) {
     final incomingReaction = incoming.myReaction;
     final currentReaction = current?.myReaction;
+    final pendingReaction = _pendingMyReactionsByNoteId[noteId];
+
+    // 送信直後の遅延反映で myReaction が巻き戻らないよう、
+    // pending 中はローカル値を優先する。
+    if (pendingReaction != null) {
+      if (_isEquivalentReaction(incomingReaction, pendingReaction)) {
+        _pendingMyReactionsByNoteId.remove(noteId);
+        return incomingReaction;
+      }
+      if (_isEquivalentReaction(currentReaction, pendingReaction)) {
+        return currentReaction;
+      }
+      _pendingMyReactionsByNoteId.remove(noteId);
+    }
 
     if (incomingReaction == null || incomingReaction.isEmpty) {
       return currentReaction;
@@ -650,6 +670,13 @@ class TimelineProvider extends ChangeNotifier {
     }
 
     return incomingReaction;
+  }
+
+  bool _isEquivalentReaction(String? lhs, String? rhs) {
+    if (lhs == null || rhs == null) {
+      return lhs == rhs;
+    }
+    return _normalizeOutgoingReaction(lhs) == _normalizeOutgoingReaction(rhs);
   }
 
   String _normalizeOutgoingReaction(String reaction) {
