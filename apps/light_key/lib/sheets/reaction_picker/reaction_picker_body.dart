@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -13,10 +14,7 @@ import 'search_result_tile.dart';
 
 /// カテゴリの代表アイコンをを表示。URLがなければデフォルトアイコンを表示。
 class _CategoryRepresentativeIcon extends StatelessWidget {
-  const _CategoryRepresentativeIcon({
-    required this.iconUrl,
-    this.size = 24,
-  });
+  const _CategoryRepresentativeIcon({required this.iconUrl, this.size = 24});
 
   final String? iconUrl;
   final double size;
@@ -39,7 +37,8 @@ class _CategoryRepresentativeIcon extends StatelessWidget {
             child: const CircularProgressIndicator(strokeWidth: 1),
           ),
         ),
-        errorWidget: (context, url, error) => Icon(Icons.emoji_emotions, size: size),
+        errorWidget: (context, url, error) =>
+            Icon(Icons.emoji_emotions, size: size),
       ),
     );
   }
@@ -48,17 +47,14 @@ class _CategoryRepresentativeIcon extends StatelessWidget {
 bool _useInitialSheetAnimationDone(ReactionPickerProvider notifier) {
   final isInitialSheetAnimationDone = useState(false);
 
-  useEffect(
-    () {
-      const initialSheetAnimationDuration = Duration(milliseconds: 300);
-      final timer = Timer(initialSheetAnimationDuration, () {
-        isInitialSheetAnimationDone.value = true;
-        unawaited(notifier.ensureInitialCategoriesLoaded());
-      });
-      return timer.cancel;
-    },
-    [isInitialSheetAnimationDone, notifier],
-  );
+  useEffect(() {
+    const initialSheetAnimationDuration = Duration(milliseconds: 300);
+    final timer = Timer(initialSheetAnimationDuration, () {
+      isInitialSheetAnimationDone.value = true;
+      unawaited(notifier.ensureInitialCategoriesLoaded());
+    });
+    return timer.cancel;
+  }, [isInitialSheetAnimationDone, notifier]);
 
   return isInitialSheetAnimationDone.value;
 }
@@ -119,7 +115,10 @@ ValueNotifier<bool> _useForceSearchExpanded({
 class ReactionPickerBody extends HookWidget {
   const ReactionPickerBody({required this.onSelected, super.key});
 
-  final ValueChanged<String> onSelected;
+  static const int _frequentGridColumns = 8;
+  static const int _frequentGridRows = 2;
+
+  final Future<void> Function(String emoji) onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +147,7 @@ class ReactionPickerBody extends HookWidget {
       notifier.navigateToCategory(nextPath);
       scrollToTopAfterBuild();
     }
+
     final forceSearchExpanded = _useForceSearchExpanded(
       notifier: notifier,
       searchFocusNode: searchFocusNode,
@@ -253,7 +253,9 @@ class ReactionPickerBody extends HookWidget {
                 final bodySlivers = <Widget>[];
                 final shouldShowLoadingSlivers =
                     !isInitialSheetAnimationDone || notifier.isLoading;
-                bodySlivers.addAll(_buildFrequentSectionSlivers(context, notifier));
+                bodySlivers.addAll(
+                  _buildFrequentSectionSlivers(context, notifier),
+                );
                 bodySlivers.addAll(
                   _buildCustomEmojiSectionSlivers(
                     context,
@@ -262,7 +264,9 @@ class ReactionPickerBody extends HookWidget {
                     handleCategorySelected,
                   ),
                 );
-                bodySlivers.add(_buildBottomInsetSliver(context, keyboardInset));
+                bodySlivers.add(
+                  _buildBottomInsetSliver(context, keyboardInset),
+                );
 
                 slivers.addAll(bodySlivers);
 
@@ -292,39 +296,63 @@ class ReactionPickerBody extends HookWidget {
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-          child: Text(
-            'よく使う絵文字',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
+          child: Text('よく使う絵文字', style: Theme.of(context).textTheme.labelLarge),
         ),
       ),
     ];
 
     final frequent = notifier.filteredFrequent;
-    if (frequent.isEmpty) {
-      slivers.add(
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Text('該当する絵文字がありません'),
-          ),
-        ),
-      );
-      return slivers;
-    }
-
     slivers.add(
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 8,
-            childAspectRatio: 1,
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cellSize = constraints.maxWidth / _frequentGridColumns;
+              final gridHeight = math.min(cellSize * _frequentGridRows, 96.0);
+
+              if (frequent.isEmpty) {
+                return SizedBox(
+                  height: gridHeight,
+                  child: const Center(child: Text('該当する絵文字がありません')),
+                );
+              }
+
+              return SizedBox(
+                height: gridHeight,
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _frequentGridColumns * _frequentGridRows,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: _frequentGridColumns,
+                    childAspectRatio: 1,
+                  ),
+                  itemBuilder: (context, index) {
+                    if (index >= frequent.length) {
+                      return const SizedBox.shrink();
+                    }
+
+                    final emoji = frequent[index];
+                    final customUrl = notifier.getFrequentCustomEmojiUrl(emoji);
+                    if (customUrl != null && customUrl.isNotEmpty) {
+                      final customName =
+                          notifier.getFrequentCustomEmojiName(emoji) ?? emoji;
+                      return CustomEmojiCell(
+                        name: customName,
+                        url: customUrl,
+                        onTap: () => unawaited(onSelected(emoji)),
+                      );
+                    }
+
+                    return EmojiCell(
+                      emoji: emoji,
+                      onTap: () => unawaited(onSelected(emoji)),
+                    );
+                  },
+                ),
+              );
+            },
           ),
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final emoji = frequent[index];
-            return EmojiCell(emoji: emoji, onTap: () => onSelected(emoji));
-          }, childCount: frequent.length),
         ),
       ),
     );
@@ -447,7 +475,7 @@ class ReactionPickerBody extends HookWidget {
             url: item.url,
             aliases: item.aliases,
             categoryPath: item.categoryPath,
-            onTap: () => onSelected(':${item.name}:'),
+            onTap: () => unawaited(onSelected(':${item.name}:')),
           );
         }, childCount: emojis.length),
       ),
@@ -486,8 +514,8 @@ class ReactionPickerBody extends HookWidget {
             final subCatName = subCategoryNames[index];
             final nextPath = [...notifier.categoryPath, subCatName];
             final categoryPathKey = nextPath.join('/');
-            final representativeUrl =
-                notifier.getRepresentativeEmojiUrlForCategory(categoryPathKey);
+            final representativeUrl = notifier
+                .getRepresentativeEmojiUrlForCategory(categoryPathKey);
             return Column(
               children: [
                 ListTile(
@@ -529,7 +557,7 @@ class ReactionPickerBody extends HookWidget {
               return CustomEmojiCell(
                 name: item.name,
                 url: item.url,
-                onTap: () => onSelected(':${item.name}:'),
+                onTap: () => unawaited(onSelected(':${item.name}:')),
               );
             }, childCount: emojis.length),
           ),
@@ -565,8 +593,8 @@ class ReactionPickerBody extends HookWidget {
       SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final entry = categories[index];
-          final representativeUrl =
-              notifier.getRepresentativeEmojiUrlByTopCategory(entry.key);
+          final representativeUrl = notifier
+              .getRepresentativeEmojiUrlByTopCategory(entry.key);
           return ListTile(
             dense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),

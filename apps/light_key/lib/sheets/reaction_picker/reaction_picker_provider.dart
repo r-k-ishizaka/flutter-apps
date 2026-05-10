@@ -9,12 +9,12 @@ import '../../di/di.dart';
 import '../../services/app_database.dart';
 import 'custom_emoji_item.dart';
 
-/// よく使われる絵文字リアクションの一覧（仮）。
-const _kFrequentReactions = <String>[];
-
 /// リアクションピッカーのUI状態とビジネスロジックを管理する ChangeNotifier。
 class ReactionPickerProvider extends ChangeNotifier {
-  ReactionPickerProvider();
+  ReactionPickerProvider({AppDatabase? database})
+    : _database = database ?? getIt<AppDatabase>();
+
+  final AppDatabase _database;
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -33,6 +33,8 @@ class ReactionPickerProvider extends ChangeNotifier {
   String? _sessionHost;
   Future<void>? _sessionHostLoadTask;
   Future<void>? _initialLoadTask;
+  List<String> _frequentReactions = const [];
+  static final RegExp _customEmojiPattern = RegExp(r'^:([^:]+):$');
 
   List<String> get categoryPath => _categoryPath;
 
@@ -87,10 +89,39 @@ class ReactionPickerProvider extends ChangeNotifier {
 
   /// よく使う絵文字のフィルタリング済み一覧。
   List<String> get filteredFrequent {
-    if (_query.isEmpty) return _kFrequentReactions;
-    return _kFrequentReactions
+    if (_query.isEmpty) return _frequentReactions;
+    return _frequentReactions
         .where((e) => e.contains(_query))
         .toList(growable: false);
+  }
+
+  /// 「:name:」形式のカスタム絵文字なら画像URLを返す。
+  String? getFrequentCustomEmojiUrl(String emoji) {
+    final match = _customEmojiPattern.firstMatch(emoji);
+    if (match == null) {
+      return null;
+    }
+    final shortcode = match.group(1);
+    if (shortcode == null || shortcode.isEmpty) {
+      return null;
+    }
+    return _loadedRowsByName[shortcode]?.url;
+  }
+
+  /// 「:name:」形式のカスタム絵文字なら name を返す。
+  String? getFrequentCustomEmojiName(String emoji) {
+    final match = _customEmojiPattern.firstMatch(emoji);
+    return match?.group(1);
+  }
+
+  /// 絵文字選択回数を記録し、よく使う絵文字を更新する。
+  Future<void> recordEmojiSelected(String emoji) async {
+    if (emoji.isEmpty) {
+      return;
+    }
+    await _database.incrementEmojiUsage(emoji);
+    await _reloadFrequentReactions();
+    _safeNotifyListeners();
   }
 
   /// 現在のカテゴリパス配下での検索結果。
@@ -233,8 +264,7 @@ class ReactionPickerProvider extends ChangeNotifier {
   Future<void> _loadInitialCategories() async {
     try {
       await _ensureSessionHostLoaded();
-      final db = getIt<AppDatabase>();
-      final rows = await db.getEmojisForPicker();
+      final rows = await _database.getEmojisForPicker();
 
       final counts = <String, int>{};
       for (final row in rows) {
@@ -252,6 +282,7 @@ class ReactionPickerProvider extends ChangeNotifier {
 
       // 初期表示で代表アイコンを出せるよう、カテゴリデータも同時に構築する。
       _mergeRows(rows);
+      await _reloadFrequentReactions();
 
       _isLoading = false;
       _loadError = null;
@@ -275,8 +306,7 @@ class ReactionPickerProvider extends ChangeNotifier {
 
     try {
       await _ensureSessionHostLoaded();
-      final db = getIt<AppDatabase>();
-      final rows = await db.getEmojisForPickerByTopCategory(top);
+      final rows = await _database.getEmojisForPickerByTopCategory(top);
       _mergeRows(rows, topCategoryFilter: top);
       _loadedTopCategories.add(top);
       _isLoading = false;
@@ -296,8 +326,7 @@ class ReactionPickerProvider extends ChangeNotifier {
 
     try {
       await _ensureSessionHostLoaded();
-      final db = getIt<AppDatabase>();
-      final rows = await db.getEmojisForPicker();
+      final rows = await _database.getEmojisForPicker();
       _mergeRows(rows);
       _allEmojisLoaded = true;
       _loadedTopCategories
@@ -310,6 +339,25 @@ class ReactionPickerProvider extends ChangeNotifier {
       _isLoading = false;
     }
     _safeNotifyListeners();
+  }
+
+  Future<void> _reloadFrequentReactions() async {
+    final top = await _database.getTopUsedEmojis(limit: 10);
+    _frequentReactions = top
+        .where(_isFrequentEmojiDisplayable)
+        .toList(growable: false);
+  }
+
+  bool _isFrequentEmojiDisplayable(String emoji) {
+    final match = _customEmojiPattern.firstMatch(emoji);
+    if (match == null) {
+      return true;
+    }
+    final shortcode = match.group(1);
+    if (shortcode == null || shortcode.isEmpty) {
+      return false;
+    }
+    return _loadedRowsByName.containsKey(shortcode);
   }
 
   void _mergeRows(List<EmojiPickerRow> rows, {String? topCategoryFilter}) {
@@ -410,7 +458,9 @@ class ReactionPickerProvider extends ChangeNotifier {
       representativeByTop[top] = items[idx].url;
     }
 
-    _representativeUrlByCategoryPath = Map.unmodifiable(representativeByCategory);
+    _representativeUrlByCategoryPath = Map.unmodifiable(
+      representativeByCategory,
+    );
     _representativeUrlByTopCategory = Map.unmodifiable(representativeByTop);
   }
 

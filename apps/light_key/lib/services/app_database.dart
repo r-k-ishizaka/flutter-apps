@@ -39,16 +39,49 @@ class EmojiTable extends Table {
   Set<Column<Object>> get primaryKey => {name};
 }
 
+/// 絵文字の利用履歴テーブル。
+///
+/// `emoji` は選択時に返却される文字列そのものを保存する。
+/// 例: "👍" / ":smile:"。
+class EmojiUsageTable extends Table {
+  @override
+  String get tableName => 'emoji_usages';
+
+  /// 選択された絵文字文字列。
+  TextColumn get emoji => text()();
+
+  /// 累計利用回数。
+  IntColumn get usedCount => integer().withDefault(const Constant(0))();
+
+  /// 最終利用時刻（epoch milliseconds）。
+  IntColumn get lastUsedAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {emoji};
+}
+
 // ---------------------------------------------------------------------------
 // データベース
 // ---------------------------------------------------------------------------
 
-@DriftDatabase(tables: [EmojiTable])
+@DriftDatabase(tables: [EmojiTable, EmojiUsageTable])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 4) {
+        await m.createTable(emojiUsageTable);
+      }
+    },
+  );
 
   // -- Emoji CRUD -----------------------------------------------------------
 
@@ -231,6 +264,41 @@ class AppDatabase extends _$AppDatabase {
             );
       }
     });
+  }
+
+  // -- Emoji Usage ----------------------------------------------------------
+
+  /// 絵文字選択回数を1増やす。
+  Future<void> incrementEmojiUsage(String emoji) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(emojiUsageTable).insert(
+      EmojiUsageTableCompanion(
+        emoji: Value(emoji),
+        usedCount: const Value(1),
+        lastUsedAt: Value(now),
+      ),
+      onConflict: DoUpdate(
+        (old) => EmojiUsageTableCompanion.custom(
+          usedCount: old.usedCount + const Constant(1),
+          lastUsedAt: Constant(now),
+        ),
+        target: [emojiUsageTable.emoji],
+      ),
+    );
+  }
+
+  /// 利用回数の多い順で絵文字を最大 [limit] 件返す。
+  Future<List<String>> getTopUsedEmojis({int limit = 10}) async {
+    final normalizedLimit = limit.clamp(1, 1000) as int;
+    final rows = await (select(emojiUsageTable)
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.usedCount),
+            (t) => OrderingTerm.desc(t.lastUsedAt),
+            (t) => OrderingTerm.asc(t.emoji),
+          ])
+          ..limit(normalizedLimit))
+        .get();
+    return rows.map((row) => row.emoji).toList(growable: false);
   }
 }
 

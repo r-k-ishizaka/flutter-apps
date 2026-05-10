@@ -12,16 +12,25 @@ import 'reaction_picker_provider.dart';
 class ReactionPickerSheet extends HookWidget {
   const ReactionPickerSheet({required this.onSelected, super.key});
 
-  final ValueChanged<String> onSelected;
+  final Future<void> Function(String emoji) onSelected;
 
   @override
   Widget build(BuildContext context) {
     final notifier = useMemoized(ReactionPickerProvider.new);
     useEffect(() => notifier.dispose, [notifier]);
 
+    Future<void> handleSelected(String emoji) async {
+      try {
+        await notifier.recordEmojiSelected(emoji);
+      } catch (_) {
+        // 利用回数の保存に失敗しても、リアクション操作は継続する。
+      }
+      await onSelected(emoji);
+    }
+
     return ChangeNotifierProvider<ReactionPickerProvider>.value(
       value: notifier,
-      child: ReactionPickerBody(onSelected: onSelected),
+      child: ReactionPickerBody(onSelected: handleSelected),
     );
   }
 }
@@ -43,7 +52,10 @@ Future<String?> showReactionPickerSheet(BuildContext context) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (context) => ReactionPickerSheet(
-      onSelected: (emoji) => Navigator.of(context).pop(emoji),
+      onSelected: (emoji) async {
+        if (!context.mounted) return;
+        Navigator.of(context).pop(emoji);
+      },
     ),
   );
 }

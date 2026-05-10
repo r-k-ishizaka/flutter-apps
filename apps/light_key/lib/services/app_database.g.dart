@@ -424,15 +424,297 @@ class EmojiTableCompanion extends UpdateCompanion<EmojiTableData> {
   }
 }
 
+class $EmojiUsageTableTable extends EmojiUsageTable
+    with TableInfo<$EmojiUsageTableTable, EmojiUsageTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EmojiUsageTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _emojiMeta = const VerificationMeta('emoji');
+  @override
+  late final GeneratedColumn<String> emoji = GeneratedColumn<String>(
+    'emoji',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _usedCountMeta = const VerificationMeta(
+    'usedCount',
+  );
+  @override
+  late final GeneratedColumn<int> usedCount = GeneratedColumn<int>(
+    'used_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastUsedAtMeta = const VerificationMeta(
+    'lastUsedAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastUsedAt = GeneratedColumn<int>(
+    'last_used_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [emoji, usedCount, lastUsedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'emoji_usages';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EmojiUsageTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('emoji')) {
+      context.handle(
+        _emojiMeta,
+        emoji.isAcceptableOrUnknown(data['emoji']!, _emojiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emojiMeta);
+    }
+    if (data.containsKey('used_count')) {
+      context.handle(
+        _usedCountMeta,
+        usedCount.isAcceptableOrUnknown(data['used_count']!, _usedCountMeta),
+      );
+    }
+    if (data.containsKey('last_used_at')) {
+      context.handle(
+        _lastUsedAtMeta,
+        lastUsedAt.isAcceptableOrUnknown(
+          data['last_used_at']!,
+          _lastUsedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastUsedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {emoji};
+  @override
+  EmojiUsageTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EmojiUsageTableData(
+      emoji: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}emoji'],
+      )!,
+      usedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}used_count'],
+      )!,
+      lastUsedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_used_at'],
+      )!,
+    );
+  }
+
+  @override
+  $EmojiUsageTableTable createAlias(String alias) {
+    return $EmojiUsageTableTable(attachedDatabase, alias);
+  }
+}
+
+class EmojiUsageTableData extends DataClass
+    implements Insertable<EmojiUsageTableData> {
+  /// 選択された絵文字文字列。
+  final String emoji;
+
+  /// 累計利用回数。
+  final int usedCount;
+
+  /// 最終利用時刻（epoch milliseconds）。
+  final int lastUsedAt;
+  const EmojiUsageTableData({
+    required this.emoji,
+    required this.usedCount,
+    required this.lastUsedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['emoji'] = Variable<String>(emoji);
+    map['used_count'] = Variable<int>(usedCount);
+    map['last_used_at'] = Variable<int>(lastUsedAt);
+    return map;
+  }
+
+  EmojiUsageTableCompanion toCompanion(bool nullToAbsent) {
+    return EmojiUsageTableCompanion(
+      emoji: Value(emoji),
+      usedCount: Value(usedCount),
+      lastUsedAt: Value(lastUsedAt),
+    );
+  }
+
+  factory EmojiUsageTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EmojiUsageTableData(
+      emoji: serializer.fromJson<String>(json['emoji']),
+      usedCount: serializer.fromJson<int>(json['usedCount']),
+      lastUsedAt: serializer.fromJson<int>(json['lastUsedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'emoji': serializer.toJson<String>(emoji),
+      'usedCount': serializer.toJson<int>(usedCount),
+      'lastUsedAt': serializer.toJson<int>(lastUsedAt),
+    };
+  }
+
+  EmojiUsageTableData copyWith({
+    String? emoji,
+    int? usedCount,
+    int? lastUsedAt,
+  }) => EmojiUsageTableData(
+    emoji: emoji ?? this.emoji,
+    usedCount: usedCount ?? this.usedCount,
+    lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+  );
+  EmojiUsageTableData copyWithCompanion(EmojiUsageTableCompanion data) {
+    return EmojiUsageTableData(
+      emoji: data.emoji.present ? data.emoji.value : this.emoji,
+      usedCount: data.usedCount.present ? data.usedCount.value : this.usedCount,
+      lastUsedAt: data.lastUsedAt.present
+          ? data.lastUsedAt.value
+          : this.lastUsedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmojiUsageTableData(')
+          ..write('emoji: $emoji, ')
+          ..write('usedCount: $usedCount, ')
+          ..write('lastUsedAt: $lastUsedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(emoji, usedCount, lastUsedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EmojiUsageTableData &&
+          other.emoji == this.emoji &&
+          other.usedCount == this.usedCount &&
+          other.lastUsedAt == this.lastUsedAt);
+}
+
+class EmojiUsageTableCompanion extends UpdateCompanion<EmojiUsageTableData> {
+  final Value<String> emoji;
+  final Value<int> usedCount;
+  final Value<int> lastUsedAt;
+  final Value<int> rowid;
+  const EmojiUsageTableCompanion({
+    this.emoji = const Value.absent(),
+    this.usedCount = const Value.absent(),
+    this.lastUsedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EmojiUsageTableCompanion.insert({
+    required String emoji,
+    this.usedCount = const Value.absent(),
+    required int lastUsedAt,
+    this.rowid = const Value.absent(),
+  }) : emoji = Value(emoji),
+       lastUsedAt = Value(lastUsedAt);
+  static Insertable<EmojiUsageTableData> custom({
+    Expression<String>? emoji,
+    Expression<int>? usedCount,
+    Expression<int>? lastUsedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (emoji != null) 'emoji': emoji,
+      if (usedCount != null) 'used_count': usedCount,
+      if (lastUsedAt != null) 'last_used_at': lastUsedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EmojiUsageTableCompanion copyWith({
+    Value<String>? emoji,
+    Value<int>? usedCount,
+    Value<int>? lastUsedAt,
+    Value<int>? rowid,
+  }) {
+    return EmojiUsageTableCompanion(
+      emoji: emoji ?? this.emoji,
+      usedCount: usedCount ?? this.usedCount,
+      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (emoji.present) {
+      map['emoji'] = Variable<String>(emoji.value);
+    }
+    if (usedCount.present) {
+      map['used_count'] = Variable<int>(usedCount.value);
+    }
+    if (lastUsedAt.present) {
+      map['last_used_at'] = Variable<int>(lastUsedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmojiUsageTableCompanion(')
+          ..write('emoji: $emoji, ')
+          ..write('usedCount: $usedCount, ')
+          ..write('lastUsedAt: $lastUsedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $EmojiTableTable emojiTable = $EmojiTableTable(this);
+  late final $EmojiUsageTableTable emojiUsageTable = $EmojiUsageTableTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [emojiTable];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    emojiTable,
+    emojiUsageTable,
+  ];
 }
 
 typedef $$EmojiTableTableCreateCompanionBuilder =
@@ -654,10 +936,186 @@ typedef $$EmojiTableTableProcessedTableManager =
       EmojiTableData,
       PrefetchHooks Function()
     >;
+typedef $$EmojiUsageTableTableCreateCompanionBuilder =
+    EmojiUsageTableCompanion Function({
+      required String emoji,
+      Value<int> usedCount,
+      required int lastUsedAt,
+      Value<int> rowid,
+    });
+typedef $$EmojiUsageTableTableUpdateCompanionBuilder =
+    EmojiUsageTableCompanion Function({
+      Value<String> emoji,
+      Value<int> usedCount,
+      Value<int> lastUsedAt,
+      Value<int> rowid,
+    });
+
+class $$EmojiUsageTableTableFilterComposer
+    extends Composer<_$AppDatabase, $EmojiUsageTableTable> {
+  $$EmojiUsageTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get usedCount => $composableBuilder(
+    column: $table.usedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EmojiUsageTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $EmojiUsageTableTable> {
+  $$EmojiUsageTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get usedCount => $composableBuilder(
+    column: $table.usedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EmojiUsageTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EmojiUsageTableTable> {
+  $$EmojiUsageTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get emoji =>
+      $composableBuilder(column: $table.emoji, builder: (column) => column);
+
+  GeneratedColumn<int> get usedCount =>
+      $composableBuilder(column: $table.usedCount, builder: (column) => column);
+
+  GeneratedColumn<int> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$EmojiUsageTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EmojiUsageTableTable,
+          EmojiUsageTableData,
+          $$EmojiUsageTableTableFilterComposer,
+          $$EmojiUsageTableTableOrderingComposer,
+          $$EmojiUsageTableTableAnnotationComposer,
+          $$EmojiUsageTableTableCreateCompanionBuilder,
+          $$EmojiUsageTableTableUpdateCompanionBuilder,
+          (
+            EmojiUsageTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $EmojiUsageTableTable,
+              EmojiUsageTableData
+            >,
+          ),
+          EmojiUsageTableData,
+          PrefetchHooks Function()
+        > {
+  $$EmojiUsageTableTableTableManager(
+    _$AppDatabase db,
+    $EmojiUsageTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EmojiUsageTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EmojiUsageTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EmojiUsageTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> emoji = const Value.absent(),
+                Value<int> usedCount = const Value.absent(),
+                Value<int> lastUsedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EmojiUsageTableCompanion(
+                emoji: emoji,
+                usedCount: usedCount,
+                lastUsedAt: lastUsedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String emoji,
+                Value<int> usedCount = const Value.absent(),
+                required int lastUsedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => EmojiUsageTableCompanion.insert(
+                emoji: emoji,
+                usedCount: usedCount,
+                lastUsedAt: lastUsedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EmojiUsageTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EmojiUsageTableTable,
+      EmojiUsageTableData,
+      $$EmojiUsageTableTableFilterComposer,
+      $$EmojiUsageTableTableOrderingComposer,
+      $$EmojiUsageTableTableAnnotationComposer,
+      $$EmojiUsageTableTableCreateCompanionBuilder,
+      $$EmojiUsageTableTableUpdateCompanionBuilder,
+      (
+        EmojiUsageTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $EmojiUsageTableTable,
+          EmojiUsageTableData
+        >,
+      ),
+      EmojiUsageTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$EmojiTableTableTableManager get emojiTable =>
       $$EmojiTableTableTableManager(_db, _db.emojiTable);
+  $$EmojiUsageTableTableTableManager get emojiUsageTable =>
+      $$EmojiUsageTableTableTableManager(_db, _db.emojiUsageTable);
 }
