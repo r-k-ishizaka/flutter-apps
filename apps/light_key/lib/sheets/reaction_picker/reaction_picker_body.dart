@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -115,8 +114,10 @@ ValueNotifier<bool> _useForceSearchExpanded({
 class ReactionPickerBody extends HookWidget {
   const ReactionPickerBody({required this.onSelected, super.key});
 
+  static const String _frequentTabKey = '__frequent__';
+  static const int _maxTopTabs = 5;
   static const int _frequentGridColumns = 8;
-  static const int _frequentGridRows = 2;
+  static const int _frequentGridRows = 4;
 
   final Future<void> Function(String emoji) onSelected;
 
@@ -130,6 +131,7 @@ class ReactionPickerBody extends HookWidget {
     final latestScrollController = useRef<ScrollController?>(null);
     final wasAtMinExtent = useRef(false);
     final colorScheme = Theme.of(context).colorScheme;
+    final selectedTopTabKey = useState(_frequentTabKey);
 
     void scrollToTopAfterBuild() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -168,7 +170,9 @@ class ReactionPickerBody extends HookWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-          final minSheetSize = 1 / 3;
+          final cellSize = constraints.maxWidth / _frequentGridColumns;
+          final extraFraction = (cellSize * 2) / constraints.maxHeight;
+          final minSheetSize = (1 / 3 + extraFraction).clamp(0.0, 1.0);
           const minExtentEpsilon = 0.005;
           final rawSnapSizes = <double>[0, minSheetSize, 1.0]..sort();
           final snapSizes = <double>[];
@@ -253,8 +257,28 @@ class ReactionPickerBody extends HookWidget {
                 final bodySlivers = <Widget>[];
                 final shouldShowLoadingSlivers =
                     !isInitialSheetAnimationDone || notifier.isLoading;
+
+                final categoryTabNames = notifier.topLevelCategories
+                    .map((entry) => entry.key)
+                    .take(_maxTopTabs - 1)
+                    .toList(growable: false);
+                final availableTopTabKeys = <String>[
+                  _frequentTabKey,
+                  ...categoryTabNames,
+                ];
+                final effectiveTopTabKey =
+                    availableTopTabKeys.contains(selectedTopTabKey.value)
+                    ? selectedTopTabKey.value
+                    : _frequentTabKey;
+
                 bodySlivers.addAll(
-                  _buildFrequentSectionSlivers(context, notifier),
+                  _buildTopTabSlivers(
+                    context,
+                    notifier,
+                    categoryTabNames,
+                    effectiveTopTabKey,
+                    (tabKey) => selectedTopTabKey.value = tabKey,
+                  ),
                 );
                 bodySlivers.addAll(
                   _buildCustomEmojiSectionSlivers(
@@ -284,14 +308,60 @@ class ReactionPickerBody extends HookWidget {
 
   // ── Sliver builders ────────────────────────────────────────────────────────
 
-  List<Widget> _buildFrequentSectionSlivers(
+  List<Widget> _buildTopTabSlivers(
     BuildContext context,
     ReactionPickerProvider notifier,
+    List<String> categoryTabNames,
+    String selectedTopTabKey,
+    ValueChanged<String> onTabChanged,
   ) {
     if (notifier.categoryPath.isNotEmpty || notifier.query.isNotEmpty) {
       return const [];
     }
 
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: [
+              const ButtonSegment<String>(
+                value: _frequentTabKey,
+                icon: Icon(Icons.schedule),
+              ),
+              ...categoryTabNames.map(
+                (name) => ButtonSegment<String>(
+                  value: name,
+                  icon: _CategoryRepresentativeIcon(
+                    iconUrl: _getFirstEmojiUrlForTopCategory(notifier, name),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+            selected: <String>{selectedTopTabKey},
+            onSelectionChanged: (selection) {
+              final tab = selection.firstOrNull;
+              if (tab != null) onTabChanged(tab);
+            },
+          ),
+        ),
+      ),
+      ...selectedTopTabKey == _frequentTabKey
+          ? _buildFrequentSectionSlivers(context, notifier)
+          : _buildCategoryEmojiPreviewSlivers(
+              context,
+              notifier,
+              selectedTopCategoryName: selectedTopTabKey,
+            ),
+    ];
+  }
+
+  List<Widget> _buildFrequentSectionSlivers(
+    BuildContext context,
+    ReactionPickerProvider notifier,
+  ) {
     final slivers = <Widget>[
       SliverToBoxAdapter(
         child: Padding(
@@ -309,20 +379,14 @@ class ReactionPickerBody extends HookWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final cellSize = constraints.maxWidth / _frequentGridColumns;
-              final gridHeight = math.min(cellSize * _frequentGridRows, 96.0);
-
-              if (frequent.isEmpty) {
-                return SizedBox(
-                  height: gridHeight,
-                  child: const Center(child: Text('該当する絵文字がありません')),
-                );
-              }
+              final gridHeight = cellSize * _frequentGridRows;
+              final totalSlots = _frequentGridColumns * _frequentGridRows;
 
               return SizedBox(
                 height: gridHeight,
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _frequentGridColumns * _frequentGridRows,
+                  itemCount: totalSlots,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: _frequentGridColumns,
                     childAspectRatio: 1,
@@ -357,6 +421,123 @@ class ReactionPickerBody extends HookWidget {
       ),
     );
     return slivers;
+  }
+
+  List<CustomEmojiItem> _extractEmojisFromTopCategory(
+    ReactionPickerProvider notifier,
+    String topCategory,
+  ) {
+    if (topCategory.isEmpty) {
+      return const [];
+    }
+    final results = <CustomEmojiItem>[];
+    for (final entry in notifier.emojisByCategory.entries) {
+      final segments = entry.key
+          .split('/')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList(growable: false);
+      if (segments.isEmpty || segments.first != topCategory) {
+        continue;
+      }
+      results.addAll(entry.value);
+    }
+
+    final seen = <String>{};
+    final deduplicated = <CustomEmojiItem>[];
+    for (final item in results) {
+      if (!seen.add(item.name)) {
+        continue;
+      }
+      deduplicated.add(item);
+    }
+    deduplicated.sort((a, b) => a.name.compareTo(b.name));
+    return List<CustomEmojiItem>.unmodifiable(deduplicated);
+  }
+
+  String? _getFirstEmojiUrlForTopCategory(
+    ReactionPickerProvider notifier,
+    String topCategory,
+  ) {
+    final emojis = _extractEmojisFromTopCategory(notifier, topCategory);
+    if (emojis.isEmpty) {
+      return null;
+    }
+    return emojis.first.url;
+  }
+
+  List<Widget> _buildCategoryEmojiPreviewSlivers(
+    BuildContext context,
+    ReactionPickerProvider notifier, {
+    required String selectedTopCategoryName,
+  }) {
+    if (selectedTopCategoryName.isEmpty) {
+      return const [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text('表示できるカテゴリがありません'),
+          ),
+        ),
+      ];
+    }
+
+    final categoryEmojis = _extractEmojisFromTopCategory(
+      notifier,
+      selectedTopCategoryName,
+    );
+    final maxPreviewItems = _frequentGridColumns * _frequentGridRows;
+    final previewItems = categoryEmojis
+        .take(maxPreviewItems)
+        .toList(growable: false);
+
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: Text(
+            '$selectedTopCategoryName の絵文字',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ),
+      ),
+      if (previewItems.isEmpty)
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _frequentGridColumns,
+              childAspectRatio: 1,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => const SizedBox.shrink(),
+              childCount: maxPreviewItems,
+            ),
+          ),
+        )
+      else
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _frequentGridColumns,
+              childAspectRatio: 1,
+            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              if (index >= previewItems.length) {
+                return const SizedBox.shrink();
+              }
+              final item = previewItems[index];
+              return CustomEmojiCell(
+                name: item.name,
+                url: item.url,
+                onTap: () => unawaited(onSelected(':${item.name}:')),
+              );
+            }, childCount: maxPreviewItems),
+          ),
+        ),
+      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+    ];
   }
 
   List<Widget> _buildCustomEmojiSectionSlivers(
