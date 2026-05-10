@@ -342,7 +342,7 @@ class ReactionPickerProvider extends ChangeNotifier {
   }
 
   Future<void> _reloadFrequentReactions() async {
-    final top = await _database.getTopUsedEmojis(limit: 10);
+    final top = await _database.getTopUsedEmojis(limit: 16);
     _frequentReactions = top
         .where(_isFrequentEmojiDisplayable)
         .toList(growable: false);
