@@ -158,9 +158,16 @@ class NotificationsNoteActions with NoteActionsMixin implements NoteActions {
         if (!context.mounted) return;
         showSnackBar(message ?? 'ユーザーをブロックしました。');
         return;
-      case NoteMenuAction.report:
-        // TODO: 通報
-        showComingSoon('通報');
+       case NoteMenuAction.report:
+          final reportInput = await pickNoteReportReason();
+          if (reportInput == null || !context.mounted) return;
+          final message = await provider.createReport(
+            note,
+            reportInput.category,
+            reportInput.userComment,
+          );
+        if (!context.mounted) return;
+        showSnackBar(message ?? '通報しました。');
         return;
     }
   }

@@ -10,6 +10,7 @@ import '../../screens/post/post_screen_param.dart';
 import '../../services/emoji_cache.dart';
 import '../../sheets/note_emoji_action/note_emoji_action_sheet.dart';
 import '../../sheets/note_menu/note_menu_sheet.dart';
+import '../../sheets/note_report/note_report_sheet.dart';
 import '../../sheets/reaction_picker/reaction_picker_sheet.dart';
 import '../../sheets/renote_action/renote_action_sheet.dart';
 
@@ -104,6 +105,12 @@ mixin NoteActionsMixin {
       isPureRenote: isPureRenote,
       renoteUserName: renoteUserName,
     );
+  }
+
+  /// ノート通報シートを表示して入力内容を返す。
+  @protected
+  Future<NoteReportInput?> pickNoteReportReason() async {
+    return showNoteReportSheet(context);
   }
 
   /// 絵文字をクリップボードにコピーする。

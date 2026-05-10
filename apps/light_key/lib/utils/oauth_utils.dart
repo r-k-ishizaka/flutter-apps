@@ -5,7 +5,7 @@ import 'package:crypto/crypto.dart';
 
 class OAuthUtils {
   static const String defaultScope =
-      'read:account write:account write:notes write:reactions write:favorites write:mutes write:blocks read:notifications';
+      'read:account write:account write:notes write:reactions write:favorites write:mutes write:blocks write:report-abuse read:notifications';
 
   /// ランダムな文字列を生成
   static String generateRandomString(int length) {

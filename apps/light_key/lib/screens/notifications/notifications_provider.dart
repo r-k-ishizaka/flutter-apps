@@ -369,6 +369,45 @@ class NotificationsProvider extends ChangeNotifier {
     );
   }
 
+  Future<String?> createReport(
+    Note note,
+    String category,
+    String userComment,
+  ) async {
+    final targetNote = note.noteType == NoteType.pureRenote
+        ? note.renote ?? note
+        : note;
+    if (targetNote.id.isEmpty) {
+      return '通報対象のノートIDが見つかりません。';
+    }
+    if (targetNote.user.id.isEmpty) {
+      return '通報対象のユーザーIDが見つかりません。';
+    }
+
+    final sessionResult = await _authRepository.restoreSession();
+    return sessionResult.when(
+      success: (session) async {
+        if (session == null) {
+          return '先に認証してください。';
+        }
+
+        final reportResult = await _timelineRepository.createReport(
+          session,
+          userId: targetNote.user.id,
+          noteId: targetNote.id,
+          category: category,
+          userComment: userComment,
+          noteUrl: targetNote.url,
+        );
+        return reportResult.when(
+          success: (_) => null,
+          failure: (error, _) => '通報に失敗しました: $error',
+        );
+      },
+      failure: (error, _) async => 'セッション取得に失敗しました: $error',
+    );
+  }
+
   Future<String?> deleteNote(Note note) async {
     final targetNote = note.noteType == NoteType.pureRenote
         ? note.renote ?? note

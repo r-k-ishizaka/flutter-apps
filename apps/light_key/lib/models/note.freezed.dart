@@ -21,7 +21,9 @@ mixin _$Note {
  Note? get renote;/// リプライ元ノート。リプライ投稿の場合に設定される。
  Note? get reply;/// 公開範囲
 @JsonKey(fromJson: _visibilityFromJson) NoteVisibility get visibility;/// ローカルのみ（連合なし）
- bool get localOnly;
+ bool get localOnly;/// リモートノートの場合にノート主のホスト上の公開URL。
+/// ローカルノートの場合は null。
+ String? get url;
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -34,16 +36,16 @@ $NoteCopyWith<Note> get copyWith => _$NoteCopyWithImpl<Note>(this as Note, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.cw, cw) || other.cw == cw)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other.files, files)&&const DeepCollectionEquality().equals(other.reactions, reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote)&&(identical(other.reply, reply) || other.reply == reply)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.localOnly, localOnly) || other.localOnly == localOnly));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.cw, cw) || other.cw == cw)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other.files, files)&&const DeepCollectionEquality().equals(other.reactions, reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote)&&(identical(other.reply, reply) || other.reply == reply)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.localOnly, localOnly) || other.localOnly == localOnly)&&(identical(other.url, url) || other.url == url));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,text,cw,createdAt,user,const DeepCollectionEquality().hash(files),const DeepCollectionEquality().hash(reactions),myReaction,renote,reply,visibility,localOnly);
+int get hashCode => Object.hash(runtimeType,id,text,cw,createdAt,user,const DeepCollectionEquality().hash(files),const DeepCollectionEquality().hash(reactions),myReaction,renote,reply,visibility,localOnly,url);
 
 @override
 String toString() {
-  return 'Note(id: $id, text: $text, cw: $cw, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote, reply: $reply, visibility: $visibility, localOnly: $localOnly)';
+  return 'Note(id: $id, text: $text, cw: $cw, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote, reply: $reply, visibility: $visibility, localOnly: $localOnly, url: $url)';
 }
 
 
@@ -54,7 +56,7 @@ abstract mixin class $NoteCopyWith<$Res>  {
   factory $NoteCopyWith(Note value, $Res Function(Note) _then) = _$NoteCopyWithImpl;
 @useResult
 $Res call({
- String id, String text, String? cw, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote, Note? reply,@JsonKey(fromJson: _visibilityFromJson) NoteVisibility visibility, bool localOnly
+ String id, String text, String? cw, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote, Note? reply,@JsonKey(fromJson: _visibilityFromJson) NoteVisibility visibility, bool localOnly, String? url
 });
 
 
@@ -71,7 +73,7 @@ class _$NoteCopyWithImpl<$Res>
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? text = null,Object? cw = freezed,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,Object? reply = freezed,Object? visibility = null,Object? localOnly = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? text = null,Object? cw = freezed,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,Object? reply = freezed,Object? visibility = null,Object? localOnly = null,Object? url = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
@@ -85,7 +87,8 @@ as String?,renote: freezed == renote ? _self.renote : renote // ignore: cast_nul
 as Note?,reply: freezed == reply ? _self.reply : reply // ignore: cast_nullable_to_non_nullable
 as Note?,visibility: null == visibility ? _self.visibility : visibility // ignore: cast_nullable_to_non_nullable
 as NoteVisibility,localOnly: null == localOnly ? _self.localOnly : localOnly // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,url: freezed == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of Note
@@ -200,10 +203,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote,  Note? reply, @JsonKey(fromJson: _visibilityFromJson)  NoteVisibility visibility,  bool localOnly)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote,  Note? reply, @JsonKey(fromJson: _visibilityFromJson)  NoteVisibility visibility,  bool localOnly,  String? url)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Note() when $default != null:
-return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote,_that.reply,_that.visibility,_that.localOnly);case _:
+return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote,_that.reply,_that.visibility,_that.localOnly,_that.url);case _:
   return orElse();
 
 }
@@ -221,10 +224,10 @@ return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.fi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote,  Note? reply, @JsonKey(fromJson: _visibilityFromJson)  NoteVisibility visibility,  bool localOnly)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote,  Note? reply, @JsonKey(fromJson: _visibilityFromJson)  NoteVisibility visibility,  bool localOnly,  String? url)  $default,) {final _that = this;
 switch (_that) {
 case _Note():
-return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote,_that.reply,_that.visibility,_that.localOnly);}
+return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote,_that.reply,_that.visibility,_that.localOnly,_that.url);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -238,10 +241,10 @@ return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.fi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote,  Note? reply, @JsonKey(fromJson: _visibilityFromJson)  NoteVisibility visibility,  bool localOnly)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String text,  String? cw,  DateTime createdAt,  User user,  List<NoteFile> files, @JsonKey(fromJson: _reactionsFromJson)  Map<String, int> reactions,  String? myReaction,  Note? renote,  Note? reply, @JsonKey(fromJson: _visibilityFromJson)  NoteVisibility visibility,  bool localOnly,  String? url)?  $default,) {final _that = this;
 switch (_that) {
 case _Note() when $default != null:
-return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote,_that.reply,_that.visibility,_that.localOnly);case _:
+return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.files,_that.reactions,_that.myReaction,_that.renote,_that.reply,_that.visibility,_that.localOnly,_that.url);case _:
   return null;
 
 }
@@ -253,7 +256,7 @@ return $default(_that.id,_that.text,_that.cw,_that.createdAt,_that.user,_that.fi
 @JsonSerializable()
 
 class _Note extends Note {
-  const _Note({this.id = '', this.text = '', this.cw, required this.createdAt, required this.user, final  List<NoteFile> files = const <NoteFile>[], @JsonKey(fromJson: _reactionsFromJson) final  Map<String, int> reactions = const <String, int>{}, this.myReaction, this.renote, this.reply, @JsonKey(fromJson: _visibilityFromJson) this.visibility = NoteVisibility.public, this.localOnly = false}): _files = files,_reactions = reactions,super._();
+  const _Note({this.id = '', this.text = '', this.cw, required this.createdAt, required this.user, final  List<NoteFile> files = const <NoteFile>[], @JsonKey(fromJson: _reactionsFromJson) final  Map<String, int> reactions = const <String, int>{}, this.myReaction, this.renote, this.reply, @JsonKey(fromJson: _visibilityFromJson) this.visibility = NoteVisibility.public, this.localOnly = false, this.url}): _files = files,_reactions = reactions,super._();
   factory _Note.fromJson(Map<String, dynamic> json) => _$NoteFromJson(json);
 
 @override@JsonKey() final  String id;
@@ -286,6 +289,9 @@ class _Note extends Note {
 @override@JsonKey(fromJson: _visibilityFromJson) final  NoteVisibility visibility;
 /// ローカルのみ（連合なし）
 @override@JsonKey() final  bool localOnly;
+/// リモートノートの場合にノート主のホスト上の公開URL。
+/// ローカルノートの場合は null。
+@override final  String? url;
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
@@ -300,16 +306,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.cw, cw) || other.cw == cw)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other._files, _files)&&const DeepCollectionEquality().equals(other._reactions, _reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote)&&(identical(other.reply, reply) || other.reply == reply)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.localOnly, localOnly) || other.localOnly == localOnly));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Note&&(identical(other.id, id) || other.id == id)&&(identical(other.text, text) || other.text == text)&&(identical(other.cw, cw) || other.cw == cw)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other._files, _files)&&const DeepCollectionEquality().equals(other._reactions, _reactions)&&(identical(other.myReaction, myReaction) || other.myReaction == myReaction)&&(identical(other.renote, renote) || other.renote == renote)&&(identical(other.reply, reply) || other.reply == reply)&&(identical(other.visibility, visibility) || other.visibility == visibility)&&(identical(other.localOnly, localOnly) || other.localOnly == localOnly)&&(identical(other.url, url) || other.url == url));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,text,cw,createdAt,user,const DeepCollectionEquality().hash(_files),const DeepCollectionEquality().hash(_reactions),myReaction,renote,reply,visibility,localOnly);
+int get hashCode => Object.hash(runtimeType,id,text,cw,createdAt,user,const DeepCollectionEquality().hash(_files),const DeepCollectionEquality().hash(_reactions),myReaction,renote,reply,visibility,localOnly,url);
 
 @override
 String toString() {
-  return 'Note(id: $id, text: $text, cw: $cw, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote, reply: $reply, visibility: $visibility, localOnly: $localOnly)';
+  return 'Note(id: $id, text: $text, cw: $cw, createdAt: $createdAt, user: $user, files: $files, reactions: $reactions, myReaction: $myReaction, renote: $renote, reply: $reply, visibility: $visibility, localOnly: $localOnly, url: $url)';
 }
 
 
@@ -320,7 +326,7 @@ abstract mixin class _$NoteCopyWith<$Res> implements $NoteCopyWith<$Res> {
   factory _$NoteCopyWith(_Note value, $Res Function(_Note) _then) = __$NoteCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String text, String? cw, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote, Note? reply,@JsonKey(fromJson: _visibilityFromJson) NoteVisibility visibility, bool localOnly
+ String id, String text, String? cw, DateTime createdAt, User user, List<NoteFile> files,@JsonKey(fromJson: _reactionsFromJson) Map<String, int> reactions, String? myReaction, Note? renote, Note? reply,@JsonKey(fromJson: _visibilityFromJson) NoteVisibility visibility, bool localOnly, String? url
 });
 
 
@@ -337,7 +343,7 @@ class __$NoteCopyWithImpl<$Res>
 
 /// Create a copy of Note
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? text = null,Object? cw = freezed,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,Object? reply = freezed,Object? visibility = null,Object? localOnly = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? text = null,Object? cw = freezed,Object? createdAt = null,Object? user = null,Object? files = null,Object? reactions = null,Object? myReaction = freezed,Object? renote = freezed,Object? reply = freezed,Object? visibility = null,Object? localOnly = null,Object? url = freezed,}) {
   return _then(_Note(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
@@ -351,7 +357,8 @@ as String?,renote: freezed == renote ? _self.renote : renote // ignore: cast_nul
 as Note?,reply: freezed == reply ? _self.reply : reply // ignore: cast_nullable_to_non_nullable
 as Note?,visibility: null == visibility ? _self.visibility : visibility // ignore: cast_nullable_to_non_nullable
 as NoteVisibility,localOnly: null == localOnly ? _self.localOnly : localOnly // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,url: freezed == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

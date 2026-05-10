@@ -109,6 +109,29 @@ class TimelineRepository {
     }
   }
 
+  Future<Result<void>> createReport(
+    AuthSession session, {
+    required String userId,
+    required String noteId,
+    required String category,
+    String userComment = '',
+    String? noteUrl,
+  }) async {
+    try {
+      await _dataSource.createReport(
+        session,
+        userId: userId,
+        noteId: noteId,
+        category: category,
+        userComment: userComment,
+        noteUrl: noteUrl,
+      );
+      return const Success(null);
+    } on Exception catch (e, st) {
+      return Failure(e, st);
+    }
+  }
+
   Future<Result<void>> deleteNote(
     AuthSession session, {
     required String noteId,

@@ -337,6 +337,7 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   final List<String> muteCalls = [];
   final List<String> renoteMuteCalls = [];
   final List<String> blockCalls = [];
+  final List<(String userId, String noteId)> reportCalls = [];
   final List<String> deleteCalls = [];
 
   @override
@@ -391,6 +392,18 @@ class _FakeTimelineDataSource implements TimelineDataSource {
     required String userId,
   }) async {
     blockCalls.add(userId);
+  }
+
+  @override
+  Future<void> createReport(
+    AuthSession session, {
+    required String userId,
+    required String noteId,
+    required String category,
+    String userComment = '',
+    String? noteUrl,
+  }) async {
+    reportCalls.add((userId, noteId));
   }
 
   @override

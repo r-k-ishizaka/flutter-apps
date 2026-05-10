@@ -93,6 +93,32 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
   }
 
   @override
+  Future<void> createReport(
+    AuthSession session, {
+    required String userId,
+    required String noteId,
+    required String category,
+    String userComment = '',
+    String? noteUrl,
+  }) async {
+    final localNoteUrl = _buildNoteUrlFromBase(session.baseUrl, noteId);
+    await client.postVoid(
+      baseUrl: session.baseUrl,
+      path: '/api/users/report-abuse',
+      body: {
+        'i': session.accessToken,
+        'userId': userId,
+        'comment': _buildReportComment(
+          noteUrl: noteUrl,
+          localNoteUrl: localNoteUrl,
+          category: category,
+          userComment: userComment,
+        ),
+      },
+    );
+  }
+
+  @override
   Future<void> deleteNote(AuthSession session, {required String noteId}) async {
     await client.postVoid(
       baseUrl: session.baseUrl,
@@ -161,6 +187,51 @@ class MisskeyTimelineDataSource implements TimelineDataSource {
           path: path,
           queryParameters: {'i': session.accessToken},
         )
+        .toString();
+  }
+
+  String _buildReportComment({
+    required String? noteUrl,
+    required String localNoteUrl,
+    required String category,
+    required String userComment,
+  }) {
+    final lines = <String>[
+      if (noteUrl != null) 'Note: $noteUrl',
+      'Local Note: $localNoteUrl',
+      '-----',
+      'Category: ${_categoryLabel(category)}',
+      '-----',
+    ];
+    final normalizedComment = userComment.trim();
+    if (normalizedComment.isNotEmpty) {
+      lines.add(normalizedComment);
+    }
+    return lines.join('\n');
+  }
+
+  String _categoryLabel(String category) {
+    return switch (category) {
+      'spam' => 'スパム・宣伝',
+      'phishing' => 'フィッシング',
+      'explicit' => '露骨な性的コンテンツ（NSFW含む）',
+      'personalInfoLeak' => '個人情報の漏洩',
+      'selfHarm' => '自傷・自殺をほのめかす投稿',
+      'violationRights' => '権利侵害',
+      'other' => 'その他',
+      _ => category,
+    };
+  }
+
+  String _buildNoteUrlFromBase(String baseUrl, String noteId) {
+    final base = Uri.parse(baseUrl.trim());
+    final segments = base.pathSegments
+        .where((s) => s.isNotEmpty)
+        .toList(growable: true)
+      ..add('notes')
+      ..add(noteId);
+    return base
+        .replace(pathSegments: segments, query: null, fragment: null)
         .toString();
   }
 }

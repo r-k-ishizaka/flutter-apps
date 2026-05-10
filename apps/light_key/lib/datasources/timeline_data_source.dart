@@ -27,6 +27,15 @@ abstract interface class TimelineDataSource {
 
   Future<void> createBlock(AuthSession session, {required String userId});
 
+  Future<void> createReport(
+    AuthSession session, {
+    required String userId,
+    required String noteId,
+    required String category,
+    String userComment = '',
+    String? noteUrl,
+  });
+
   Future<void> deleteNote(AuthSession session, {required String noteId});
 
   /// Fetches a single note by ID.

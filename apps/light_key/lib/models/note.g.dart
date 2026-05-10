@@ -31,6 +31,7 @@ _Note _$NoteFromJson(Map<String, dynamic> json) => _Note(
       ? NoteVisibility.public
       : _visibilityFromJson(json['visibility']),
   localOnly: json['localOnly'] as bool? ?? false,
+  url: json['url'] as String?,
 );
 
 Map<String, dynamic> _$NoteToJson(_Note instance) => <String, dynamic>{
@@ -46,6 +47,7 @@ Map<String, dynamic> _$NoteToJson(_Note instance) => <String, dynamic>{
   'reply': instance.reply,
   'visibility': _$NoteVisibilityEnumMap[instance.visibility]!,
   'localOnly': instance.localOnly,
+  'url': instance.url,
 };
 
 const _$NoteVisibilityEnumMap = {

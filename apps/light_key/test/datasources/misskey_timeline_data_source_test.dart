@@ -267,6 +267,16 @@ class _FakeTimelineDataSource implements TimelineDataSource {
   }) async {}
 
   @override
+  Future<void> createReport(
+    AuthSession session, {
+    required String userId,
+    required String noteId,
+    required String category,
+    String userComment = '',
+    String? noteUrl,
+  }) async {}
+
+  @override
   Future<void> deleteNote(
     AuthSession session, {
     required String noteId,

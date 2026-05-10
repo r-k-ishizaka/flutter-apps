@@ -41,6 +41,10 @@ sealed class Note with _$Note {
 
     /// ローカルのみ（連合なし）
     @Default(false) bool localOnly,
+
+    /// リモートノートの場合にノート主のホスト上の公開URL。
+    /// ローカルノートの場合は null。
+    String? url,
   }) = _Note;
 
   factory Note.fromJson(Map<String, dynamic> json) =>
@@ -83,6 +87,7 @@ Map<String, dynamic> _normalizeNoteJson(Map<String, dynamic> json) {
     'myReaction': json['myReaction'] as String?,
     'renote': json['renote'] is Map ? json['renote'] : null,
     'reply': json['reply'] is Map ? json['reply'] : null,
+    'url': json['url'] as String?,
   };
 }
 
