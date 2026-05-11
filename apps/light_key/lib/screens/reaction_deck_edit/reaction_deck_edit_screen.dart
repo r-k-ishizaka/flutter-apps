@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -219,13 +218,6 @@ class _DeckItemsTab extends HookWidget {
   static const int _crossAxisCount = 8;
   static const double _insertAfterThreshold = 0.66;
 
-  List<String> _reordered(List<String> source, int from, int to) {
-    final next = [...source];
-    final item = next.removeAt(from);
-    next.insert(to, item);
-    return List<String>.unmodifiable(next);
-  }
-
   List<_DeckGridCell> _buildPreviewCells({
     required List<String> emojis,
     required int draggingFromIndex,
@@ -271,49 +263,43 @@ class _DeckItemsTab extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final optimisticDeckEmojis = useState<List<String>?>(null);
-    final renderedDeckEmojis = optimisticDeckEmojis.value ?? deckEmojis;
-
     final draggingFromIndex = useState<int?>(null);
     final placeholderIndex = useState<int?>(null);
     final isOverDeleteZone = useState(false);
 
     final currentDraggingIndex = draggingFromIndex.value;
     final currentPlaceholderIndex = placeholderIndex.value;
-    final isDragging = currentDraggingIndex != null && currentPlaceholderIndex != null;
+    final isDragging =
+        currentDraggingIndex != null && currentPlaceholderIndex != null;
 
     final previewCells = isDragging
         ? _buildPreviewCells(
-            emojis: renderedDeckEmojis,
+            emojis: deckEmojis,
             draggingFromIndex: currentDraggingIndex,
             placeholderIndex: currentPlaceholderIndex,
           )
         : List<_DeckGridCell>.generate(
-            renderedDeckEmojis.length,
+            deckEmojis.length,
             (index) => _DeckGridCell.item(
               baseIndex: index,
-              item: _DeckGridItem(originalIndex: index, emoji: renderedDeckEmojis[index]),
+              item: _DeckGridItem(
+                originalIndex: index,
+                emoji: deckEmojis[index],
+              ),
             ),
             growable: false,
           );
 
-    useEffect(() {
-      final optimistic = optimisticDeckEmojis.value;
-      if (optimistic != null && listEquals(optimistic, deckEmojis)) {
-        optimisticDeckEmojis.value = null;
-      }
-      return null;
-    }, [deckEmojis, optimisticDeckEmojis.value]);
-
-    Future<void> commitReorder(_DraggingDeckEmoji dragging, int destination) async {
+    Future<void> commitReorder(
+      _DraggingDeckEmoji dragging,
+      int destination,
+    ) async {
       final from = dragging.originalIndex;
       if (from == destination) {
         return;
       }
 
-      optimisticDeckEmojis.value = _reordered(renderedDeckEmojis, from, destination);
       await onReorder(from, destination);
-      optimisticDeckEmojis.value = null;
     }
 
     void clearDraggingState() {
@@ -322,7 +308,7 @@ class _DeckItemsTab extends HookWidget {
       isOverDeleteZone.value = false;
     }
 
-    if (renderedDeckEmojis.isEmpty) {
+    if (deckEmojis.isEmpty) {
       return const Center(child: Text('デッキに絵文字がありません。追加タブから登録してください。'));
     }
 
@@ -386,43 +372,47 @@ class _DeckItemsTab extends HookWidget {
                 unawaited(commitReorder(details.data, destination));
                 clearDraggingState();
               },
-              builder: (context, _, __) => LongPressDraggable<_DraggingDeckEmoji>(
-                key: ValueKey('deck-draggable-${item.originalIndex}'),
-                data: _DraggingDeckEmoji(originalIndex: item.originalIndex, emoji: item.emoji),
-                delay: const Duration(milliseconds: 220),
-                feedback: SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: Material(
-                    color: Colors.transparent,
+              builder: (context, _, __) =>
+                  LongPressDraggable<_DraggingDeckEmoji>(
+                    key: ValueKey('deck-draggable-${item.originalIndex}'),
+                    data: _DraggingDeckEmoji(
+                      originalIndex: item.originalIndex,
+                      emoji: item.emoji,
+                    ),
+                    delay: const Duration(milliseconds: 220),
+                    feedback: SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: _DeckEmojiChip(
+                          emoji: item.emoji,
+                          customUrl: customUrl,
+                          customName: customName,
+                          isDragging: true,
+                        ),
+                      ),
+                    ),
+                    childWhenDragging: const SizedBox.shrink(),
+                    onDragStarted: () {
+                      draggingFromIndex.value = item.originalIndex;
+                      placeholderIndex.value = item.originalIndex;
+                      isOverDeleteZone.value = false;
+                    },
+                    onDraggableCanceled: (_, __) {
+                      clearDraggingState();
+                    },
+                    onDragEnd: (_) {
+                      // 絵文字のない場所/グリッド外で離した場合も含めて必ず空欄を戻す。
+                      clearDraggingState();
+                    },
                     child: _DeckEmojiChip(
                       emoji: item.emoji,
                       customUrl: customUrl,
                       customName: customName,
-                      isDragging: true,
+                      isDragging: false,
                     ),
                   ),
-                ),
-                childWhenDragging: const SizedBox.shrink(),
-                onDragStarted: () {
-                  draggingFromIndex.value = item.originalIndex;
-                  placeholderIndex.value = item.originalIndex;
-                  isOverDeleteZone.value = false;
-                },
-                onDraggableCanceled: (_, __) {
-                  clearDraggingState();
-                },
-                onDragEnd: (_) {
-                  // 絵文字のない場所/グリッド外で離した場合も含めて必ず空欄を戻す。
-                  clearDraggingState();
-                },
-                child: _DeckEmojiChip(
-                  emoji: item.emoji,
-                  customUrl: customUrl,
-                  customName: customName,
-                  isDragging: false,
-                ),
-              ),
             );
           },
         ),
@@ -459,7 +449,9 @@ class _DeckItemsTab extends HookWidget {
                               : colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isActive ? colorScheme.error : colorScheme.outlineVariant,
+                            color: isActive
+                                ? colorScheme.error
+                                : colorScheme.outlineVariant,
                             width: 1,
                           ),
                         ),
@@ -515,6 +507,7 @@ class _DeckGridCell {
   const _DeckGridCell.item({required this.baseIndex, required this.item})
     : isPlaceholder = false,
       insertIndex = null;
+
   const _DeckGridCell.placeholder({required this.insertIndex})
     : isPlaceholder = true,
       baseIndex = null,
@@ -564,7 +557,11 @@ class _DeckEmojiChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = customUrl != null && customUrl!.isNotEmpty
-        ? CustomEmojiCell(name: customName ?? emoji, url: customUrl!, onTap: () {})
+        ? CustomEmojiCell(
+            name: customName ?? emoji,
+            url: customUrl!,
+            onTap: () {},
+          )
         : EmojiCell(emoji: emoji, onTap: () {});
 
     if (!isDragging) {
@@ -632,7 +629,9 @@ class _AddEmojiTab extends HookWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text('登録数 $deckItemCount / ${ReactionDeckEditScreen._deckMaxItems}'),
+            child: Text(
+              '登録数 $deckItemCount / ${ReactionDeckEditScreen._deckMaxItems}',
+            ),
           ),
         ),
         if (!isSearching && selectedCategory.value != null)
@@ -640,9 +639,7 @@ class _AddEmojiTab extends HookWidget {
             categoryName: selectedCategory.value!,
             onBack: () => selectedCategory.value = null,
           ),
-        Expanded(
-          child: _buildBody(context, selectedCategory),
-        ),
+        Expanded(child: _buildBody(context, selectedCategory)),
       ],
     );
   }
@@ -656,10 +653,7 @@ class _AddEmojiTab extends HookWidget {
       if (filteredCandidates.isEmpty) {
         return const Center(child: Text('一致する絵文字がありません。'));
       }
-      return _EmojiGrid(
-        emojis: filteredCandidates,
-        onAddEmoji: onAddEmoji,
-      );
+      return _EmojiGrid(emojis: filteredCandidates, onAddEmoji: onAddEmoji);
     }
 
     // カテゴリ選択済み: そのカテゴリの絵文字グリッド
@@ -669,10 +663,7 @@ class _AddEmojiTab extends HookWidget {
       if (emojis.isEmpty) {
         return const Center(child: Text('このカテゴリに絵文字がありません。'));
       }
-      return _EmojiGrid(
-        emojis: emojis,
-        onAddEmoji: onAddEmoji,
-      );
+      return _EmojiGrid(emojis: emojis, onAddEmoji: onAddEmoji);
     }
 
     // カテゴリ一覧
