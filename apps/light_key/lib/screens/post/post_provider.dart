@@ -31,7 +31,7 @@ class PostProvider extends ChangeNotifier {
     final result = await _authRepository.restoreSession();
     return result.when(
       success: (session) => session?.user,
-      failure: (_, __) => null,
+      failure: (_, _) => null,
     );
   }
 

@@ -143,6 +143,11 @@ class ReactionDeckEditProvider extends ChangeNotifier {
 
   Future<void> addEmojiToSelectedDeck(String emoji) async {
     final deckId = _state.selectedDeckId;
+    if (_state.deckEmojis.contains(emoji)) {
+      _state = _state.copyWith(message: '$emoji はすでに追加済みです。');
+      notifyListeners();
+      return;
+    }
     if (_state.deckEmojis.length >= 32) {
       _state = _state.copyWith(message: '1デッキの上限は32件です。');
       notifyListeners();
@@ -252,5 +257,21 @@ class ReactionDeckEditProvider extends ChangeNotifier {
     }
     _state = _state.copyWith(clearMessage: true);
     notifyListeners();
+  }
+
+  /// インポート入力文字列から有効な絵文字候補を返す（ローカル未登録を除外・重複除去）。
+  List<ReactionDeckCandidateEmoji> resolveImportEmojis(String input) {
+    final pattern = RegExp(r':([^:]+):');
+    final seen = <String>{};
+    final result = <ReactionDeckCandidateEmoji>[];
+    for (final match in pattern.allMatches(input)) {
+      final name = match.group(1);
+      if (name == null || name.isEmpty) continue;
+      if (!seen.add(name)) continue;
+      final url = _customEmojiUrlByName[name];
+      if (url == null || url.isEmpty) continue;
+      result.add(ReactionDeckCandidateEmoji(name: name, url: url, category: ''));
+    }
+    return result;
   }
 }

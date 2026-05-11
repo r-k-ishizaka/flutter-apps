@@ -47,7 +47,7 @@ class UserAvatar extends StatelessWidget {
             ),
           );
         },
-        errorWidget: (context, _, __) => CircleAvatar(
+        errorWidget: (context, _, _) => CircleAvatar(
           radius: size / 2,
           child: Icon(Icons.person_outline, size: size * 0.5),
         ),

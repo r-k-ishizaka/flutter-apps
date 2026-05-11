@@ -40,7 +40,7 @@ class ReactionDeckEditScreen extends HookWidget {
     final state = provider.state;
     final colorScheme = Theme.of(context).colorScheme;
     final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
-    final tabController = useTabController(initialLength: 2);
+    final tabController = useTabController(initialLength: 3);
     useListenable(tabController);
     final isBackDialogOpen = useState(false);
     final isDraggingDeckItem = useState(false);
@@ -110,6 +110,7 @@ class ReactionDeckEditScreen extends HookWidget {
             tabs: [
               Tab(text: 'デッキ内容'),
               Tab(text: '絵文字を追加'),
+              Tab(text: 'インポート'),
             ],
           ),
         ),
@@ -189,6 +190,11 @@ class ReactionDeckEditScreen extends HookWidget {
                           onQueryChanged: provider.updateQuery,
                           onAddEmoji: provider.addEmojiToSelectedDeck,
                         ),
+                        _ImportDeckTab(
+                          deckEmojis: state.deckEmojis,
+                          onAddEmoji: provider.addEmojiToSelectedDeck,
+                          resolveImportEmojis: provider.resolveImportEmojis,
+                        ),
                       ],
                     ),
                   ),
@@ -196,7 +202,7 @@ class ReactionDeckEditScreen extends HookWidget {
               ),
         floatingActionButton:
             state.isLoading ||
-                tabController.index != 0 ||
+                (tabController.index != 0 && tabController.index != 2) ||
                 isDraggingDeckItem.value
             ? null
             : FloatingActionButton.extended(
@@ -379,7 +385,7 @@ class _DeckItemsTab extends HookWidget {
                     }
                     clearDraggingState();
                   },
-                  builder: (context, _, __) => const _DeckPlaceholderCell(),
+                  builder: (context, _, _) => const _DeckPlaceholderCell(),
                 ),
               );
             }
@@ -412,7 +418,7 @@ class _DeckItemsTab extends HookWidget {
                 unawaited(commitReorder(details.data, destination));
                 clearDraggingState();
               },
-              builder: (context, _, __) =>
+              builder: (context, _, _) =>
                   LongPressDraggable<_DraggingDeckEmoji>(
                     key: ValueKey('deck-draggable-${item.originalIndex}'),
                     data: _DraggingDeckEmoji(
@@ -440,7 +446,7 @@ class _DeckItemsTab extends HookWidget {
                       isOverDeleteZone.value = false;
                       onDraggingChanged(true);
                     },
-                    onDraggableCanceled: (_, __) {
+                    onDraggableCanceled: (_, _) {
                       clearDraggingState();
                     },
                     onDragEnd: (_) {
@@ -479,7 +485,7 @@ class _DeckItemsTab extends HookWidget {
                       unawaited(onRemove(details.data.originalIndex));
                       clearDraggingState();
                     },
-                    builder: (context, _, __) {
+                    builder: (context, _, _) {
                       final colorScheme = Theme.of(context).colorScheme;
                       final isActive = isOverDeleteZone.value;
                       return Container(
@@ -748,7 +754,7 @@ class _AddEmojiTab extends HookWidget {
     }
     return ListView.separated(
       itemCount: sortedCategoryNames.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final name = sortedCategoryNames[index];
         final count = candidatesByCategory[name]?.length ?? 0;
@@ -813,6 +819,156 @@ class _EmojiGrid extends StatelessWidget {
           name: item.name,
           url: item.url,
           onTap: () => unawaited(onAddEmoji(':${item.name}:')),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// デッキをインポート タブ
+// ─────────────────────────────────────────
+
+class _ImportDeckTab extends HookWidget {
+  const _ImportDeckTab({
+    required this.deckEmojis,
+    required this.onAddEmoji,
+    required this.resolveImportEmojis,
+  });
+
+  final List<String> deckEmojis;
+  final Future<void> Function(String emoji) onAddEmoji;
+  final List<ReactionDeckCandidateEmoji> Function(String input)
+  resolveImportEmojis;
+
+  @override
+  Widget build(BuildContext context) {
+    final inputText = useState('');
+    final inputController = useTextEditingController();
+    final importEmojis = useState<List<ReactionDeckCandidateEmoji>>(const []);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: TextField(
+            controller: inputController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Misskey のリアクションデッキを貼り付け',
+              hintText: ':emoji1: :emoji2: :emoji3: ...',
+              alignLabelWithHint: true,
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              inputText.value = value;
+              importEmojis.value = resolveImportEmojis(value);
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(
+            '認識された絵文字: ${importEmojis.value.length} 件'
+            '（ローカル未登録・重複は除外）',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        Expanded(
+          child: importEmojis.value.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      inputText.value.isEmpty
+                          ? 'Misskey のリアクションデッキをペーストしてください。'
+                          : 'ローカルに登録された絵文字が見つかりませんでした。',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : _ImportEmojiGrid(
+                  emojis: importEmojis.value,
+                  deckEmojis: deckEmojis,
+                  onAddEmoji: onAddEmoji,
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ImportEmojiGrid extends StatelessWidget {
+  const _ImportEmojiGrid({
+    required this.emojis,
+    required this.deckEmojis,
+    required this.onAddEmoji,
+  });
+
+  final List<ReactionDeckCandidateEmoji> emojis;
+  final List<String> deckEmojis;
+  final Future<void> Function(String emoji) onAddEmoji;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 84),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 8,
+        childAspectRatio: 1,
+      ),
+      itemCount: emojis.length,
+      itemBuilder: (context, index) {
+        final item = emojis[index];
+        final emojiKey = ':${item.name}:';
+        final isAdded = deckEmojis.contains(emojiKey);
+
+        final cell = CustomEmojiCell(
+          name: item.name,
+          url: item.url,
+          onTap: () => unawaited(onAddEmoji(emojiKey)),
+        );
+
+        if (!isAdded) {
+          return cell;
+        }
+
+        // 追加済み: primary色の枠 + チェックバッジを重ねる。
+        return Stack(
+          children: [
+            cell,
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: colorScheme.primary,
+                      width: 2,
+                    ),
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.25),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 2,
+              top: 2,
+              child: IgnorePointer(
+                child: CircleAvatar(
+                  radius: 7,
+                  backgroundColor: colorScheme.primary,
+                  child: Icon(
+                    Icons.check,
+                    size: 10,
+                    color: colorScheme.onPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

@@ -496,18 +496,18 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   void _removeDeletedNote(String targetNoteId) {
-    bool _keep(Note note) =>
+    bool keep(Note note) =>
         note.id != targetNoteId && note.renote?.id != targetNoteId;
 
     _state = _state.copyWith(
       allNotes: List<Note>.unmodifiable(
-        _state.allNotes.where(_keep).toList(growable: false),
+        _state.allNotes.where(keep).toList(growable: false),
       ),
       noteOnlyNotes: List<Note>.unmodifiable(
-        _state.noteOnlyNotes.where(_keep).toList(growable: false),
+        _state.noteOnlyNotes.where(keep).toList(growable: false),
       ),
       mediaNotes: List<Note>.unmodifiable(
-        _state.mediaNotes.where(_keep).toList(growable: false),
+        _state.mediaNotes.where(keep).toList(growable: false),
       ),
     );
     notifyListeners();

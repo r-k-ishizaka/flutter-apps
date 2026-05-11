@@ -1,11 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:light_key/repositories/emoji_repository.dart';
 import 'package:light_key/models/auth_session.dart';
 import 'package:light_key/utils/emoji_extractor.dart';
-import 'package:light_key/datasources/auth_data_source.dart';
-import 'package:light_key/services/app_database.dart';
-import 'package:light_key/services/emoji_cache.dart';
-import 'package:light_key/datasources/emoji_data_source.dart';
 
 void main() {
   group('EmojiRepository key normalization', () {
