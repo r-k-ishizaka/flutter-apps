@@ -22,7 +22,7 @@ class ReactionDeckView {
 
   bool get isRegistered => emojis.isNotEmpty;
 
-  String get displayName => name.trim().isEmpty ? 'デッキ $deckId' : name.trim();
+  String get displayName => name.trim().isEmpty ? 'デッキ$deckId' : name.trim();
 }
 
 /// リアクションピッカーのUI状態とビジネスロジックを管理する ChangeNotifier。
@@ -69,6 +69,11 @@ class ReactionPickerProvider extends ChangeNotifier {
   Object? get loadError => _loadError;
 
   List<ReactionDeckView> get reactionDecks => _reactionDecks;
+
+  Future<void> refreshReactionDecks() async {
+    await _reloadReactionDecks();
+    _safeNotifyListeners();
+  }
 
   /// トップカテゴリの初期ロードを必要時に1回だけ開始する。
   Future<void> ensureInitialCategoriesLoaded() {

@@ -377,6 +377,127 @@ class AppDatabase extends _$AppDatabase {
           ]))
         .get();
   }
+
+  /// 指定デッキの名前を更新する。
+  Future<void> renameReactionDeck({
+    required int deckId,
+    required String name,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(reactionDeckTable).insert(
+      ReactionDeckTableCompanion(
+        deckId: Value(deckId),
+        name: Value(name.trim()),
+        updatedAt: Value(now),
+      ),
+      onConflict: DoUpdate(
+        (_) => ReactionDeckTableCompanion(name: Value(name.trim()), updatedAt: Value(now)),
+        target: [reactionDeckTable.deckId],
+      ),
+    );
+  }
+
+  /// 指定デッキの絵文字一覧を position 昇順で返す。
+  Future<List<String>> getReactionDeckEmojis(int deckId) async {
+    final rows = await (select(reactionDeckItemTable)
+          ..where((t) => t.deckId.equals(deckId))
+          ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+        .get();
+    return rows.map((row) => row.emoji).toList(growable: false);
+  }
+
+  /// デッキ末尾に絵文字を1件追加する（最大32件）。
+  Future<bool> addReactionDeckItem({
+    required int deckId,
+    required String emoji,
+  }) async {
+    final current = await getReactionDeckEmojis(deckId);
+    if (current.length >= 32) {
+      return false;
+    }
+    await replaceReactionDeckItems(deckId: deckId, emojis: [...current, emoji]);
+    return true;
+  }
+
+  /// 指定 position の絵文字を削除する。
+  Future<bool> removeReactionDeckItem({
+    required int deckId,
+    required int position,
+  }) async {
+    final current = await getReactionDeckEmojis(deckId);
+    if (position < 0 || position >= current.length) {
+      return false;
+    }
+    final next = [...current]..removeAt(position);
+    await replaceReactionDeckItems(deckId: deckId, emojis: next);
+    return true;
+  }
+
+  /// 指定デッキ内で絵文字の並び順を変更する。
+  Future<bool> moveReactionDeckItem({
+    required int deckId,
+    required int fromPosition,
+    required int toPosition,
+  }) async {
+    final current = await getReactionDeckEmojis(deckId);
+    if (fromPosition < 0 || fromPosition >= current.length) {
+      return false;
+    }
+    if (toPosition < 0 || toPosition >= current.length) {
+      return false;
+    }
+    if (fromPosition == toPosition) {
+      return true;
+    }
+
+    final next = [...current];
+    final moved = next.removeAt(fromPosition);
+    next.insert(toPosition, moved);
+    await replaceReactionDeckItems(deckId: deckId, emojis: next);
+    return true;
+  }
+
+  /// 指定デッキの絵文字一覧を丸ごと置き換える。
+  Future<void> replaceReactionDeckItems({
+    required int deckId,
+    required List<String> emojis,
+  }) async {
+    final normalized = emojis.take(32).toList(growable: false);
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    await transaction(() async {
+      await (delete(reactionDeckItemTable)..where((t) => t.deckId.equals(deckId))).go();
+
+      await into(reactionDeckTable).insert(
+        ReactionDeckTableCompanion(
+          deckId: Value(deckId),
+          name: const Value(''),
+          updatedAt: Value(now),
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
+
+      if (normalized.isNotEmpty) {
+        await batch((b) {
+          for (var i = 0; i < normalized.length; i++) {
+            b.insert(
+              reactionDeckItemTable,
+              ReactionDeckItemTableCompanion(
+                deckId: Value(deckId),
+                position: Value(i),
+                emoji: Value(normalized[i]),
+                updatedAt: Value(now),
+              ),
+            );
+          }
+        });
+      }
+
+      await (update(reactionDeckTable)..where((t) => t.deckId.equals(deckId))).write(
+        ReactionDeckTableCompanion(updatedAt: Value(now)),
+      );
+    });
+  }
 }
 
 /// リアクションピッカーが必要とする最小列の読み取りモデル。

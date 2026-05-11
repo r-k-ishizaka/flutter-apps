@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
+import '../../route/app_routes.dart';
 import 'custom_emoji_item.dart';
 import 'emoji_cells.dart';
 import 'pinned_sheet_header.dart';
@@ -172,7 +173,7 @@ class ReactionPickerBody extends HookWidget {
         builder: (context, constraints) {
           final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
           final cellSize = constraints.maxWidth / _frequentGridColumns;
-          final extraFraction = (cellSize * 2) / constraints.maxHeight;
+          final extraFraction = (cellSize * 2 + 16) / constraints.maxHeight;
           final minSheetSize = (1 / 3 + extraFraction).clamp(0.0, 1.0);
           const minExtentEpsilon = 0.005;
           final rawSnapSizes = <double>[0, minSheetSize, 1.0]..sort();
@@ -322,7 +323,7 @@ class ReactionPickerBody extends HookWidget {
     return [
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
           child: SegmentedButton<String>(
             showSelectedIcon: false,
             segments: [
@@ -371,20 +372,36 @@ class ReactionPickerBody extends HookWidget {
     ReactionDeckView deck,
   ) {
     if (!deck.isRegistered) {
-      return const Icon(Icons.emoji_emotions);
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: Icon(Icons.emoji_emotions),
+      );
     }
 
     final emoji = deck.emojis.first;
     final customUrl = notifier.getCustomEmojiUrl(emoji);
     if (customUrl != null && customUrl.isNotEmpty) {
-      return _CategoryRepresentativeIcon(iconUrl: customUrl, size: 20);
+      return SizedBox(
+        width: 24,
+        height: 24,
+        child: _CategoryRepresentativeIcon(iconUrl: customUrl, size: 24),
+      );
     }
 
     if (notifier.getCustomEmojiName(emoji) != null) {
-      return const Icon(Icons.emoji_emotions);
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: Icon(Icons.emoji_emotions),
+      );
     }
 
-    return Center(child: Text(emoji, style: const TextStyle(fontSize: 18)));
+    return SizedBox(
+      width: 24,
+      height: 24,
+      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 16))),
+    );
   }
 
   List<Widget> _buildFrequentSectionSlivers(
@@ -394,8 +411,16 @@ class ReactionPickerBody extends HookWidget {
     final slivers = <Widget>[
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-          child: Text('よく使う絵文字', style: Theme.of(context).textTheme.labelLarge),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text('よく使う絵文字', style: Theme.of(context).textTheme.labelLarge),
+              ),
+              const SizedBox(width: 48, height: 48),
+            ],
+          ),
         ),
       ),
     ];
@@ -470,10 +495,32 @@ class ReactionPickerBody extends HookWidget {
     return [
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-          child: Text(
-            deck.isRegistered ? deck.displayName : 'デッキをカスタムする',
-            style: Theme.of(context).textTheme.labelLarge,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  deck.isRegistered ? deck.displayName : 'デッキをカスタムする',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => unawaited(
+                    ReactionDeckEditRoute(deckId: deck.deckId)
+                        .push<void>(context)
+                        .then((_) => notifier.refreshReactionDecks()),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.edit, size: 20),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -491,9 +538,7 @@ class ReactionPickerBody extends HookWidget {
               }
               return InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: () {
-                  // TODO(kikuchi): リアクションデッキ編集画面へ遷移する。
-                },
+                    onTap: () {},
                 child: const Center(child: Icon(Icons.add_reaction, size: 28)),
               );
             }

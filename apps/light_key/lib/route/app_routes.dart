@@ -18,10 +18,13 @@ import '../screens/post/post_screen.dart';
 import '../screens/post/post_screen_param.dart';
 import '../screens/profile/profile_provider.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/reaction_deck_edit/reaction_deck_edit_provider.dart';
+import '../screens/reaction_deck_edit/reaction_deck_edit_screen.dart';
 import '../screens/settings/settings_provider.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
+import '../services/app_database.dart';
 
 part 'app_routes.g.dart';
 
@@ -189,6 +192,25 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
         themeProvider: context.read<ThemeProvider>(),
       ),
       child: const SettingsScreen(),
+    );
+  }
+}
+
+@TypedGoRoute<ReactionDeckEditRoute>(path: '/reaction-decks/:deckId/edit')
+@immutable
+class ReactionDeckEditRoute extends GoRouteData with $ReactionDeckEditRoute {
+  const ReactionDeckEditRoute({required this.deckId});
+
+  final int deckId;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return ChangeNotifierProvider(
+      create: (_) => ReactionDeckEditProvider(
+        database: getIt<AppDatabase>(),
+        initialDeckId: deckId,
+      )..load(),
+      child: const ReactionDeckEditScreen(),
     );
   }
 }

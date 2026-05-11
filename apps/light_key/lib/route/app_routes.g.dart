@@ -15,6 +15,7 @@ List<RouteBase> get $appRoutes => [
   $authRoute,
   $postRoute,
   $settingsRoute,
+  $reactionDeckEditRoute,
   $userProfileRoute,
   $noteDetailRoute,
   $imageViewerRoute,
@@ -237,6 +238,36 @@ mixin $SettingsRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/settings');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $reactionDeckEditRoute => GoRouteData.$route(
+  path: '/reaction-decks/:deckId/edit',
+  factory: $ReactionDeckEditRoute._fromState,
+);
+
+mixin $ReactionDeckEditRoute on GoRouteData {
+  static ReactionDeckEditRoute _fromState(GoRouterState state) =>
+      ReactionDeckEditRoute(deckId: int.parse(state.pathParameters['deckId']!));
+
+  ReactionDeckEditRoute get _self => this as ReactionDeckEditRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/reaction-decks/${Uri.encodeComponent(_self.deckId.toString())}/edit',
+  );
 
   @override
   void go(BuildContext context) => context.go(location);
