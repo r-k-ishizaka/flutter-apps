@@ -9,6 +9,12 @@ import '../../repositories/timeline_repository.dart';
 import 'notifications_screen_state.dart';
 
 class NotificationsProvider extends ChangeNotifier {
+  /// 表示しない通知タイプ。
+  ///
+  /// - `achievementEarned`: Misskeyの実績通知。i18nキーが大量にあり、
+  ///   公式クライアント側で固定定義されているため実装コストが高い。
+  static const _ignoredTypes = {'achievementEarned'};
+
   NotificationsProvider({
     required AuthRepository authRepository,
     required NotificationRepository notificationRepository,
@@ -55,10 +61,14 @@ class NotificationsProvider extends ChangeNotifier {
         final result = await _notificationRepository.fetchGroupedNotifications(
           session,
         );
-        result.when(
+          result.when(
           success: (notifications) {
+            final filtered = _filterNotifications(notifications);
             _state = NotificationsScreenStateLoaded(
-              notifications: List.unmodifiable(notifications),
+              notifications: List.unmodifiable(filtered),
+              // hasMore はフィルタ後ではなく API の生の件数で判定する。
+              // フィルタで全件除外されても、APIが返した件数が非ゼロなら
+              // さらに先のページに通常通知が存在する可能性がある。
               hasMore: notifications.isNotEmpty,
             );
           },
@@ -123,13 +133,18 @@ class NotificationsProvider extends ChangeNotifier {
           session,
           untilId: lastId,
         );
-        result.when(
+          result.when(
           success: (more) {
-            final merged = _mergeNotifications(loaded.notifications, more);
-            final appendedCount = merged.length - loaded.notifications.length;
+            final merged = _mergeNotifications(
+              loaded.notifications,
+              _filterNotifications(more),
+            );
             _state = NotificationsScreenStateLoaded(
               notifications: merged,
-              hasMore: appendedCount > 0,
+              // hasMore はフィルタ後の appendedCount ではなく raw の件数で判定する。
+              // フィルタで全件除外された場合でも、API が返した件数が非ゼロなら
+              // さらに先のページに通常通知が存在する可能性がある。
+              hasMore: more.isNotEmpty,
             );
           },
           failure: (error, _) {
@@ -151,6 +166,15 @@ class NotificationsProvider extends ChangeNotifier {
         notifyListeners();
       },
     );
+  }
+
+  /// [_ignoredTypes] に含まれる通知タイプを除外する。
+  List<MisskeyNotification> _filterNotifications(
+    List<MisskeyNotification> notifications,
+  ) {
+    return notifications
+        .where((n) => !_ignoredTypes.contains(n.type))
+        .toList(growable: false);
   }
 
   List<MisskeyNotification> _mergeNotifications(
