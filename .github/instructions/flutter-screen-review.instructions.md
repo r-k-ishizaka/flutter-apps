@@ -25,6 +25,7 @@ applyTo:
 - `widgets/` 配下の再利用Widgetが直接遷移していない。
 - Actionsパターンを使う画面では、Screen 側で `useMemoized` により Actions インスタンスを管理している。
 - Actionsを毎buildで `XxxActions(...)` 直接生成していない（依存値変更時のみ再生成される）。
+- 固定高さ行・セクション見出しなど縦位置の整合が必要な箇所では `Text` ではなく `design_system` の `StableText` を使っている（日英混在フォントの行高ズレ対策）。
 
 3. ルーティング規約
 - `go_router_builder` の Typed Route（`@TypedGoRoute`）を使っている。

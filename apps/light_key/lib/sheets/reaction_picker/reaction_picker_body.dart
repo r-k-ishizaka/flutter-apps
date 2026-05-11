@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
+import 'package:design_system/design_system.dart';
+
 import '../../route/app_routes.dart';
 import 'custom_emoji_item.dart';
 import 'emoji_cells.dart';
@@ -416,7 +418,10 @@ class ReactionPickerBody extends HookWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text('よく使う絵文字', style: Theme.of(context).textTheme.labelLarge),
+                child: Text(
+                  'よく使う絵文字',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
               ),
               const SizedBox(width: 48, height: 48),
             ],
@@ -496,31 +501,35 @@ class ReactionPickerBody extends HookWidget {
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  deck.isRegistered ? deck.displayName : 'デッキをカスタムする',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ),
-              SizedBox(
-                width: 48,
-                height: 48,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => unawaited(
-                    ReactionDeckEditRoute(deckId: deck.deckId)
-                        .push<void>(context)
-                        .then((_) => notifier.refreshReactionDecks()),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.edit, size: 20),
+          child: SizedBox(
+            height: 48,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: StableText(
+                      deck.isRegistered ? deck.displayName : 'デッキをカスタムする',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => unawaited(
+                      ReactionDeckEditRoute(deckId: deck.deckId)
+                          .push<void>(context)
+                          .then((_) => notifier.refreshReactionDecks()),
+                    ),
+                    child: const Center(child: Icon(Icons.edit, size: 20)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -538,7 +547,7 @@ class ReactionPickerBody extends HookWidget {
               }
               return InkWell(
                 borderRadius: BorderRadius.circular(8),
-                    onTap: () {},
+                onTap: () {},
                 child: const Center(child: Icon(Icons.add_reaction, size: 28)),
               );
             }
@@ -558,7 +567,10 @@ class ReactionPickerBody extends HookWidget {
               );
             }
 
-            return EmojiCell(emoji: emoji, onTap: () => unawaited(onSelected(emoji)));
+            return EmojiCell(
+              emoji: emoji,
+              onTap: () => unawaited(onSelected(emoji)),
+            );
           }, childCount: maxDeckItems),
         ),
       ),

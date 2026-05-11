@@ -55,6 +55,31 @@
 | `todo_list.dart` | `TodoList` | Todoの一覧表示 |
 | `schedule_notification_input.dart` | `ScheduleNotificationInput` | 通知設定の入力UI |
 
+### テキスト表示
+
+- アプリは英字フォントに **Roboto**、日本語フォントに **Noto Sans JP** を使用しています。
+- フォント fallback が切り替わると `Text` ウィジェットの行高さがグリフ依存で変化するため、**日英混在テキストを縦位置が揃っている要素（固定高さ行など）に配置するとズレが生じます**。
+- `design_system` パッケージの `StableText` は `StrutStyle(forceStrutHeight: true)` をデフォルト適用し、フォント fallback に依らず行高さを primary font のメトリクスで統一します。
+- **高さが揃っていることが求められる文脈**（セクション見出し行・リストヘッダーなど）では `Text` ではなく `StableText` を使用します。
+- 折り返しのある本文テキストや、縦位置の整合が不要な箇所では通常の `Text` を使用して構いません。
+
+```dart
+// 固定高さ行内のラベル → StableText を使う
+SizedBox(
+  height: 48,
+  child: Row(
+    children: [
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: StableText(title, style: theme.textTheme.labelLarge),
+        ),
+      ),
+    ],
+  ),
+)
+```
+
 ### Routing（`route/`）
 
 - `go_router` + `go_router_builder` を組み合わせた型安全なルート定義を必須とします。
