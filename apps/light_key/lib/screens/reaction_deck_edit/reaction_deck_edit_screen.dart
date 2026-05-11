@@ -38,10 +38,12 @@ class ReactionDeckEditScreen extends HookWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<ReactionDeckEditProvider>();
     final state = provider.state;
+    final colorScheme = Theme.of(context).colorScheme;
     final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
     final tabController = useTabController(initialLength: 2);
     useListenable(tabController);
     final isBackDialogOpen = useState(false);
+    final isDraggingDeckItem = useState(false);
 
     final nameController = useTextEditingController(text: state.deckName);
     final searchController = useTextEditingController(text: state.query);
@@ -170,6 +172,12 @@ class ReactionDeckEditScreen extends HookWidget {
                           onRemove: provider.removeEmojiAt,
                           customEmojiUrlOf: provider.getCustomEmojiUrl,
                           customEmojiNameOf: provider.getCustomEmojiName,
+                          onDraggingChanged: (isDragging) {
+                            if (isDraggingDeckItem.value == isDragging) {
+                              return;
+                            }
+                            isDraggingDeckItem.value = isDragging;
+                          },
                         ),
                         _AddEmojiTab(
                           queryController: searchController,
@@ -186,12 +194,21 @@ class ReactionDeckEditScreen extends HookWidget {
                   ),
                 ],
               ),
-        floatingActionButton: state.isLoading || tabController.index != 0
+        floatingActionButton:
+            state.isLoading ||
+                tabController.index != 0 ||
+                isDraggingDeckItem.value
             ? null
             : FloatingActionButton.extended(
                 onPressed: state.hasUnsavedDeckChanges
                     ? () => unawaited(provider.saveSelectedDeck())
                     : null,
+                backgroundColor: state.hasUnsavedDeckChanges
+                    ? colorScheme.primaryContainer
+                    : colorScheme.surfaceContainerHighest,
+                foregroundColor: state.hasUnsavedDeckChanges
+                    ? colorScheme.onPrimaryContainer
+                    : colorScheme.onSurfaceVariant,
                 icon: const Icon(Icons.save),
                 label: const Text('デッキ保存'),
               ),
@@ -207,6 +224,7 @@ class _DeckItemsTab extends HookWidget {
     required this.onRemove,
     required this.customEmojiUrlOf,
     required this.customEmojiNameOf,
+    required this.onDraggingChanged,
   });
 
   final List<String> deckEmojis;
@@ -214,6 +232,7 @@ class _DeckItemsTab extends HookWidget {
   final Future<void> Function(int index) onRemove;
   final String? Function(String emoji) customEmojiUrlOf;
   final String? Function(String emoji) customEmojiNameOf;
+  final ValueChanged<bool> onDraggingChanged;
 
   static const int _crossAxisCount = 8;
   static const double _insertAfterThreshold = 0.66;
@@ -306,6 +325,7 @@ class _DeckItemsTab extends HookWidget {
       draggingFromIndex.value = null;
       placeholderIndex.value = null;
       isOverDeleteZone.value = false;
+      onDraggingChanged(false);
     }
 
     if (deckEmojis.isEmpty) {
@@ -320,8 +340,28 @@ class _DeckItemsTab extends HookWidget {
             crossAxisCount: _crossAxisCount,
             childAspectRatio: 1,
           ),
-          itemCount: previewCells.length,
+          itemCount: previewCells.length + (isDragging ? 1 : 0),
           itemBuilder: (context, index) {
+            if (isDragging && index == previewCells.length) {
+              final endDestination = deckEmojis.length - 1;
+              return DragTarget<_DraggingDeckEmoji>(
+                key: const ValueKey('deck-end-drop-target'),
+                onWillAcceptWithDetails: (_) => true,
+                onMove: (_) {
+                  placeholderIndex.value = endDestination;
+                },
+                onAcceptWithDetails: (details) {
+                  if (details.data.originalIndex != endDestination) {
+                    unawaited(commitReorder(details.data, endDestination));
+                  }
+                  clearDraggingState();
+                },
+                builder: (context, candidateData, _) => _DeckEndDropTargetCell(
+                  isActive: candidateData.isNotEmpty,
+                ),
+              );
+            }
+
             final cell = previewCells[index];
             if (cell.isPlaceholder) {
               final insertIndex = cell.insertIndex;
@@ -398,6 +438,7 @@ class _DeckItemsTab extends HookWidget {
                       draggingFromIndex.value = item.originalIndex;
                       placeholderIndex.value = item.originalIndex;
                       isOverDeleteZone.value = false;
+                      onDraggingChanged(true);
                     },
                     onDraggableCanceled: (_, __) {
                       clearDraggingState();
@@ -534,6 +575,41 @@ class _DeckPlaceholderCell extends StatelessWidget {
           border: Border.all(
             color: colorScheme.primary.withValues(alpha: 0.35),
             width: 1.1,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckEndDropTargetCell extends StatelessWidget {
+  const _DeckEndDropTargetCell({required this.isActive});
+
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isActive
+              ? colorScheme.secondaryContainer
+              : colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive ? colorScheme.secondary : colorScheme.outlineVariant,
+            width: 1.1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.keyboard_double_arrow_down,
+            size: 18,
+            color: isActive
+                ? colorScheme.onSecondaryContainer
+                : colorScheme.onSurfaceVariant,
           ),
         ),
       ),
