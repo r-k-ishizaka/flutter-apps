@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -13,10 +14,35 @@ class ReactionDeckEditScreen extends HookWidget {
 
   static const int _deckMaxItems = 32;
 
+  Future<bool> _confirmLeave(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('未保存の変更があります'),
+        content: const Text('変更を破棄して戻りますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('破棄して戻る'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReactionDeckEditProvider>();
     final state = provider.state;
+    final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+    final tabController = useTabController(initialLength: 2);
+    useListenable(tabController);
+    final isBackDialogOpen = useState(false);
 
     final nameController = useTextEditingController(text: state.deckName);
     final searchController = useTextEditingController(text: state.query);
@@ -41,12 +67,45 @@ class ReactionDeckEditScreen extends HookWidget {
       return null;
     }, [state.query]);
 
-    return DefaultTabController(
-      length: 2,
+    useEffect(() {
+      final message = state.message;
+      if (message == null) {
+        return null;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) {
+          return;
+        }
+        scaffoldMessenger
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(message)));
+        provider.clearMessage();
+      });
+      return null;
+    }, [state.message, scaffoldMessenger]);
+
+    return PopScope(
+      canPop: !state.hasUnsavedDeckChanges,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || isBackDialogOpen.value) {
+          return;
+        }
+
+        isBackDialogOpen.value = true;
+        final shouldLeave = await _confirmLeave(context);
+        isBackDialogOpen.value = false;
+
+        if (!context.mounted || !shouldLeave) {
+          return;
+        }
+        Navigator.of(context).pop();
+      },
       child: Scaffold(
         appBar: AppBar(
           title: const Text('リアクションデッキ編集'),
-          bottom: const TabBar(
+          bottom: TabBar(
+            controller: tabController,
             tabs: [
               Tab(text: 'デッキ内容'),
               Tab(text: '絵文字を追加'),
@@ -102,24 +161,9 @@ class ReactionDeckEditScreen extends HookWidget {
                       ],
                     ),
                   ),
-                  if (state.message != null)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Material(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(8),
-                        child: ListTile(
-                          dense: true,
-                          title: Text(state.message!),
-                          trailing: IconButton(
-                            onPressed: provider.clearMessage,
-                            icon: const Icon(Icons.close),
-                          ),
-                        ),
-                      ),
-                    ),
                   Expanded(
                     child: TabBarView(
+                      controller: tabController,
                       children: [
                         _DeckItemsTab(
                           deckEmojis: state.deckEmojis,
@@ -143,12 +187,21 @@ class ReactionDeckEditScreen extends HookWidget {
                   ),
                 ],
               ),
+        floatingActionButton: state.isLoading || tabController.index != 0
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: state.hasUnsavedDeckChanges
+                    ? () => unawaited(provider.saveSelectedDeck())
+                    : null,
+                icon: const Icon(Icons.save),
+                label: const Text('デッキ保存'),
+              ),
       ),
     );
   }
 }
 
-class _DeckItemsTab extends StatelessWidget {
+class _DeckItemsTab extends HookWidget {
   const _DeckItemsTab({
     required this.deckEmojis,
     required this.onReorder,
@@ -163,46 +216,376 @@ class _DeckItemsTab extends StatelessWidget {
   final String? Function(String emoji) customEmojiUrlOf;
   final String? Function(String emoji) customEmojiNameOf;
 
+  static const int _crossAxisCount = 8;
+  static const double _insertAfterThreshold = 0.66;
+
+  List<String> _reordered(List<String> source, int from, int to) {
+    final next = [...source];
+    final item = next.removeAt(from);
+    next.insert(to, item);
+    return List<String>.unmodifiable(next);
+  }
+
+  List<_DeckGridCell> _buildPreviewCells({
+    required List<String> emojis,
+    required int draggingFromIndex,
+    required int placeholderIndex,
+  }) {
+    final base = <_DeckGridItem>[];
+    for (var i = 0; i < emojis.length; i++) {
+      if (i == draggingFromIndex) {
+        continue;
+      }
+      base.add(_DeckGridItem(originalIndex: i, emoji: emojis[i]));
+    }
+
+    final normalizedPlaceholder = placeholderIndex.clamp(0, base.length);
+    final cells = <_DeckGridCell>[];
+    for (var i = 0; i <= base.length; i++) {
+      if (i == normalizedPlaceholder) {
+        cells.add(_DeckGridCell.placeholder(insertIndex: i));
+      }
+      if (i < base.length) {
+        cells.add(_DeckGridCell.item(baseIndex: i, item: base[i]));
+      }
+    }
+    return cells;
+  }
+
+  int _resolveInsertIndexFromTarget(
+    BuildContext context,
+    DragTargetDetails<_DraggingDeckEmoji> details,
+    int baseIndex,
+  ) {
+    final renderObject = context.findRenderObject();
+    final box = renderObject is RenderBox ? renderObject : null;
+    if (box == null || !box.hasSize) {
+      return baseIndex;
+    }
+
+    final local = box.globalToLocal(details.offset);
+    final normalizedX = (local.dx / box.size.width).clamp(0.0, 1.0);
+    final insertAfter = normalizedX >= _insertAfterThreshold;
+    return baseIndex + (insertAfter ? 1 : 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (deckEmojis.isEmpty) {
+    final optimisticDeckEmojis = useState<List<String>?>(null);
+    final renderedDeckEmojis = optimisticDeckEmojis.value ?? deckEmojis;
+
+    final draggingFromIndex = useState<int?>(null);
+    final placeholderIndex = useState<int?>(null);
+    final isOverDeleteZone = useState(false);
+
+    final currentDraggingIndex = draggingFromIndex.value;
+    final currentPlaceholderIndex = placeholderIndex.value;
+    final isDragging = currentDraggingIndex != null && currentPlaceholderIndex != null;
+
+    final previewCells = isDragging
+        ? _buildPreviewCells(
+            emojis: renderedDeckEmojis,
+            draggingFromIndex: currentDraggingIndex,
+            placeholderIndex: currentPlaceholderIndex,
+          )
+        : List<_DeckGridCell>.generate(
+            renderedDeckEmojis.length,
+            (index) => _DeckGridCell.item(
+              baseIndex: index,
+              item: _DeckGridItem(originalIndex: index, emoji: renderedDeckEmojis[index]),
+            ),
+            growable: false,
+          );
+
+    useEffect(() {
+      final optimistic = optimisticDeckEmojis.value;
+      if (optimistic != null && listEquals(optimistic, deckEmojis)) {
+        optimisticDeckEmojis.value = null;
+      }
+      return null;
+    }, [deckEmojis, optimisticDeckEmojis.value]);
+
+    Future<void> commitReorder(_DraggingDeckEmoji dragging, int destination) async {
+      final from = dragging.originalIndex;
+      if (from == destination) {
+        return;
+      }
+
+      optimisticDeckEmojis.value = _reordered(renderedDeckEmojis, from, destination);
+      await onReorder(from, destination);
+      optimisticDeckEmojis.value = null;
+    }
+
+    void clearDraggingState() {
+      draggingFromIndex.value = null;
+      placeholderIndex.value = null;
+      isOverDeleteZone.value = false;
+    }
+
+    if (renderedDeckEmojis.isEmpty) {
       return const Center(child: Text('デッキに絵文字がありません。追加タブから登録してください。'));
     }
 
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      itemCount: deckEmojis.length,
-      onReorder: (oldIndex, newIndex) => unawaited(onReorder(oldIndex, newIndex)),
-      itemBuilder: (context, index) {
-        final emoji = deckEmojis[index];
-        final customUrl = customEmojiUrlOf(emoji);
-        final customName = customEmojiNameOf(emoji);
+    return Stack(
+      children: [
+        GridView.builder(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 84),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _crossAxisCount,
+            childAspectRatio: 1,
+          ),
+          itemCount: previewCells.length,
+          itemBuilder: (context, index) {
+            final cell = previewCells[index];
+            if (cell.isPlaceholder) {
+              final insertIndex = cell.insertIndex;
+              if (insertIndex == null) {
+                return const SizedBox.shrink();
+              }
+              return KeyedSubtree(
+                key: ValueKey('deck-placeholder-${cell.insertIndex}'),
+                child: DragTarget<_DraggingDeckEmoji>(
+                  onWillAcceptWithDetails: (_) => true,
+                  onAcceptWithDetails: (details) {
+                    final from = details.data.originalIndex;
+                    if (from != insertIndex) {
+                      unawaited(commitReorder(details.data, insertIndex));
+                    }
+                    clearDraggingState();
+                  },
+                  builder: (context, _, __) => const _DeckPlaceholderCell(),
+                ),
+              );
+            }
 
-        return ListTile(
-          key: ValueKey('$emoji-$index'),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: SizedBox(
-            width: 36,
-            height: 36,
-            child: customUrl != null && customUrl.isNotEmpty
-                ? CustomEmojiCell(name: customName ?? emoji, url: customUrl, onTap: () {})
-                : Center(
-                    child: Text(
-                      customName != null ? ':$customName:' : emoji,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            final item = cell.item;
+            final baseIndex = cell.baseIndex;
+            if (item == null || baseIndex == null) {
+              return const SizedBox.shrink();
+            }
+
+            final customUrl = customEmojiUrlOf(item.emoji);
+            final customName = customEmojiNameOf(item.emoji);
+
+            return DragTarget<_DraggingDeckEmoji>(
+              key: ValueKey('deck-item-${item.originalIndex}'),
+              onWillAcceptWithDetails: (_) => true,
+              onMove: (details) {
+                placeholderIndex.value = _resolveInsertIndexFromTarget(
+                  context,
+                  details,
+                  baseIndex,
+                );
+              },
+              onAcceptWithDetails: (details) {
+                final destination = _resolveInsertIndexFromTarget(
+                  context,
+                  details,
+                  baseIndex,
+                );
+                unawaited(commitReorder(details.data, destination));
+                clearDraggingState();
+              },
+              builder: (context, _, __) => LongPressDraggable<_DraggingDeckEmoji>(
+                key: ValueKey('deck-draggable-${item.originalIndex}'),
+                data: _DraggingDeckEmoji(originalIndex: item.originalIndex, emoji: item.emoji),
+                delay: const Duration(milliseconds: 220),
+                feedback: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: _DeckEmojiChip(
+                      emoji: item.emoji,
+                      customUrl: customUrl,
+                      customName: customName,
+                      isDragging: true,
                     ),
                   ),
+                ),
+                childWhenDragging: const SizedBox.shrink(),
+                onDragStarted: () {
+                  draggingFromIndex.value = item.originalIndex;
+                  placeholderIndex.value = item.originalIndex;
+                  isOverDeleteZone.value = false;
+                },
+                onDraggableCanceled: (_, __) {
+                  clearDraggingState();
+                },
+                onDragEnd: (_) {
+                  // 絵文字のない場所/グリッド外で離した場合も含めて必ず空欄を戻す。
+                  clearDraggingState();
+                },
+                child: _DeckEmojiChip(
+                  emoji: item.emoji,
+                  customUrl: customUrl,
+                  customName: customName,
+                  isDragging: false,
+                ),
+              ),
+            );
+          },
+        ),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: IgnorePointer(
+            ignoring: !isDragging,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 160),
+              offset: isDragging ? Offset.zero : const Offset(0, 1),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 140),
+                opacity: isDragging ? 1 : 0,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: DragTarget<_DraggingDeckEmoji>(
+                    onWillAcceptWithDetails: (_) {
+                      isOverDeleteZone.value = true;
+                      return true;
+                    },
+                    onLeave: (_) => isOverDeleteZone.value = false,
+                    onAcceptWithDetails: (details) {
+                      unawaited(onRemove(details.data.originalIndex));
+                      clearDraggingState();
+                    },
+                    builder: (context, _, __) {
+                      final colorScheme = Theme.of(context).colorScheme;
+                      final isActive = isOverDeleteZone.value;
+                      return Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? colorScheme.errorContainer
+                              : colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isActive ? colorScheme.error : colorScheme.outlineVariant,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              color: isActive
+                                  ? colorScheme.onErrorContainer
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'ここに重ねて削除',
+                              style: TextStyle(
+                                color: isActive
+                                    ? colorScheme.onErrorContainer
+                                    : colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
           ),
-          title: Text(customName != null ? ':$customName:' : emoji),
-          subtitle: Text('${index + 1} / 32'),
-          trailing: IconButton(
-            onPressed: () => unawaited(onRemove(index)),
-            icon: const Icon(Icons.delete_outline),
-            tooltip: '削除',
+        ),
+      ],
+    );
+  }
+}
+
+class _DraggingDeckEmoji {
+  const _DraggingDeckEmoji({required this.originalIndex, required this.emoji});
+
+  final int originalIndex;
+  final String emoji;
+}
+
+class _DeckGridItem {
+  const _DeckGridItem({required this.originalIndex, required this.emoji});
+
+  final int originalIndex;
+  final String emoji;
+}
+
+class _DeckGridCell {
+  const _DeckGridCell.item({required this.baseIndex, required this.item})
+    : isPlaceholder = false,
+      insertIndex = null;
+  const _DeckGridCell.placeholder({required this.insertIndex})
+    : isPlaceholder = true,
+      baseIndex = null,
+      item = null;
+
+  final bool isPlaceholder;
+  final int? baseIndex;
+  final _DeckGridItem? item;
+  final int? insertIndex;
+}
+
+class _DeckPlaceholderCell extends StatelessWidget {
+  const _DeckPlaceholderCell();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: colorScheme.primary.withValues(alpha: 0.35),
+            width: 1.1,
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckEmojiChip extends StatelessWidget {
+  const _DeckEmojiChip({
+    required this.emoji,
+    required this.customUrl,
+    required this.customName,
+    required this.isDragging,
+  });
+
+  final String emoji;
+  final String? customUrl;
+  final String? customName;
+  final bool isDragging;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = customUrl != null && customUrl!.isNotEmpty
+        ? CustomEmojiCell(name: customName ?? emoji, url: customUrl!, onTap: () {})
+        : EmojiCell(emoji: emoji, onTap: () {});
+
+    if (!isDragging) {
+      return content;
+    }
+
+    return Opacity(
+      opacity: 0.9,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: content,
+      ),
     );
   }
 }

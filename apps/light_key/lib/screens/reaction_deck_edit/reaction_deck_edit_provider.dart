@@ -29,6 +29,7 @@ class ReactionDeckEditProvider extends ChangeNotifier {
   ReactionDeckEditScreenState _state;
   final Map<int, String> _deckNames = {};
   final Map<int, List<String>> _deckEmojis = {};
+  final Set<int> _dirtyDeckIds = {};
   final Map<String, String> _customEmojiUrlByName = {};
 
   ReactionDeckEditScreenState get state => _state;
@@ -55,6 +56,7 @@ class ReactionDeckEditProvider extends ChangeNotifier {
         _deckNames.putIfAbsent(deckId, () => '');
         _deckEmojis.putIfAbsent(deckId, () => []);
       }
+      _dirtyDeckIds.clear();
 
       final candidateMap = <String, ReactionDeckCandidateEmoji>{};
       _customEmojiUrlByName.clear();
@@ -81,6 +83,7 @@ class ReactionDeckEditProvider extends ChangeNotifier {
         deckEmojis: List<String>.unmodifiable(
           (_deckEmojis[selectedDeckId] ?? const []).take(32),
         ),
+        hasUnsavedDeckChanges: _dirtyDeckIds.contains(selectedDeckId),
         candidates: List<ReactionDeckCandidateEmoji>.unmodifiable(candidates),
         clearMessage: true,
       );
@@ -111,6 +114,7 @@ class ReactionDeckEditProvider extends ChangeNotifier {
       deckEmojis: List<String>.unmodifiable(
         (_deckEmojis[safeDeckId] ?? const []).take(32),
       ),
+      hasUnsavedDeckChanges: _dirtyDeckIds.contains(safeDeckId),
       clearMessage: true,
     );
     notifyListeners();
@@ -145,22 +149,15 @@ class ReactionDeckEditProvider extends ChangeNotifier {
       return;
     }
 
-    try {
-      final added = await _database.addReactionDeckItem(deckId: deckId, emoji: emoji);
-      if (!added) {
-        _state = _state.copyWith(message: '1デッキの上限は32件です。');
-        notifyListeners();
-        return;
-      }
-
-      final next = List<String>.unmodifiable([..._state.deckEmojis, emoji]);
-      _deckEmojis[deckId] = next;
-      _state = _state.copyWith(deckEmojis: next, clearMessage: true);
-      notifyListeners();
-    } catch (e) {
-      _state = _state.copyWith(message: '絵文字の追加に失敗しました: $e');
-      notifyListeners();
-    }
+    final next = List<String>.unmodifiable([..._state.deckEmojis, emoji]);
+    _deckEmojis[deckId] = next;
+    _dirtyDeckIds.add(deckId);
+    _state = _state.copyWith(
+      deckEmojis: next,
+      hasUnsavedDeckChanges: true,
+      clearMessage: true,
+    );
+    notifyListeners();
   }
 
   Future<void> removeEmojiAt(int index) async {
@@ -169,23 +166,16 @@ class ReactionDeckEditProvider extends ChangeNotifier {
       return;
     }
 
-    try {
-      final removed = await _database.removeReactionDeckItem(
-        deckId: deckId,
-        position: index,
-      );
-      if (!removed) {
-        return;
-      }
-      final next = [..._state.deckEmojis]..removeAt(index);
-      final immutable = List<String>.unmodifiable(next);
-      _deckEmojis[deckId] = immutable;
-      _state = _state.copyWith(deckEmojis: immutable, clearMessage: true);
-      notifyListeners();
-    } catch (e) {
-      _state = _state.copyWith(message: '絵文字の削除に失敗しました: $e');
-      notifyListeners();
-    }
+    final next = [..._state.deckEmojis]..removeAt(index);
+    final immutable = List<String>.unmodifiable(next);
+    _deckEmojis[deckId] = immutable;
+    _dirtyDeckIds.add(deckId);
+    _state = _state.copyWith(
+      deckEmojis: immutable,
+      hasUnsavedDeckChanges: true,
+      clearMessage: true,
+    );
+    notifyListeners();
   }
 
   Future<void> reorderEmoji(int oldIndex, int newIndex) async {
@@ -194,10 +184,7 @@ class ReactionDeckEditProvider extends ChangeNotifier {
       return;
     }
 
-    var destination = newIndex;
-    if (destination > oldIndex) {
-      destination -= 1;
-    }
+    final destination = newIndex;
     if (destination < 0 || destination >= _state.deckEmojis.length) {
       return;
     }
@@ -205,24 +192,39 @@ class ReactionDeckEditProvider extends ChangeNotifier {
       return;
     }
 
+    final next = [..._state.deckEmojis];
+    final item = next.removeAt(oldIndex);
+    next.insert(destination, item);
+    final immutable = List<String>.unmodifiable(next);
+    _deckEmojis[deckId] = immutable;
+    _dirtyDeckIds.add(deckId);
+    _state = _state.copyWith(
+      deckEmojis: immutable,
+      hasUnsavedDeckChanges: true,
+      clearMessage: true,
+    );
+    notifyListeners();
+  }
+
+  Future<void> saveSelectedDeck() async {
+    final deckId = _state.selectedDeckId;
+    if (!_dirtyDeckIds.contains(deckId)) {
+      return;
+    }
+
     try {
-      final moved = await _database.moveReactionDeckItem(
+      await _database.replaceReactionDeckItems(
         deckId: deckId,
-        fromPosition: oldIndex,
-        toPosition: destination,
+        emojis: _deckEmojis[deckId] ?? const [],
       );
-      if (!moved) {
-        return;
-      }
-      final next = [..._state.deckEmojis];
-      final item = next.removeAt(oldIndex);
-      next.insert(destination, item);
-      final immutable = List<String>.unmodifiable(next);
-      _deckEmojis[deckId] = immutable;
-      _state = _state.copyWith(deckEmojis: immutable, clearMessage: true);
+      _dirtyDeckIds.remove(deckId);
+      _state = _state.copyWith(
+        hasUnsavedDeckChanges: false,
+        message: 'デッキ内容を保存しました。',
+      );
       notifyListeners();
     } catch (e) {
-      _state = _state.copyWith(message: '並び替えの保存に失敗しました: $e');
+      _state = _state.copyWith(message: 'デッキ内容の保存に失敗しました: $e');
       notifyListeners();
     }
   }

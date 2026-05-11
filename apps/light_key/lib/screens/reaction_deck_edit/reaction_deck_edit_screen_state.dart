@@ -18,6 +18,7 @@ class ReactionDeckEditScreenState {
     required this.selectedDeckId,
     required this.deckName,
     required this.deckEmojis,
+    required this.hasUnsavedDeckChanges,
     required this.candidates,
     required this.query,
     required this.message,
@@ -29,6 +30,7 @@ class ReactionDeckEditScreenState {
         selectedDeckId: initialDeckId,
         deckName: '',
         deckEmojis: const [],
+        hasUnsavedDeckChanges: false,
         candidates: const [],
         query: '',
         message: null,
@@ -38,6 +40,7 @@ class ReactionDeckEditScreenState {
   final int selectedDeckId;
   final String deckName;
   final List<String> deckEmojis;
+  final bool hasUnsavedDeckChanges;
   final List<ReactionDeckCandidateEmoji> candidates;
   final String query;
   final String? message;
@@ -75,6 +78,7 @@ class ReactionDeckEditScreenState {
     int? selectedDeckId,
     String? deckName,
     List<String>? deckEmojis,
+    bool? hasUnsavedDeckChanges,
     List<ReactionDeckCandidateEmoji>? candidates,
     String? query,
     String? message,
@@ -85,6 +89,7 @@ class ReactionDeckEditScreenState {
       selectedDeckId: selectedDeckId ?? this.selectedDeckId,
       deckName: deckName ?? this.deckName,
       deckEmojis: deckEmojis ?? this.deckEmojis,
+      hasUnsavedDeckChanges: hasUnsavedDeckChanges ?? this.hasUnsavedDeckChanges,
       candidates: candidates ?? this.candidates,
       query: query ?? this.query,
       message: clearMessage ? null : (message ?? this.message),
